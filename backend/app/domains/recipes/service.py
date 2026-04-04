@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.domains.categories.models import Category
+from app.domains.ingredients.models import Ingredient, IngredientTranslation
 from app.domains.recipes.models import (
     Recipe,
     RecipeIngredient,
@@ -92,7 +93,7 @@ async def get_recipe_by_id(db: AsyncSession, recipe_id: uuid.UUID) -> Recipe | N
         .options(
             selectinload(Recipe.translations),
             selectinload(Recipe.steps).selectinload(RecipeStep.translations),
-            selectinload(Recipe.ingredients),
+            selectinload(Recipe.ingredients).selectinload(RecipeIngredient.ingredient).selectinload(Ingredient.translations),
         )
     )
     return result.scalar_one_or_none()

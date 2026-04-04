@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator
 
 
 class RecipeTranslationSchema(BaseModel):
@@ -28,14 +28,39 @@ class RecipeStepSchema(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class RecipeIngredientTranslationSchema(BaseModel):
+    language_code: str
+    name: str
+
+    model_config = {"from_attributes": True}
+
+
 class RecipeIngredientSchema(BaseModel):
     id: int
     ingredient_id: int
     quantity: float
     unit: str
     is_optional: bool
+    ingredient_translations: list[RecipeIngredientTranslationSchema] = []
 
     model_config = {"from_attributes": True}
+
+    @model_validator(mode='before')
+    @classmethod
+    def extract_ingredient_translations(cls, v):
+        if hasattr(v, 'ingredient'):
+            return {
+                'id': v.id,
+                'ingredient_id': v.ingredient_id,
+                'quantity': float(v.quantity),
+                'unit': v.unit,
+                'is_optional': v.is_optional,
+                'ingredient_translations': [
+                    {'language_code': t.language_code, 'name': t.name}
+                    for t in (v.ingredient.translations if v.ingredient else [])
+                ],
+            }
+        return v
 
 
 class RecipeListItem(BaseModel):

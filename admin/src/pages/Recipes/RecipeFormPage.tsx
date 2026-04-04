@@ -1,12 +1,13 @@
-import { useState } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
   Form, Input, InputNumber, Select, Button, Card, Row, Col,
   Tabs, Space, Typography, message, Divider
 } from 'antd'
 import { ArrowLeftOutlined, PlusOutlined, MinusCircleOutlined } from '@ant-design/icons'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { recipesApi } from '../../api/endpoints/recipes'
+import { ingredientsApi } from '../../api/endpoints/ingredients'
 
 const { Title } = Typography
 const { TextArea } = Input
@@ -15,12 +16,99 @@ const LANGUAGES = [
   { code: 'bg', label: 'Български' },
 ]
 
+function useDebounce<T extends (...args: any[]) => void>(fn: T, delay: number): T {
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  return useMemo(
+    () =>
+      ((...args: any[]) => {
+        if (timer.current) clearTimeout(timer.current)
+        timer.current = setTimeout(() => fn(...args), delay)
+      }) as T,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [delay],
+  )
+}
+
 export function RecipeFormPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [form] = Form.useForm()
   const isEdit = !!id
+
+  // Ingredient suggest state
+  const [ingredientOptions, setIngredientOptions] = useState<{ value: number; label: string }[]>([])
+  const [ingredientSearching, setIngredientSearching] = useState(false)
+
+  const searchIngredients = async (q: string) => {
+    if (!q) return
+    setIngredientSearching(true)
+    try {
+      const res = await ingredientsApi.list({ q })
+      setIngredientOptions(
+        res.data.map((ing: any) => ({
+          value: ing.id,
+          label: ing.translations?.find((t: any) => t.language_code === 'en')?.name ?? `#${ing.id}`,
+        }))
+      )
+    } finally {
+      setIngredientSearching(false)
+    }
+  }
+
+  const handleIngredientSearch = useDebounce(searchIngredients, 400)
+
+  // Load recipe data when editing
+  const { data: recipeData } = useQuery({
+    queryKey: ['recipe', id],
+    queryFn: () => recipesApi.get(id!).then(r => r.data),
+    enabled: isEdit,
+  })
+
+  useEffect(() => {
+    if (!recipeData) return
+    const translations: Record<string, { title: string; description?: string }> = {}
+    for (const t of recipeData.translations) {
+      translations[t.language_code] = { title: t.title, description: t.description }
+    }
+    const steps: Record<string, string[]> = {}
+    for (const step of [...recipeData.steps].sort((a: any, b: any) => a.order - b.order)) {
+      for (const t of step.translations) {
+        steps[t.language_code] = [...(steps[t.language_code] ?? []), t.instruction]
+      }
+    }
+    // Pre-populate ingredient options so existing selections display correctly
+    const existingIngredients = recipeData.ingredients ?? []
+    if (existingIngredients.length > 0) {
+      setIngredientOptions(prev => {
+        const existingIds = new Set(prev.map((o: any) => o.value))
+        const toAdd = existingIngredients
+          .filter((i: any) => !existingIds.has(i.ingredient_id))
+          .map((i: any) => ({
+            value: i.ingredient_id,
+            label: i.ingredient_translations?.find((t: any) => t.language_code === 'en')?.name
+              ?? i.ingredient_translations?.[0]?.name
+              ?? `#${i.ingredient_id}`,
+          }))
+        return [...prev, ...toAdd]
+      })
+    }
+    form.setFieldsValue({
+      translations,
+      steps,
+      ingredients: existingIngredients.map((i: any) => ({
+        ingredient_id: i.ingredient_id,
+        quantity: i.quantity,
+        unit: i.unit,
+      })),
+      prep_time_minutes: recipeData.prep_time_minutes,
+      cook_time_minutes: recipeData.cook_time_minutes,
+      servings: recipeData.servings,
+      difficulty: recipeData.difficulty,
+      status: recipeData.status,
+      image_url: recipeData.image_url,
+    })
+  }, [recipeData, form])
 
   const saveMutation = useMutation({
     mutationFn: (values: unknown) =>
@@ -100,7 +188,15 @@ export function RecipeFormPage() {
                       <Row key={field.key} gutter={8} align="middle" style={{ marginBottom: 8 }}>
                         <Col span={8}>
                           <Form.Item {...field} name={[field.name, 'ingredient_id']} noStyle>
-                            <InputNumber placeholder="Ingredient ID" style={{ width: '100%' }} />
+                            <Select
+                              showSearch
+                              placeholder="Search ingredient..."
+                              filterOption={false}
+                              onSearch={handleIngredientSearch}
+                              loading={ingredientSearching}
+                              options={ingredientOptions}
+                              style={{ width: '100%' }}
+                            />
                           </Form.Item>
                         </Col>
                         <Col span={6}>

@@ -5,6 +5,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from sqlalchemy import insert
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from app.config import settings
@@ -20,8 +21,9 @@ from app.domains.recipes.models import (
     RecipeStepTranslation,
     RecipeTranslation,
 )
+from app.domains.categories.models import recipe_categories
 from app.domains.subscriptions.models import SubscriptionPlan
-from app.domains.tags.models import Tag, TagTranslation
+from app.domains.tags.models import Tag, TagTranslation, recipe_tags
 from app.domains.users.models import AdminRole, User
 from app.domains.weekly_suggestions.models import WeeklySuggestion
 from app.models import *  # noqa: F401, F403 — ensure all models registered
@@ -275,8 +277,12 @@ async def seed():
                         unit=unit,
                     ))
 
-            recipe.categories = [cat_objects[s] for s in r["categories"] if s in cat_objects]
-            recipe.tags = [tag_objects[s] for s in r["tags"] if s in tag_objects]
+            for s in r["categories"]:
+                if s in cat_objects:
+                    await db.execute(insert(recipe_categories).values(recipe_id=recipe.id, category_id=cat_objects[s].id))
+            for s in r["tags"]:
+                if s in tag_objects:
+                    await db.execute(insert(recipe_tags).values(recipe_id=recipe.id, tag_id=tag_objects[s].id))
 
         await db.flush()
         print(f"✓ {len(sample_recipes)} sample recipes")
