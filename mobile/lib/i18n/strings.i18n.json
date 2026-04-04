@@ -1,0 +1,118 @@
+{
+  "app": {
+    "name": "PlateFlow"
+  },
+  "nav": {
+    "home": "Home",
+    "explore": "Explore",
+    "mealPlan": "Meal Plan",
+    "shopping": "Shopping",
+    "profile": "Profile"
+  },
+  "home": {
+    "weeklyTitle": "This Week's Picks",
+    "trending": "Trending Now",
+    "quickMeals": "Quick Meals"
+  },
+  "recipe": {
+    "ingredients": "Ingredients",
+    "steps": "Steps",
+    "servings": "$count serving(s)",
+    "prepTime": "Prep: $minutes min",
+    "cookTime": "Cook: $minutes min",
+    "totalTime": "$minutes min",
+    "difficulty": {
+      "easy": "Easy",
+      "medium": "Medium",
+      "hard": "Hard"
+    },
+    "addToMealPlan": "Add to Meal Plan",
+    "addToShoppingList": "Add to Shopping List",
+    "startCooking": "Start Cooking"
+  },
+  "explore": {
+    "searchHint": "Search recipes, ingredients...",
+    "categories": "Categories",
+    "cuisines": "Cuisines",
+    "filters": "Filters",
+    "filterByTime": "Max Cook Time",
+    "filterByDifficulty": "Difficulty"
+  },
+  "mealPlan": {
+    "title": "Meal Plan",
+    "generateShoppingList": "Generate Shopping List",
+    "addMeal": "Add Meal",
+    "days": {
+      "mon": "Mon",
+      "tue": "Tue",
+      "wed": "Wed",
+      "thu": "Thu",
+      "fri": "Fri",
+      "sat": "Sat",
+      "sun": "Sun"
+    },
+    "mealTypes": {
+      "breakfast": "Breakfast",
+      "lunch": "Lunch",
+      "dinner": "Dinner",
+      "snack": "Snack"
+    }
+  },
+  "shoppingList": {
+    "title": "Shopping List",
+    "empty": "No items yet. Generate from your meal plan!",
+    "clearChecked": "Clear Checked"
+  },
+  "favorites": {
+    "title": "Favourites",
+    "empty": "Save recipes you love!"
+  },
+  "profile": {
+    "title": "Profile",
+    "language": "Language",
+    "units": "Measurement Units",
+    "subscription": "Subscription",
+    "logout": "Sign Out"
+  },
+  "units": {
+    "metric": "Metric",
+    "imperial": "Imperial",
+    "gram": "g",
+    "kilogram": "kg",
+    "milliliter": "ml",
+    "liter": "l",
+    "teaspoon": "tsp",
+    "tablespoon": "tbsp",
+    "cup": "cup",
+    "ounce": "oz",
+    "pound": "lb"
+  },
+  "subscription": {
+    "free": "Free",
+    "trial": "Trial",
+    "premium": "Premium",
+    "upgrade": "Upgrade to Premium",
+    "comingSoon": "Payment coming soon!"
+  },
+  "auth": {
+    "login": "Sign In",
+    "register": "Create Account",
+    "email": "Email",
+    "password": "Password",
+    "fullName": "Full Name",
+    "forgotPassword": "Forgot password?",
+    "noAccount": "Don't have an account?",
+    "haveAccount": "Already have an account?"
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "Something went wrong",
+    "retry": "Retry",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "search": "Search",
+    "noResults": "No results found"
+  }
+}

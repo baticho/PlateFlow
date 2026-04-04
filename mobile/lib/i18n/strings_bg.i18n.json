@@ -1,0 +1,99 @@
+{
+  "nav": {
+    "home": "Начало",
+    "explore": "Разгледай",
+    "mealPlan": "Хранителен план",
+    "shopping": "Пазаруване",
+    "profile": "Профил"
+  },
+  "home": {
+    "weeklyTitle": "Предложения за седмицата",
+    "trending": "Популярни",
+    "quickMeals": "Бързи ястия"
+  },
+  "recipe": {
+    "ingredients": "Съставки",
+    "steps": "Стъпки",
+    "servings": "$count порция/и",
+    "prepTime": "Подготовка: $minutes мин",
+    "cookTime": "Готвене: $minutes мин",
+    "totalTime": "$minutes мин",
+    "difficulty": {
+      "easy": "Лесно",
+      "medium": "Средно",
+      "hard": "Трудно"
+    },
+    "addToMealPlan": "Добави към план",
+    "addToShoppingList": "Добави към списъка",
+    "startCooking": "Започни готвене"
+  },
+  "explore": {
+    "searchHint": "Търси рецепти, съставки...",
+    "categories": "Категории",
+    "cuisines": "Кухни",
+    "filters": "Филтри",
+    "filterByTime": "Макс. време за готвене",
+    "filterByDifficulty": "Трудност"
+  },
+  "mealPlan": {
+    "title": "Хранителен план",
+    "generateShoppingList": "Генерирай списък за пазар",
+    "addMeal": "Добави ястие",
+    "days": {
+      "mon": "Пон",
+      "tue": "Вт",
+      "wed": "Ср",
+      "thu": "Чет",
+      "fri": "Пет",
+      "sat": "Съб",
+      "sun": "Нед"
+    },
+    "mealTypes": {
+      "breakfast": "Закуска",
+      "lunch": "Обяд",
+      "dinner": "Вечеря",
+      "snack": "Снакс"
+    }
+  },
+  "shoppingList": {
+    "title": "Списък за пазаруване",
+    "empty": "Все още няма продукти. Генерирай от плана!",
+    "clearChecked": "Изчисти отбелязаните"
+  },
+  "favorites": {
+    "title": "Любими",
+    "empty": "Запази рецепти, които харесваш!"
+  },
+  "profile": {
+    "title": "Профил",
+    "language": "Език",
+    "units": "Мерни единици",
+    "subscription": "Абонамент",
+    "logout": "Изход"
+  },
+  "units": {
+    "metric": "Метрична",
+    "imperial": "Имперска"
+  },
+  "auth": {
+    "login": "Вход",
+    "register": "Регистрация",
+    "email": "Имейл",
+    "password": "Парола",
+    "fullName": "Пълно име",
+    "forgotPassword": "Забравена парола?",
+    "noAccount": "Нямаш акаунт?",
+    "haveAccount": "Вече имаш акаунт?"
+  },
+  "common": {
+    "loading": "Зарежда...",
+    "error": "Нещо се обърка",
+    "retry": "Опитай пак",
+    "save": "Запази",
+    "cancel": "Отказ",
+    "delete": "Изтрий",
+    "edit": "Редактирай",
+    "search": "Търси",
+    "noResults": "Няма намерени резултати"
+  }
+}
