@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 const String kApiBaseUrl = String.fromEnvironment(
   'API_BASE_URL',
-  defaultValue: 'http://localhost:8000',
+  defaultValue: 'http://10.0.2.2:8005',
 );
 
 final dioProvider = Provider<Dio>((ref) {
