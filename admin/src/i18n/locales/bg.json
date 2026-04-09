@@ -1,0 +1,45 @@
+{
+  "nav": {
+    "dashboard": "Табло",
+    "users": "Потребители",
+    "recipes": "Рецепти",
+    "categories": "Категории",
+    "cuisines": "Кухни",
+    "ingredients": "Съставки",
+    "subscriptions": "Абонаменти",
+    "weeklySuggestions": "Седмични предложения",
+    "settings": "Настройки"
+  },
+  "settings": {
+    "title": "Настройки",
+    "languages": "Поддържани езици",
+    "activeLanguages": "Активни езици",
+    "defaultLanguage": "Език по подразбиране",
+    "interfaceLanguage": "Език на интерфейса",
+    "measurementSystems": "Системи за измерване",
+    "defaultSystem": "Система по подразбиране",
+    "available": "Налични"
+  },
+  "weeklySuggestions": {
+    "title": "Седмични предложения",
+    "add": "Добави рецепта",
+    "edit": "Редактирай",
+    "delete": "Изтрий",
+    "save": "Запази",
+    "cancel": "Отказ",
+    "selectRecipe": "Търси по BG или EN...",
+    "selectPosition": "Избери позиция",
+    "position": "Позиция",
+    "recipe": "Рецепта",
+    "changePosition": "Промени позиция",
+    "confirmDeleteTitle": "Изтриване на предложение?",
+    "confirmDeleteOk": "Изтрий",
+    "confirmDeleteCancel": "Отказ",
+    "added": "Добавено успешно",
+    "updated": "Позицията е обновена",
+    "deleted": "Премахнато",
+    "noResults": "Няма резултати",
+    "searching": "Търсене...",
+    "positionLabel": "Позиция {{n}}"
+  }
+}

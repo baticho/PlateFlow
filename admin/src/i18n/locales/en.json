@@ -1,0 +1,45 @@
+{
+  "nav": {
+    "dashboard": "Dashboard",
+    "users": "Users",
+    "recipes": "Recipes",
+    "categories": "Categories",
+    "cuisines": "Cuisines",
+    "ingredients": "Ingredients",
+    "subscriptions": "Subscriptions",
+    "weeklySuggestions": "Weekly Suggestions",
+    "settings": "Settings"
+  },
+  "settings": {
+    "title": "Settings",
+    "languages": "Supported Languages",
+    "activeLanguages": "Active Languages",
+    "defaultLanguage": "Default Language",
+    "interfaceLanguage": "Interface Language",
+    "measurementSystems": "Measurement Systems",
+    "defaultSystem": "Default System",
+    "available": "Available"
+  },
+  "weeklySuggestions": {
+    "title": "Weekly Suggestions",
+    "add": "Add Recipe",
+    "edit": "Edit",
+    "delete": "Delete",
+    "save": "Save",
+    "cancel": "Cancel",
+    "selectRecipe": "Search by BG or EN name...",
+    "selectPosition": "Select position",
+    "position": "Position",
+    "recipe": "Recipe",
+    "changePosition": "Change Position",
+    "confirmDeleteTitle": "Delete suggestion?",
+    "confirmDeleteOk": "Delete",
+    "confirmDeleteCancel": "Cancel",
+    "added": "Added successfully",
+    "updated": "Position updated",
+    "deleted": "Removed",
+    "noResults": "No results",
+    "searching": "Searching...",
+    "positionLabel": "Position {{n}}"
+  }
+}
