@@ -15,6 +15,8 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.BACKEND_CORS_ORIGINS,
+    # In dev mode allow any localhost port (Flutter web, Vite, etc.)
+    allow_origin_regex=r'http://localhost:\d+' if settings.DEBUG else None,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -23,6 +25,9 @@ app.add_middleware(
 # i18n
 app.add_middleware(I18nMiddleware)
 
+
+# Import all models first so SQLAlchemy can resolve all relationships
+from app import models as _models  # noqa: F401, E402
 
 # Routers
 from app.domains.auth.router import router as auth_router  # noqa: E402

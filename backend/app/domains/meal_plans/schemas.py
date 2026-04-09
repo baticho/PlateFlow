@@ -1,7 +1,7 @@
 import uuid
 from datetime import date, datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator
 
 
 class MealPlanItemCreate(BaseModel):
@@ -18,10 +18,32 @@ class MealPlanCreate(BaseModel):
 class MealPlanItemResponse(BaseModel):
     id: int
     recipe_id: uuid.UUID
+    recipe_title: str
+    recipe_image_url: str | None
     day_of_week: int
     meal_type: str
+    is_completed: bool = False
 
     model_config = {"from_attributes": True}
+
+    @model_validator(mode='before')
+    @classmethod
+    def resolve_recipe(cls, v):
+        if hasattr(v, 'recipe') and v.recipe:
+            en = next(
+                (t for t in v.recipe.translations if t.language_code == 'en'),
+                v.recipe.translations[0] if v.recipe.translations else None,
+            )
+            return {
+                'id': v.id,
+                'recipe_id': v.recipe_id,
+                'recipe_title': en.title if en else str(v.recipe_id),
+                'recipe_image_url': v.recipe.image_url,
+                'day_of_week': v.day_of_week,
+                'meal_type': v.meal_type,
+                'is_completed': v.is_completed,
+            }
+        return v
 
 
 class MealPlanResponse(BaseModel):

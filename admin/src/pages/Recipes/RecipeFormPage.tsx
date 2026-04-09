@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react'
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
   Form, Input, InputNumber, Select, Button, Card, Row, Col,
@@ -36,9 +36,26 @@ export function RecipeFormPage() {
   const [form] = Form.useForm()
   const isEdit = !!id
 
+  // Active language tab (used for ingredient name labels)
+  const [activeLanguage, setActiveLanguage] = useState('en')
+  const activeLanguageRef = useRef('en')
+
+  const handleLanguageChange = (key: string) => {
+    setActiveLanguage(key)
+    activeLanguageRef.current = key
+  }
+
   // Ingredient suggest state
-  const [ingredientOptions, setIngredientOptions] = useState<{ value: number; label: string }[]>([])
+  const [ingredientOptions, setIngredientOptions] = useState<{ value: number; label: string; translations: any[] }[]>([])
   const [ingredientSearching, setIngredientSearching] = useState(false)
+
+  const getIngredientLabel = useCallback((translations: any[], fallbackId: number) => {
+    const lang = activeLanguageRef.current
+    return translations?.find((t: any) => t.language_code === lang)?.name
+      ?? translations?.find((t: any) => t.language_code === 'en')?.name
+      ?? translations?.[0]?.name
+      ?? `#${fallbackId}`
+  }, [])
 
   const searchIngredients = async (q: string) => {
     if (!q) return
@@ -48,7 +65,8 @@ export function RecipeFormPage() {
       setIngredientOptions(
         res.data.map((ing: any) => ({
           value: ing.id,
-          label: ing.translations?.find((t: any) => t.language_code === 'en')?.name ?? `#${ing.id}`,
+          label: getIngredientLabel(ing.translations, ing.id),
+          translations: ing.translations,
         }))
       )
     } finally {
@@ -77,26 +95,10 @@ export function RecipeFormPage() {
         steps[t.language_code] = [...(steps[t.language_code] ?? []), t.instruction]
       }
     }
-    // Pre-populate ingredient options so existing selections display correctly
-    const existingIngredients = recipeData.ingredients ?? []
-    if (existingIngredients.length > 0) {
-      setIngredientOptions(prev => {
-        const existingIds = new Set(prev.map((o: any) => o.value))
-        const toAdd = existingIngredients
-          .filter((i: any) => !existingIds.has(i.ingredient_id))
-          .map((i: any) => ({
-            value: i.ingredient_id,
-            label: i.ingredient_translations?.find((t: any) => t.language_code === 'en')?.name
-              ?? i.ingredient_translations?.[0]?.name
-              ?? `#${i.ingredient_id}`,
-          }))
-        return [...prev, ...toAdd]
-      })
-    }
     form.setFieldsValue({
       translations,
       steps,
-      ingredients: existingIngredients.map((i: any) => ({
+      ingredients: recipeData.ingredients.map((i: any) => ({
         ingredient_id: i.ingredient_id,
         quantity: i.quantity,
         unit: i.unit,
@@ -108,7 +110,26 @@ export function RecipeFormPage() {
       status: recipeData.status,
       image_url: recipeData.image_url,
     })
+    setIngredientOptions(
+      recipeData.ingredients.map((i: any) => ({
+        value: i.ingredient_id,
+        label: getIngredientLabel(i.ingredient_translations, i.ingredient_id),
+        translations: i.ingredient_translations,
+      }))
+    )
   }, [recipeData, form])
+
+  // Re-map all ingredient option labels when language tab changes
+  useEffect(() => {
+    if (!ingredientOptions.length) return
+    setIngredientOptions(prev =>
+      prev.map(opt => ({
+        ...opt,
+        label: getIngredientLabel(opt.translations, opt.value),
+      }))
+    )
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeLanguage])
 
   const saveMutation = useMutation({
     mutationFn: (values: unknown) =>
@@ -178,7 +199,7 @@ export function RecipeFormPage() {
         <Row gutter={16}>
           <Col xs={24} lg={16}>
             <Card title="Translations" style={{ marginBottom: 16 }}>
-              <Tabs items={translationTabs} />
+              <Tabs items={translationTabs} onChange={handleLanguageChange} />
             </Card>
             <Card title="Ingredients" style={{ marginBottom: 16 }}>
               <Form.List name="ingredients">
@@ -230,8 +251,12 @@ export function RecipeFormPage() {
               <Form.Item name="cook_time_minutes" label="Cook Time (min)">
                 <InputNumber min={0} style={{ width: '100%' }} />
               </Form.Item>
-              <Form.Item name="servings" label="Servings">
-                <InputNumber min={1} style={{ width: '100%' }} />
+              <Form.Item name="servings" label="Servings (base)" initialValue={2}>
+                <Select options={[
+                  { value: 2, label: '2 portions' },
+                  { value: 4, label: '4 portions' },
+                  { value: 6, label: '6 portions' },
+                ]} />
               </Form.Item>
               <Form.Item name="difficulty" label="Difficulty">
                 <Select options={[

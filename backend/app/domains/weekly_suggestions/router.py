@@ -31,4 +31,28 @@ async def get_weekly_suggestions(
         .order_by(WeeklySuggestion.position)
     )
     suggestions = result.scalars().all()
-    return {"week_start": week_start, "items": [s.recipe for s in suggestions]}
+    return {
+        "week_start": week_start,
+        "items": [
+            {
+                "id": s.id,
+                "position": s.position,
+                "recipe": {
+                    "id": str(s.recipe.id),
+                    "image_url": s.recipe.image_url,
+                    "total_time_minutes": s.recipe.total_time_minutes,
+                    "difficulty": s.recipe.difficulty,
+                    "servings": s.recipe.servings,
+                    "translations": [
+                        {
+                            "language_code": t.language_code,
+                            "title": t.title,
+                            "description": t.description,
+                        }
+                        for t in s.recipe.translations
+                    ],
+                },
+            }
+            for s in suggestions
+        ],
+    }

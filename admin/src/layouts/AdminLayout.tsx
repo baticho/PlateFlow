@@ -4,7 +4,6 @@ import {
   DashboardOutlined,
   UserOutlined,
   BookOutlined,
-  TagOutlined,
   GlobalOutlined,
   ShoppingOutlined,
   CrownOutlined,
@@ -14,26 +13,28 @@ import {
   AppstoreOutlined,
 } from '@ant-design/icons'
 import { useAuth } from '../contexts/AuthContext'
+import { useTranslation } from 'react-i18next'
 
 const { Sider, Header, Content } = Layout
 const { Text } = Typography
-
-const menuItems = [
-  { key: '/dashboard', icon: <DashboardOutlined />, label: 'Dashboard' },
-  { key: '/users', icon: <UserOutlined />, label: 'Users' },
-  { key: '/recipes', icon: <BookOutlined />, label: 'Recipes' },
-  { key: '/categories', icon: <AppstoreOutlined />, label: 'Categories' },
-  { key: '/cuisines', icon: <GlobalOutlined />, label: 'Cuisines' },
-  { key: '/ingredients', icon: <ShoppingOutlined />, label: 'Ingredients' },
-  { key: '/subscriptions', icon: <CrownOutlined />, label: 'Subscriptions' },
-  { key: '/weekly-suggestions', icon: <CalendarOutlined />, label: 'Weekly Suggestions' },
-  { key: '/settings', icon: <SettingOutlined />, label: 'Settings' },
-]
 
 export function AdminLayout() {
   const navigate = useNavigate()
   const location = useLocation()
   const { user, logout } = useAuth()
+  const { t } = useTranslation()
+
+  const menuItems = [
+    { key: '/dashboard', icon: <DashboardOutlined />, label: t('nav.dashboard') },
+    { key: '/users', icon: <UserOutlined />, label: t('nav.users') },
+    { key: '/recipes', icon: <BookOutlined />, label: t('nav.recipes') },
+    { key: '/categories', icon: <AppstoreOutlined />, label: t('nav.categories') },
+    { key: '/cuisines', icon: <GlobalOutlined />, label: t('nav.cuisines') },
+    { key: '/ingredients', icon: <ShoppingOutlined />, label: t('nav.ingredients') },
+    { key: '/subscriptions', icon: <CrownOutlined />, label: t('nav.subscriptions') },
+    { key: '/weekly-suggestions', icon: <CalendarOutlined />, label: t('nav.weeklySuggestions') },
+    { key: '/settings', icon: <SettingOutlined />, label: t('nav.settings') },
+  ]
 
   const userMenuItems = [
     { key: 'logout', icon: <LogoutOutlined />, label: 'Logout', danger: true },
@@ -79,18 +80,20 @@ export function AdminLayout() {
           top: 0,
           zIndex: 10,
         }}>
-          <Dropdown
-            menu={{
-              items: userMenuItems,
-              onClick: ({ key }) => key === 'logout' && logout(),
-            }}
-            placement="bottomRight"
-          >
-            <Space style={{ cursor: 'pointer' }}>
-              <Avatar style={{ background: '#2E7D32' }} icon={<UserOutlined />} />
-              <Text>{user?.full_name}</Text>
-            </Space>
-          </Dropdown>
+          <Space>
+            <Dropdown
+              menu={{
+                items: userMenuItems,
+                onClick: ({ key }) => key === 'logout' && logout(),
+              }}
+              placement="bottomRight"
+            >
+              <Space style={{ cursor: 'pointer' }}>
+                <Avatar style={{ background: '#2E7D32' }} icon={<UserOutlined />} />
+                <Text>{user?.full_name}</Text>
+              </Space>
+            </Dropdown>
+          </Space>
         </Header>
         <Content style={{ padding: 24, background: '#f5f5f5' }}>
           <Outlet />

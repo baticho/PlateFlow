@@ -2,7 +2,7 @@ import enum
 import uuid
 from datetime import date, datetime
 
-from sqlalchemy import Date, DateTime, Enum, ForeignKey, Integer, UniqueConstraint, func
+from sqlalchemy import Boolean, Date, DateTime, Enum, ForeignKey, Integer, UniqueConstraint, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -42,6 +42,7 @@ class MealPlanItem(Base):
     recipe_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("recipes.id"), nullable=False)
     day_of_week: Mapped[int] = mapped_column(Integer, nullable=False)  # 0=Monday, 6=Sunday
     meal_type: Mapped[MealType] = mapped_column(Enum(MealType), nullable=False)
+    is_completed: Mapped[bool] = mapped_column(Boolean, default=False, server_default='false', nullable=False)
 
     meal_plan = relationship("MealPlan", back_populates="items")
     recipe = relationship("Recipe")

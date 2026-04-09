@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:go_router/go_router.dart';
 import '../../features/auth/presentation/login_screen.dart';
 import '../../features/auth/presentation/register_screen.dart';
@@ -11,11 +11,21 @@ import '../../features/shopping_list/presentation/shopping_list_screen.dart';
 import '../../features/favorites/presentation/favorites_screen.dart';
 import '../../features/profile/presentation/profile_screen.dart';
 import '../../features/subscription/presentation/subscription_screen.dart';
+import '../../features/cooking/presentation/cooking_screen.dart';
 import '../widgets/main_shell.dart';
+
+const _storage = FlutterSecureStorage();
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: '/home',
+    redirect: (context, state) async {
+      final token = await _storage.read(key: 'access_token');
+      final isOnAuthPage = state.matchedLocation == '/login' ||
+          state.matchedLocation == '/register';
+      if (token == null && !isOnAuthPage) return '/login';
+      return null;
+    },
     routes: [
       GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
       GoRoute(path: '/register', builder: (_, __) => const RegisterScreen()),
@@ -38,6 +48,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(path: '/favorites', builder: (_, __) => const FavoritesScreen()),
       GoRoute(path: '/subscription', builder: (_, __) => const SubscriptionScreen()),
+      GoRoute(
+        path: '/cooking/:id',
+        builder: (_, state) => CookingScreen(
+          recipeId: state.pathParameters['id']!,
+          planId: int.tryParse(state.uri.queryParameters['planId'] ?? ''),
+          itemId: int.tryParse(state.uri.queryParameters['itemId'] ?? ''),
+        ),
+      ),
     ],
   );
 });

@@ -5,6 +5,7 @@ from sqlalchemy.orm import selectinload
 
 from app.core.deps import get_current_user
 from app.database import get_db
+from app.domains.ingredients.models import Ingredient, IngredientTranslation
 from app.domains.shopping_lists.models import ShoppingList, ShoppingListItem
 from app.domains.shopping_lists.schemas import ShoppingListResponse
 from app.domains.users.models import User
@@ -20,7 +21,11 @@ async def list_shopping_lists(
     result = await db.execute(
         select(ShoppingList)
         .where(ShoppingList.user_id == current_user.id)
-        .options(selectinload(ShoppingList.items))
+        .options(
+            selectinload(ShoppingList.items)
+            .selectinload(ShoppingListItem.ingredient)
+            .selectinload(Ingredient.translations)
+        )
         .order_by(ShoppingList.created_at.desc())
     )
     return result.scalars().all()

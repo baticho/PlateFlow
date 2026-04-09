@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { Table, Input, Space, Tag, Button, Typography, Switch, message } from 'antd'
-import { SearchOutlined } from '@ant-design/icons'
+import { Table, Input, Space, Tag, Button, Typography, Switch, message, Modal, Form } from 'antd'
+import { SearchOutlined, PlusOutlined, KeyOutlined } from '@ant-design/icons'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { usersApi } from '../../api/endpoints/users'
 
@@ -19,6 +19,10 @@ interface User {
 export function UsersPage() {
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
+  const [createOpen, setCreateOpen] = useState(false)
+  const [passwordUser, setPasswordUser] = useState<User | null>(null)
+  const [createForm] = Form.useForm()
+  const [passwordForm] = Form.useForm()
   const queryClient = useQueryClient()
 
   const { data, isLoading } = useQuery({
@@ -33,6 +37,31 @@ export function UsersPage() {
       queryClient.invalidateQueries({ queryKey: ['admin-users'] })
       message.success('User updated')
     },
+  })
+
+  const createUser = useMutation({
+    mutationFn: (values: unknown) => usersApi.create(values),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] })
+      message.success('User created')
+      setCreateOpen(false)
+      createForm.resetFields()
+    },
+    onError: (err: any) => {
+      const detail = err?.response?.data?.detail
+      message.error(typeof detail === 'string' ? detail : 'Failed to create user')
+    },
+  })
+
+  const setPassword = useMutation({
+    mutationFn: ({ id, password }: { id: string; password: string }) =>
+      usersApi.update(id, { password }),
+    onSuccess: () => {
+      message.success('Password updated')
+      setPasswordUser(null)
+      passwordForm.resetFields()
+    },
+    onError: () => message.error('Failed to update password'),
   })
 
   const columns = [
@@ -63,21 +92,40 @@ export function UsersPage() {
       key: 'created_at',
       render: (v: string) => new Date(v).toLocaleDateString(),
     },
+    {
+      title: 'Actions',
+      key: 'actions',
+      render: (_: unknown, r: User) => (
+        <Button
+          size="small"
+          icon={<KeyOutlined />}
+          onClick={() => { setPasswordUser(r); passwordForm.resetFields() }}
+        >
+          Set Password
+        </Button>
+      ),
+    },
   ]
 
   return (
     <div>
       <Space style={{ marginBottom: 16, justifyContent: 'space-between', width: '100%' }} align="center">
         <Title level={3} style={{ margin: 0 }}>Users</Title>
-        <Input
-          placeholder="Search by name or email..."
-          prefix={<SearchOutlined />}
-          value={search}
-          onChange={(e) => { setSearch(e.target.value); setPage(1) }}
-          style={{ width: 300 }}
-          allowClear
-        />
+        <Space>
+          <Input
+            placeholder="Search by name or email..."
+            prefix={<SearchOutlined />}
+            value={search}
+            onChange={(e) => { setSearch(e.target.value); setPage(1) }}
+            style={{ width: 300 }}
+            allowClear
+          />
+          <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)}>
+            Add User
+          </Button>
+        </Space>
       </Space>
+
       <Table
         rowKey="id"
         dataSource={data?.items ?? []}
@@ -91,6 +139,70 @@ export function UsersPage() {
           showTotal: (total) => `${total} users`,
         }}
       />
+
+      {/* Create User Modal */}
+      <Modal
+        title="Add New User"
+        open={createOpen}
+        onCancel={() => { setCreateOpen(false); createForm.resetFields() }}
+        onOk={() => createForm.submit()}
+        confirmLoading={createUser.isPending}
+        okText="Create User"
+      >
+        <Form
+          form={createForm}
+          layout="vertical"
+          onFinish={(values) => createUser.mutate(values)}
+          style={{ marginTop: 16 }}
+        >
+          <Form.Item
+            name="full_name"
+            label="Full Name"
+            rules={[{ required: true, message: 'Enter full name' }]}
+          >
+            <Input />
+          </Form.Item>
+          <Form.Item
+            name="email"
+            label="Email"
+            rules={[{ required: true, type: 'email', message: 'Enter valid email' }]}
+          >
+            <Input />
+          </Form.Item>
+          <Form.Item
+            name="password"
+            label="Password"
+            rules={[{ required: true, min: 6, message: 'Min 6 characters' }]}
+          >
+            <Input.Password />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* Set Password Modal */}
+      <Modal
+        title={`Set Password — ${passwordUser?.full_name ?? ''}`}
+        open={!!passwordUser}
+        onCancel={() => { setPasswordUser(null); passwordForm.resetFields() }}
+        onOk={() => passwordForm.submit()}
+        confirmLoading={setPassword.isPending}
+        okText="Update Password"
+      >
+        <Form
+          form={passwordForm}
+          layout="vertical"
+          onFinish={(values) => passwordUser && setPassword.mutate({ id: passwordUser.id, password: values.password })}
+          style={{ marginTop: 16 }}
+        >
+          <Form.Item
+            name="password"
+            label="New Password"
+            rules={[{ required: true, min: 6, message: 'Min 6 characters' }]}
+          >
+            <Input.Password />
+          </Form.Item>
+        </Form>
+      </Modal>
     </div>
   )
 }

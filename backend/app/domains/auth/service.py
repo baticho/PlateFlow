@@ -9,7 +9,7 @@ from app.core.security import (
     hash_password,
     verify_password,
 )
-from app.domains.users.models import User
+from app.domains.users.models import LanguageCode, UnitSystem, User
 
 
 async def register_user(
@@ -31,8 +31,8 @@ async def register_user(
         email=email,
         password_hash=hash_password(password),
         full_name=full_name,
-        preferred_language=preferred_language,
-        preferred_unit_system=preferred_unit_system,
+        preferred_language=LanguageCode(preferred_language),
+        preferred_unit_system=UnitSystem(preferred_unit_system),
     )
     db.add(user)
     await db.flush()

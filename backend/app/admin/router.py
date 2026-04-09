@@ -88,9 +88,35 @@ async def admin_get_user(
     return user
 
 
+class AdminCreateUser(BaseModel):
+    email: EmailStr
+    password: str
+    full_name: str
+
+
+@router.post("/users", status_code=status.HTTP_201_CREATED)
+async def admin_create_user(
+    data: AdminCreateUser,
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(get_current_admin),
+):
+    existing = (await db.execute(select(User).where(User.email == data.email))).scalar_one_or_none()
+    if existing:
+        raise HTTPException(status_code=400, detail="Email already registered")
+    user = User(
+        email=data.email,
+        password_hash=hash_password(data.password),
+        full_name=data.full_name,
+    )
+    db.add(user)
+    await db.flush()
+    return user
+
+
 class AdminUpdateUser(BaseModel):
     is_active: bool | None = None
     admin_role: str | None = None
+    password: str | None = None
 
 
 @router.patch("/users/{user_id}")
@@ -109,6 +135,8 @@ async def admin_update_user(
     if data.admin_role is not None:
         user.admin_role = data.admin_role
         user.is_admin = data.admin_role is not None
+    if data.password is not None:
+        user.password_hash = hash_password(data.password)
     await db.flush()
     return user
 
@@ -369,6 +397,14 @@ async def admin_create_suggestion(
     db: AsyncSession = Depends(get_db),
     _admin: User = Depends(get_current_admin),
 ):
+    existing = await db.execute(
+        select(WeeklySuggestion).where(
+            WeeklySuggestion.week_start_date == data.week_start_date,
+            WeeklySuggestion.position == data.position,
+        )
+    )
+    if existing.scalars().first():
+        raise HTTPException(status_code=409, detail="Position already taken for this week")
     suggestion = WeeklySuggestion(
         week_start_date=data.week_start_date,
         recipe_id=data.recipe_id,
@@ -390,6 +426,26 @@ async def admin_delete_suggestion(
     if not s:
         raise HTTPException(status_code=404, detail="Suggestion not found")
     await db.delete(s)
+
+
+class WeeklySuggestionUpdate(BaseModel):
+    position: int
+
+
+@router.patch("/weekly-suggestions/{suggestion_id}")
+async def admin_update_suggestion(
+    suggestion_id: int,
+    data: WeeklySuggestionUpdate,
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(get_current_admin),
+):
+    result = await db.execute(select(WeeklySuggestion).where(WeeklySuggestion.id == suggestion_id))
+    s = result.scalar_one_or_none()
+    if not s:
+        raise HTTPException(status_code=404, detail="Suggestion not found")
+    s.position = data.position
+    await db.flush()
+    return s
 
 
 # ─── Admin User Management ────────────────────────────────────────────────────

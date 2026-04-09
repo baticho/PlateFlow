@@ -1,26 +1,156 @@
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-class ExploreScreen extends StatefulWidget {
+import '../../../core/api/api_client.dart';
+import '../../../core/config/app_config.dart';
+import '../../../core/models/recipe.dart';
+import '../../../core/services/recipe_service.dart';
+
+class ExploreScreen extends ConsumerStatefulWidget {
   const ExploreScreen({super.key});
 
   @override
-  State<ExploreScreen> createState() => _ExploreScreenState();
+  ConsumerState<ExploreScreen> createState() => _ExploreScreenState();
 }
 
-class _ExploreScreenState extends State<ExploreScreen> {
+class _ExploreScreenState extends ConsumerState<ExploreScreen> {
   final _searchCtrl = TextEditingController();
 
-  final List<Map<String, dynamic>> _categories = [
-    {'name': 'Salads', 'icon': Icons.eco, 'color': Color(0xFF4CAF50)},
-    {'name': 'Pasta', 'icon': Icons.ramen_dining, 'color': Color(0xFFFF7043)},
-    {'name': 'Soups', 'icon': Icons.soup_kitchen, 'color': Color(0xFF29B6F6)},
-    {'name': 'Grill', 'icon': Icons.outdoor_grill, 'color': Color(0xFFEF5350)},
-    {'name': 'Desserts', 'icon': Icons.cake, 'color': Color(0xFFAB47BC)},
-    {'name': 'Breakfast', 'icon': Icons.breakfast_dining, 'color': Color(0xFFFFA726)},
-    {'name': 'Vegan', 'icon': Icons.spa, 'color': Color(0xFF66BB6A)},
-    {'name': 'Quick', 'icon': Icons.timer, 'color': Color(0xFF26C6DA)},
-  ];
+  late final RecipeService _recipeService;
+
+  List<Map<String, dynamic>> _categories = [];
+  List<Map<String, dynamic>> _cuisines = [];
+  List<RecipeSummary> _results = [];
+
+  bool _loadingFilters = true;
+  bool _searching = false;
+  bool _searchMode = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    final dio = ref.read(dioProvider);
+    _recipeService = RecipeService(dio);
+    _loadFilters();
+  }
+
+  Future<void> _loadFilters() async {
+    try {
+      final results = await Future.wait([
+        _recipeService.getCategories(),
+        _recipeService.getCuisines(),
+      ]);
+      if (mounted) {
+        setState(() {
+          _categories = results[0];
+          _cuisines = results[1];
+          _loadingFilters = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _loadingFilters = false);
+    }
+  }
+
+  Future<void> _search(String q) async {
+    setState(() {
+      _searchMode = true;
+      _searching = true;
+      _error = null;
+    });
+    try {
+      final data = await _recipeService.listRecipes(q: q);
+      final items = (data['items'] as List? ?? [])
+          .map((i) => RecipeSummary.fromJson(i as Map<String, dynamic>))
+          .toList();
+      if (mounted) setState(() { _results = items; _searching = false; });
+    } on DioException catch (e) {
+      if (mounted) setState(() {
+        _error = e.response?.data?['detail'] ?? 'Search failed';
+        _searching = false;
+      });
+    }
+  }
+
+  Future<void> _filterByCategory(int categoryId) async {
+    setState(() { _searching = true; _searchMode = true; _error = null; });
+    try {
+      final data = await _recipeService.listRecipes(categoryId: categoryId);
+      final items = (data['items'] as List? ?? [])
+          .map((i) => RecipeSummary.fromJson(i as Map<String, dynamic>))
+          .toList();
+      if (mounted) setState(() { _results = items; _searching = false; });
+    } on DioException catch (e) {
+      if (mounted) setState(() {
+        _error = e.response?.data?['detail'] ?? 'Failed to load';
+        _searching = false;
+      });
+    }
+  }
+
+  Future<void> _filterByCuisine(int cuisineId) async {
+    setState(() { _searching = true; _searchMode = true; _error = null; });
+    try {
+      final data = await _recipeService.listRecipes(cuisineId: cuisineId);
+      final items = (data['items'] as List? ?? [])
+          .map((i) => RecipeSummary.fromJson(i as Map<String, dynamic>))
+          .toList();
+      if (mounted) setState(() { _results = items; _searching = false; });
+    } on DioException catch (e) {
+      if (mounted) setState(() {
+        _error = e.response?.data?['detail'] ?? 'Failed to load';
+        _searching = false;
+      });
+    }
+  }
+
+  void _clearSearch() {
+    _searchCtrl.clear();
+    setState(() { _searchMode = false; _results = []; _error = null; });
+  }
+
+  static const _categoryIcons = <String, IconData>{
+    'breakfast': Icons.free_breakfast_outlined,
+    'lunch': Icons.lunch_dining_outlined,
+    'dinner': Icons.dinner_dining_outlined,
+    'dessert': Icons.cake_outlined,
+    'salad': Icons.eco_outlined,
+    'soup': Icons.soup_kitchen_outlined,
+    'snack': Icons.cookie_outlined,
+    'vegan': Icons.spa_outlined,
+    'vegetarian': Icons.grass_outlined,
+    'seafood': Icons.set_meal_outlined,
+    'pasta': Icons.ramen_dining_outlined,
+    'pizza': Icons.local_pizza_outlined,
+    'meat': Icons.outdoor_grill_outlined,
+    'chicken': Icons.egg_outlined,
+    'baking': Icons.bakery_dining_outlined,
+    'drinks': Icons.local_drink_outlined,
+  };
+
+  String _resolveCategoryName(Map<String, dynamic> cat) {
+    final trans = cat['translations'] as List? ?? [];
+    if (trans.isEmpty) return cat['slug'] ?? '';
+    final en = trans.firstWhere(
+      (t) => t['language_code'] == 'en',
+      orElse: () => trans.first,
+    );
+    return en['name'] ?? cat['slug'] ?? '';
+  }
+
+  String _resolveCuisineName(Map<String, dynamic> c) {
+    final trans = c['translations'] as List? ?? [];
+    if (trans.isEmpty) return c['continent'] ?? '';
+    final en = trans.firstWhere(
+      (t) => t['language_code'] == 'en',
+      orElse: () => trans.first,
+    );
+    return en['name'] ?? '';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -28,69 +158,135 @@ class _ExploreScreenState extends State<ExploreScreen> {
     final cs = theme.colorScheme;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Explore', style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w700))),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
+      appBar: AppBar(
+        leading: _searchMode
+            ? IconButton(icon: const Icon(Icons.arrow_back), onPressed: _clearSearch)
+            : null,
+        title: const Text('Explore', style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w700)),
+      ),
+      body: Column(
         children: [
           // Search bar
-          SearchBar(
-            controller: _searchCtrl,
-            hintText: 'Search recipes, ingredients...',
-            leading: const Icon(Icons.search),
-            elevation: WidgetStateProperty.all(0),
-            backgroundColor: WidgetStateProperty.all(cs.surfaceContainerHighest),
-            padding: const WidgetStatePropertyAll(EdgeInsets.symmetric(horizontal: 16)),
-            onSubmitted: (q) {/* navigate to search results */},
-          ),
-          const SizedBox(height: 24),
-          // Categories grid
-          Text('Categories', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600)),
-          const SizedBox(height: 12),
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 4, mainAxisSpacing: 12, crossAxisSpacing: 12, childAspectRatio: 0.85,
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+            child: SearchBar(
+              controller: _searchCtrl,
+              hintText: 'Search recipes, ingredients...',
+              leading: const Icon(Icons.search),
+              trailing: _searchMode
+                  ? [IconButton(icon: const Icon(Icons.close), onPressed: _clearSearch)]
+                  : null,
+              elevation: WidgetStateProperty.all(0),
+              backgroundColor: WidgetStateProperty.all(cs.surfaceContainerHighest),
+              padding: const WidgetStatePropertyAll(EdgeInsets.symmetric(horizontal: 16)),
+              onSubmitted: (q) { if (q.trim().isNotEmpty) _search(q.trim()); },
             ),
-            itemCount: _categories.length,
-            itemBuilder: (context, idx) {
-              final cat = _categories[idx];
-              return GestureDetector(
-                onTap: () {},
-                child: Column(
-                  children: [
-                    Container(
-                      width: 60, height: 60,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(16),
-                        color: (cat['color'] as Color).withAlpha(30),
-                      ),
-                      child: Icon(cat['icon'] as IconData, color: cat['color'] as Color, size: 28),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(cat['name'] as String, style: const TextStyle(fontSize: 11), textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis),
-                  ],
-                ),
-              );
-            },
           ),
-          const SizedBox(height: 24),
-          // Cuisines by continent
-          Text('Cuisines', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600)),
-          const SizedBox(height: 12),
-          ...['🇧🇬 Bulgarian', '🇮🇹 Italian', '🇯🇵 Japanese', '🇲🇽 Mexican', '🇬🇷 Greek'].map(
-            (c) => ListTile(
-              leading: CircleAvatar(
-                backgroundColor: cs.primary.withAlpha(20),
-                child: Icon(Icons.restaurant, color: cs.primary, size: 20),
-              ),
-              title: Text(c),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () {},
-            ),
+          const SizedBox(height: 8),
+          Expanded(
+            child: _searchMode ? _buildResults(cs) : _buildBrowse(theme, cs),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildBrowse(ThemeData theme, ColorScheme cs) {
+    if (_loadingFilters) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+      children: [
+        // Categories grid
+        Text('Categories', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+        const SizedBox(height: 10),
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 4,
+            mainAxisSpacing: 8,
+            crossAxisSpacing: 8,
+            childAspectRatio: 0.9,
+            mainAxisExtent: 80,
+          ),
+          itemCount: _categories.length,
+          itemBuilder: (context, idx) {
+            final cat = _categories[idx];
+            return GestureDetector(
+              onTap: () => _filterByCategory(cat['id']),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 52, height: 52,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(14),
+                      color: cs.primary.withAlpha(25),
+                    ),
+                    child: Icon(_categoryIcons[cat['slug']] ?? Icons.restaurant, color: cs.primary, size: 24),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    _resolveCategoryName(cat),
+                    style: const TextStyle(fontSize: 10),
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+        const SizedBox(height: 20),
+        // Cuisines
+        Text('Cuisines', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+        const SizedBox(height: 8),
+        ..._cuisines.map((c) => ListTile(
+          contentPadding: const EdgeInsets.symmetric(horizontal: 0),
+          leading: CircleAvatar(
+            backgroundColor: cs.primary.withAlpha(20),
+            child: Icon(Icons.public, color: cs.primary, size: 18),
+          ),
+          title: Text(_resolveCuisineName(c)),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => _filterByCuisine(c['id']),
+          dense: true,
+        )),
+      ],
+    );
+  }
+
+  Widget _buildResults(ColorScheme cs) {
+    if (_searching) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_error != null) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.error_outline, size: 48, color: Colors.red),
+            const SizedBox(height: 8),
+            Text(_error!),
+            const SizedBox(height: 16),
+            FilledButton(onPressed: () => _search(_searchCtrl.text), child: const Text('Retry')),
+          ],
+        ),
+      );
+    }
+    if (_results.isEmpty) {
+      return const Center(child: Text('No recipes found.'));
+    }
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: _results.length,
+      itemBuilder: (context, idx) {
+        final r = _results[idx];
+        return _RecipeCard(recipe: r, onTap: () => context.push('/recipe/${r.id}'));
+      },
     );
   }
 
@@ -98,5 +294,66 @@ class _ExploreScreenState extends State<ExploreScreen> {
   void dispose() {
     _searchCtrl.dispose();
     super.dispose();
+  }
+}
+
+class _RecipeCard extends StatelessWidget {
+  final RecipeSummary recipe;
+  final VoidCallback onTap;
+  const _RecipeCard({required this.recipe, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            children: [
+              Container(
+                width: 60, height: 60,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10),
+                  color: cs.primary.withAlpha(20),
+                ),
+                child: resolveImageUrl(recipe.imageUrl) != null
+                    ? ClipRRect(
+                        borderRadius: BorderRadius.circular(10),
+                        child: CachedNetworkImage(
+                            imageUrl: resolveImageUrl(recipe.imageUrl)!,
+                            fit: BoxFit.cover,
+                            errorWidget: (_, __, ___) => Icon(Icons.restaurant, color: cs.primary)),
+                      )
+                    : Icon(Icons.restaurant, color: cs.primary),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(recipe.title, style: const TextStyle(fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis),
+                    const SizedBox(height: 4),
+                    Row(children: [
+                      Icon(Icons.schedule, size: 12, color: cs.onSurface.withAlpha(120)),
+                      const SizedBox(width: 3),
+                      Text('${recipe.totalTimeMinutes} min', style: TextStyle(fontSize: 12, color: cs.onSurface.withAlpha(120))),
+                      const SizedBox(width: 10),
+                      Icon(Icons.bar_chart, size: 12, color: cs.onSurface.withAlpha(120)),
+                      const SizedBox(width: 3),
+                      Text(recipe.difficulty, style: TextStyle(fontSize: 12, color: cs.onSurface.withAlpha(120))),
+                    ]),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
