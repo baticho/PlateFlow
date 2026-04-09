@@ -165,7 +165,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                     child: CircularProgressIndicator(
                                         strokeWidth: 2),
                                   )
-                                : const _GoogleLogo(),
+                                : const GoogleLogo(),
                             label: const Text('Continue with Google',
                                 style: TextStyle(fontSize: 15)),
                           ),
@@ -261,8 +261,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 }
 
-class _GoogleLogo extends StatelessWidget {
-  const _GoogleLogo();
+class GoogleLogo extends StatelessWidget {
+  const GoogleLogo();
 
   @override
   Widget build(BuildContext context) {

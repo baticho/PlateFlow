@@ -5,7 +5,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import '../../../core/api/api_client.dart';
-import 'login_screen.dart' show _GoogleLogo;
+import 'login_screen.dart' show GoogleLogo;
 
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
@@ -296,7 +296,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                                 width: 18,
                                 child: CircularProgressIndicator(strokeWidth: 2),
                               )
-                            : const _GoogleLogo(),
+                            : const GoogleLogo(),
                         label: const Text('Continue with Google',
                             style: TextStyle(fontSize: 15)),
                       ),
