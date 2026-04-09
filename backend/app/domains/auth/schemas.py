@@ -22,3 +22,9 @@ class TokenResponse(BaseModel):
 
 class RefreshRequest(BaseModel):
     refresh_token: str
+
+
+class GoogleAuthRequest(BaseModel):
+    id_token: str
+    preferred_language: str = "en"
+    preferred_unit_system: str = "metric"

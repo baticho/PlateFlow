@@ -49,6 +49,9 @@ dependencies:
   # Date/Time
   intl: ^0.20.0
 
+  # Google Sign-In
+  google_sign_in: ^6.2.2
+
   # Icons
   flutter_svg: ^2.0.10+1
 

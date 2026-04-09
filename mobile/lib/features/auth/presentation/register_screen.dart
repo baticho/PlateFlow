@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import '../../../core/api/api_client.dart';
+import 'login_screen.dart' show _GoogleLogo;
 
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
@@ -22,6 +24,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _passwordFocus = FocusNode();
   final _confirmFocus = FocusNode();
   bool _loading = false;
+  bool _googleLoading = false;
   bool _obscurePassword = true;
   bool _obscureConfirm = true;
   String _language = 'en';
@@ -29,6 +32,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   String? _errorMessage;
 
   static const _storage = FlutterSecureStorage();
+
+  static final _googleSignIn = GoogleSignIn(
+    serverClientId:
+        '256522369666-iro5qm9c5tjjf0c959stteca0s721fd3.apps.googleusercontent.com',
+  );
 
   @override
   void dispose() {
@@ -40,6 +48,45 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     _passwordFocus.dispose();
     _confirmFocus.dispose();
     super.dispose();
+  }
+
+  Future<void> _signInWithGoogle() async {
+    setState(() {
+      _googleLoading = true;
+      _errorMessage = null;
+    });
+    try {
+      final account = await _googleSignIn.signIn();
+      if (account == null) return;
+
+      final auth = await account.authentication;
+      final idToken = auth.idToken;
+      if (idToken == null) {
+        setState(() => _errorMessage = 'Google sign-in failed. Try again.');
+        return;
+      }
+
+      final dio = ref.read(dioProvider);
+      final res = await dio.post('/api/v1/auth/google', data: {
+        'id_token': idToken,
+        'preferred_language': _language,
+        'preferred_unit_system': _unitSystem,
+      });
+      await _storage.write(
+          key: 'access_token', value: res.data['access_token'] as String);
+      await _storage.write(
+          key: 'refresh_token', value: res.data['refresh_token'] as String);
+      if (mounted) context.go('/home');
+    } on DioException catch (e) {
+      final detail = e.response?.data?['detail'];
+      setState(() {
+        _errorMessage = detail is String ? detail : 'Google sign-in failed.';
+      });
+    } catch (_) {
+      setState(() => _errorMessage = 'Google sign-in failed. Try again.');
+    } finally {
+      if (mounted) setState(() => _googleLoading = false);
+    }
   }
 
   Future<void> _register() async {
@@ -213,7 +260,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     ],
                     const SizedBox(height: 24),
                     FilledButton(
-                      onPressed: _loading ? null : _register,
+                      onPressed: _loading || _googleLoading ? null : _register,
                       child: _loading
                           ? const SizedBox(
                               height: 20,
@@ -223,6 +270,36 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                             )
                           : const Text('Create Account',
                               style: TextStyle(fontSize: 16)),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        const Expanded(child: Divider()),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          child: Text('or',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                  color: cs.onSurface.withAlpha(130))),
+                        ),
+                        const Expanded(child: Divider()),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed:
+                            _loading || _googleLoading ? null : _signInWithGoogle,
+                        icon: _googleLoading
+                            ? const SizedBox(
+                                height: 18,
+                                width: 18,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const _GoogleLogo(),
+                        label: const Text('Continue with Google',
+                            style: TextStyle(fontSize: 15)),
+                      ),
                     ),
                     const SizedBox(height: 16),
                     TextButton(
