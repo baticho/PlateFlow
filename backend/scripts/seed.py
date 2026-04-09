@@ -1,4 +1,8 @@
-"""Seed script: run with  python -m scripts.seed  from backend/ directory."""
+"""Seed script: run with  python -m scripts.seed  from backend/ directory.
+
+Flags:
+  --force   Truncate all seed tables first, then re-seed.
+"""
 import asyncio
 import sys
 from datetime import date, timedelta
@@ -6,7 +10,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from sqlalchemy import insert
+from sqlalchemy import insert, select, text
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from app.config import settings
@@ -30,11 +34,29 @@ from app.domains.weekly_suggestions.models import WeeklySuggestion
 from app.models import *  # noqa: F401, F403 — ensure all models registered
 
 
-async def seed():
+async def seed(force: bool = False):
     engine = create_async_engine(settings.DATABASE_URL, echo=False)
     Session = async_sessionmaker(engine, expire_on_commit=False)
 
     async with Session() as db:
+        # ── Guard: skip if already seeded (unless --force) ───────────────────
+        existing = await db.scalar(select(SubscriptionPlan).limit(1))
+        if existing:
+            if not force:
+                print("⚠️  Database already seeded. Run with --force to truncate and re-seed.")
+                return
+            print("⚡ --force: truncating seed tables…")
+            await db.execute(text(
+                "TRUNCATE weekly_suggestions, recipe_tags, recipe_categories, "
+                "recipe_ingredients, recipe_step_translations, recipe_steps, "
+                "recipe_translations, recipes, ingredient_translations, ingredients, "
+                "tag_translations, tags, cuisine_translations, cuisines, "
+                "category_translations, categories, users, subscription_plans "
+                "RESTART IDENTITY CASCADE"
+            ))
+            await db.commit()
+            print("✓ Tables cleared")
+
         # ── Subscription Plans ───────────────────────────────────────────────
         plans_data = [
             {"slug": "free", "name": "Free", "price_monthly": 0, "max_recipes_per_week": 5, "max_meal_plans": 1, "can_export_shopping_list": False, "can_use_delivery": False},
@@ -248,7 +270,7 @@ async def seed():
         sample_recipes = [
             {
                 "cuisine": bg_cuisine,
-                "prep": 10, "cook": 20, "servings": 4, "difficulty": "easy",
+                "prep": 10, "cook": 20, "servings": 2, "difficulty": "easy",
                 "status": RecipeStatus.PUBLISHED,
                 "categories": ["salad", "vegetarian", "quick"],
                 "tags": ["quick", "healthy"],
@@ -284,7 +306,7 @@ async def seed():
             },
             {
                 "cuisine": bg_cuisine,
-                "prep": 15, "cook": 40, "servings": 4, "difficulty": "medium",
+                "prep": 15, "cook": 40, "servings": 2, "difficulty": "medium",
                 "status": RecipeStatus.PUBLISHED,
                 "categories": ["dinner"],
                 "tags": ["family", "healthy"],
@@ -357,7 +379,7 @@ async def seed():
             },
             {
                 "cuisine": it_cuisine,
-                "prep": 10, "cook": 35, "servings": 4, "difficulty": "medium",
+                "prep": 10, "cook": 35, "servings": 2, "difficulty": "medium",
                 "status": RecipeStatus.PUBLISHED,
                 "categories": ["pasta", "dinner"],
                 "tags": ["family", "meal-prep"],
@@ -768,4 +790,4 @@ async def seed():
 
 
 if __name__ == "__main__":
-    asyncio.run(seed())
+    asyncio.run(seed(force="--force" in sys.argv))

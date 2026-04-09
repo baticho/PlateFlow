@@ -40,21 +40,21 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(path: '/meal-plan', builder: (_, __) => const MealPlanScreen()),
           GoRoute(path: '/shopping-list', builder: (_, __) => const ShoppingListScreen()),
           GoRoute(path: '/profile', builder: (_, __) => const ProfileScreen()),
+          GoRoute(
+            path: '/recipe/:id',
+            builder: (_, state) => RecipeDetailScreen(recipeId: state.pathParameters['id']!),
+          ),
+          GoRoute(path: '/favorites', builder: (_, __) => const FavoritesScreen()),
+          GoRoute(path: '/subscription', builder: (_, __) => const SubscriptionScreen()),
+          GoRoute(
+            path: '/cooking/:id',
+            builder: (_, state) => CookingScreen(
+              recipeId: state.pathParameters['id']!,
+              planId: int.tryParse(state.uri.queryParameters['planId'] ?? ''),
+              itemId: int.tryParse(state.uri.queryParameters['itemId'] ?? ''),
+            ),
+          ),
         ],
-      ),
-      GoRoute(
-        path: '/recipe/:id',
-        builder: (_, state) => RecipeDetailScreen(recipeId: state.pathParameters['id']!),
-      ),
-      GoRoute(path: '/favorites', builder: (_, __) => const FavoritesScreen()),
-      GoRoute(path: '/subscription', builder: (_, __) => const SubscriptionScreen()),
-      GoRoute(
-        path: '/cooking/:id',
-        builder: (_, state) => CookingScreen(
-          recipeId: state.pathParameters['id']!,
-          planId: int.tryParse(state.uri.queryParameters['planId'] ?? ''),
-          itemId: int.tryParse(state.uri.queryParameters['itemId'] ?? ''),
-        ),
       ),
     ],
   );
