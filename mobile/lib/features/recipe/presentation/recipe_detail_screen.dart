@@ -7,8 +7,10 @@ import 'package:go_router/go_router.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/config/app_config.dart';
 import '../../../core/models/recipe.dart';
+import '../../../core/providers/locale_provider.dart';
 import '../../../core/services/meal_plan_service.dart';
 import '../../../core/services/recipe_service.dart';
+import '../../../i18n/strings.g.dart';
 
 class RecipeDetailScreen extends ConsumerStatefulWidget {
   final String recipeId;
@@ -39,8 +41,9 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
 
   Future<void> _loadRecipe() async {
     try {
+      final lang = ref.read(localeProvider);
       final data = await _recipeService.getRecipe(widget.recipeId);
-      final recipe = RecipeDetail.fromJson(data);
+      final recipe = RecipeDetail.fromJson(data, lang: lang);
       if (mounted) {
         setState(() {
           _recipe = recipe;
@@ -98,13 +101,18 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
 
       if (!mounted) return;
 
-      final dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+      final tLocal = context.t;
+      final dayNames = [
+        tLocal.mealPlan.days.mon, tLocal.mealPlan.days.tue, tLocal.mealPlan.days.wed,
+        tLocal.mealPlan.days.thu, tLocal.mealPlan.days.fri, tLocal.mealPlan.days.sat, tLocal.mealPlan.days.sun,
+      ];
       final dayName = dayNames[selectedDay!];
-      final mealName = selectedMealType![0].toUpperCase() + selectedMealType!.substring(1);
 
+      messenger.clearSnackBars();
       messenger.showSnackBar(SnackBar(
-        content: Text('Added to $dayName $mealName — shopping list updated!'),
+        content: Text('$dayName — ${tLocal.shoppingList.title}'),
         behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 4),
         action: SnackBarAction(label: 'View Plan', onPressed: () => context.go('/meal-plan')),
       ));
     } on DioException catch (e) {
@@ -125,6 +133,9 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = Translations.of(context);
+    ref.listen(localeProvider, (_, __) => _loadRecipe());
+
     if (_loading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
@@ -139,7 +150,7 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
               const SizedBox(height: 8),
               Text(_error!),
               const SizedBox(height: 16),
-              FilledButton(onPressed: _loadRecipe, child: const Text('Retry')),
+              FilledButton(onPressed: _loadRecipe, child: Text(t.common.retry)),
             ],
           ),
         ),
@@ -220,7 +231,7 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                     child: Column(
                       children: [
                         TabBar(
-                          tabs: const [Tab(text: 'Ingredients'), Tab(text: 'Steps')],
+                          tabs: [Tab(text: t.recipe.ingredients), Tab(text: t.recipe.steps)],
                           labelColor: cs.primary,
                           indicatorColor: cs.primary,
                         ),
@@ -254,13 +265,13 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
               FilledButton.icon(
                 onPressed: _addToMealPlan,
                 icon: const Icon(Icons.calendar_today_outlined),
-                label: const Text('Add to Meal Plan'),
+                label: Text(t.recipe.addToMealPlan),
               ),
               const SizedBox(height: 8),
               OutlinedButton.icon(
                 onPressed: () => context.push('/cooking/${recipe.id}'),
                 icon: const Icon(Icons.play_arrow_outlined),
-                label: const Text('Cook'),
+                label: Text(t.recipe.startCooking),
               ),
             ],
           ),
@@ -283,7 +294,6 @@ class _AddToMealPlanSheetState extends State<_AddToMealPlanSheet> {
   String _selectedMealType = 'lunch';
 
   static const _mealTypes = ['breakfast', 'lunch', 'dinner'];
-  static const _mealLabels = ['Breakfast', 'Lunch', 'Dinner'];
   static const _mealIcons = [Icons.wb_sunny_outlined, Icons.wb_cloudy_outlined, Icons.nights_stay_outlined];
   static const _mealColors = [Colors.orange, Colors.teal, Colors.indigo];
 
@@ -296,8 +306,17 @@ class _AddToMealPlanSheetState extends State<_AddToMealPlanSheet> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final t = context.t;
     final days = _weekDays;
-    final dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    final dayNames = [
+      t.mealPlan.days.mon, t.mealPlan.days.tue, t.mealPlan.days.wed,
+      t.mealPlan.days.thu, t.mealPlan.days.fri, t.mealPlan.days.sat, t.mealPlan.days.sun,
+    ];
+    final mealLabels = [
+      t.mealPlan.mealTypes.breakfast,
+      t.mealPlan.mealTypes.lunch,
+      t.mealPlan.mealTypes.dinner,
+    ];
 
     return Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
@@ -307,9 +326,9 @@ class _AddToMealPlanSheetState extends State<_AddToMealPlanSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Add to Meal Plan', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+            Text(t.recipe.addToMealPlan, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
             const SizedBox(height: 16),
-            const Text('Day', style: TextStyle(fontWeight: FontWeight.w600, color: Colors.grey, fontSize: 13)),
+            const SizedBox(height: 8),
             const SizedBox(height: 8),
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
@@ -356,8 +375,6 @@ class _AddToMealPlanSheetState extends State<_AddToMealPlanSheet> {
               ),
             ),
             const SizedBox(height: 16),
-            const Text('Meal', style: TextStyle(fontWeight: FontWeight.w600, color: Colors.grey, fontSize: 13)),
-            const SizedBox(height: 8),
             Row(
               children: List.generate(3, (i) {
                 final isSelected = _mealTypes[i] == _selectedMealType;
@@ -379,7 +396,7 @@ class _AddToMealPlanSheetState extends State<_AddToMealPlanSheet> {
                           children: [
                             Icon(_mealIcons[i], color: isSelected ? Colors.white : color, size: 22),
                             const SizedBox(height: 4),
-                            Text(_mealLabels[i], style: TextStyle(
+                            Text(mealLabels[i], style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
                               color: isSelected ? Colors.white : color,
@@ -397,7 +414,7 @@ class _AddToMealPlanSheetState extends State<_AddToMealPlanSheet> {
               width: double.infinity,
               child: FilledButton(
                 onPressed: () => widget.onConfirm(_selectedDay, _selectedMealType),
-                child: const Text('Confirm'),
+                child: Text(t.common.save),
               ),
             ),
           ],

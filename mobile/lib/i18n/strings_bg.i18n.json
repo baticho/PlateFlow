@@ -1,4 +1,7 @@
 {
+  "app": {
+    "name": "PlateFlow"
+  },
   "nav": {
     "home": "Начало",
     "explore": "Разгледай",
@@ -73,7 +76,23 @@
   },
   "units": {
     "metric": "Метрична",
-    "imperial": "Имперска"
+    "imperial": "Имперска",
+    "gram": "г",
+    "kilogram": "кг",
+    "milliliter": "мл",
+    "liter": "л",
+    "teaspoon": "ч.л.",
+    "tablespoon": "с.л.",
+    "cup": "чаша",
+    "ounce": "oz",
+    "pound": "lb"
+  },
+  "subscription": {
+    "free": "Безплатен",
+    "trial": "Пробен",
+    "premium": "Премиум",
+    "upgrade": "Надгради до Премиум",
+    "comingSoon": "Плащането идва скоро!"
   },
   "auth": {
     "login": "Вход",

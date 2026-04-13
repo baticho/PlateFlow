@@ -6,6 +6,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import '../../../core/api/api_client.dart';
+import '../../../i18n/strings.g.dart';
 import 'login_screen.dart' show GoogleLogo;
 
 class RegisterScreen extends ConsumerStatefulWidget {
@@ -124,9 +125,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
+    final t = Translations.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Create Account')),
+      appBar: AppBar(title: Text(t.auth.register)),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -155,9 +157,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       textCapitalization: TextCapitalization.words,
                       textInputAction: TextInputAction.next,
                       onFieldSubmitted: (_) => _emailFocus.requestFocus(),
-                      decoration: const InputDecoration(
-                        labelText: 'Full Name',
-                        prefixIcon: Icon(Icons.person_outline),
+                      decoration: InputDecoration(
+                        labelText: t.auth.fullName,
+                        prefixIcon: const Icon(Icons.person_outline),
                       ),
                       validator: (v) =>
                           (v?.trim().isNotEmpty ?? false) ? null : 'Enter your name',
@@ -169,9 +171,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       keyboardType: TextInputType.emailAddress,
                       textInputAction: TextInputAction.next,
                       onFieldSubmitted: (_) => _passwordFocus.requestFocus(),
-                      decoration: const InputDecoration(
-                        labelText: 'Email',
-                        prefixIcon: Icon(Icons.email_outlined),
+                      decoration: InputDecoration(
+                        labelText: t.auth.email,
+                        prefixIcon: const Icon(Icons.email_outlined),
                       ),
                       validator: (v) =>
                           v != null && v.contains('@') ? null : 'Enter valid email',
@@ -184,7 +186,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       textInputAction: TextInputAction.next,
                       onFieldSubmitted: (_) => _confirmFocus.requestFocus(),
                       decoration: InputDecoration(
-                        labelText: 'Password',
+                        labelText: t.auth.password,
                         prefixIcon: const Icon(Icons.lock_outline),
                         suffixIcon: IconButton(
                           icon: Icon(_obscurePassword
@@ -271,8 +273,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                               child: CircularProgressIndicator(
                                   strokeWidth: 2, color: Colors.white),
                             )
-                          : const Text('Create Account',
-                              style: TextStyle(fontSize: 16)),
+                          : Text(t.auth.register,
+                              style: const TextStyle(fontSize: 16)),
                     ),
                     const SizedBox(height: 16),
                     Row(

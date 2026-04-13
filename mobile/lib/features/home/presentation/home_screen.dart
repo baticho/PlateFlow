@@ -6,7 +6,9 @@ import 'package:go_router/go_router.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/config/app_config.dart';
 import '../../../core/models/recipe.dart';
+import '../../../core/providers/locale_provider.dart';
 import '../../../core/services/recipe_service.dart';
+import '../../../i18n/strings.g.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -35,18 +37,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   Future<void> _loadSuggestions() async {
     try {
+      final lang = ref.read(localeProvider);
       final items = await _service.getWeeklySuggestions();
       if (mounted) setState(() {
-        _suggestions = items.map((j) => RecipeSummary.fromJson(j)).toList();
+        _suggestions = items.map((j) => RecipeSummary.fromJson(j, lang: lang)).toList();
       });
     } catch (_) {}
   }
 
   Future<void> _loadQuickMeals() async {
     try {
+      final lang = ref.read(localeProvider);
       final items = await _service.getQuickMeals();
       if (mounted) setState(() {
-        _quickMeals = items.map((j) => RecipeSummary.fromJson(j)).toList();
+        _quickMeals = items.map((j) => RecipeSummary.fromJson(j, lang: lang)).toList();
       });
     } catch (_) {}
   }
@@ -55,8 +59,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
+    final t = Translations.of(context);
     final weeklyPicks = _suggestions.take(5).toList();
     final quickMeals = _quickMeals;
+
+    ref.listen(localeProvider, (_, __) => _loadAll());
 
     return Scaffold(
       appBar: AppBar(
@@ -72,13 +79,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           : ListView(
               padding: const EdgeInsets.all(16),
               children: [
-                Text("This Week's Picks",
+                Text(t.home.weeklyTitle,
                     style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600)),
                 const SizedBox(height: 12),
                 SizedBox(
                   height: 200,
                   child: weeklyPicks.isEmpty
-                      ? const Center(child: Text('No suggestions this week'))
+                      ? Center(child: Text(t.common.noResults))
                       : ListView.separated(
                           scrollDirection: Axis.horizontal,
                           itemCount: weeklyPicks.length,
@@ -90,7 +97,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Quick Meals',
+                    Text(t.home.quickMeals,
                         style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600)),
                     TextButton(onPressed: () => context.go('/explore'), child: const Text('See all')),
                   ],

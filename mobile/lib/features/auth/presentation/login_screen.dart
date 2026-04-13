@@ -6,6 +6,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import '../../../core/api/api_client.dart';
+import '../../../i18n/strings.g.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -35,6 +36,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
+    final t = Translations.of(context);
 
     return Scaffold(
       body: SafeArea(
@@ -59,7 +61,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Sign in to your account',
+                    t.auth.login,
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: theme.colorScheme.onSurface.withAlpha(160),
                     ),
@@ -76,8 +78,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           textInputAction: TextInputAction.next,
                           onFieldSubmitted: (_) =>
                               _passwordFocus.requestFocus(),
-                          decoration: const InputDecoration(
-                            labelText: 'Email',
+                          decoration: InputDecoration(
+                            labelText: t.auth.email,
                             prefixIcon: Icon(Icons.email_outlined),
                           ),
                           validator: (v) =>
@@ -93,7 +95,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           textInputAction: TextInputAction.done,
                           onFieldSubmitted: (_) => _login(),
                           decoration: InputDecoration(
-                            labelText: 'Password',
+                            labelText: t.auth.password,
                             prefixIcon: const Icon(Icons.lock_outline),
                             suffixIcon: IconButton(
                               icon: Icon(_obscurePassword
@@ -135,8 +137,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                     child: CircularProgressIndicator(
                                         strokeWidth: 2, color: Colors.white),
                                   )
-                                : const Text('Sign In',
-                                    style: TextStyle(fontSize: 16)),
+                                : Text(t.auth.login,
+                                    style: const TextStyle(fontSize: 16)),
                           ),
                         ),
                         const SizedBox(height: 16),
@@ -177,7 +179,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   const SizedBox(height: 16),
                   TextButton(
                     onPressed: () => context.go('/register'),
-                    child: const Text("Don't have an account? Register"),
+                    child: Text(t.auth.noAccount),
                   ),
                 ],
               ),

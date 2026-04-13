@@ -2,7 +2,9 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'core/config/app_config.dart';
+import 'i18n/strings.g.dart';
 import 'app.dart';
 
 Future<void> _devAutoLogin() async {
@@ -41,9 +43,16 @@ void main() async {
     await _devAutoLogin();
   }
 
+  // Load persisted locale before rendering
+  final prefs = await SharedPreferences.getInstance();
+  final savedLocale = prefs.getString('app_locale') ?? 'en';
+  LocaleSettings.setLocaleRaw(savedLocale);
+
   runApp(
-    const ProviderScope(
-      child: PlateFlowApp(),
+    ProviderScope(
+      child: TranslationProvider(
+        child: const PlateFlowApp(),
+      ),
     ),
   );
 }

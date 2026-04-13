@@ -7,7 +7,9 @@ import 'package:go_router/go_router.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/config/app_config.dart';
 import '../../../core/models/recipe.dart';
+import '../../../core/providers/locale_provider.dart';
 import '../../../core/services/recipe_service.dart';
+import '../../../i18n/strings.g.dart';
 
 class ExploreScreen extends ConsumerStatefulWidget {
   const ExploreScreen({super.key});
@@ -63,9 +65,10 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
       _error = null;
     });
     try {
+      final lang = ref.read(localeProvider);
       final data = await _recipeService.listRecipes(q: q);
       final items = (data['items'] as List? ?? [])
-          .map((i) => RecipeSummary.fromJson(i as Map<String, dynamic>))
+          .map((i) => RecipeSummary.fromJson(i as Map<String, dynamic>, lang: lang))
           .toList();
       if (mounted) setState(() { _results = items; _searching = false; });
     } on DioException catch (e) {
@@ -79,9 +82,10 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
   Future<void> _filterByCategory(int categoryId) async {
     setState(() { _searching = true; _searchMode = true; _error = null; });
     try {
+      final lang = ref.read(localeProvider);
       final data = await _recipeService.listRecipes(categoryId: categoryId);
       final items = (data['items'] as List? ?? [])
-          .map((i) => RecipeSummary.fromJson(i as Map<String, dynamic>))
+          .map((i) => RecipeSummary.fromJson(i as Map<String, dynamic>, lang: lang))
           .toList();
       if (mounted) setState(() { _results = items; _searching = false; });
     } on DioException catch (e) {
@@ -95,9 +99,10 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
   Future<void> _filterByCuisine(int cuisineId) async {
     setState(() { _searching = true; _searchMode = true; _error = null; });
     try {
+      final lang = ref.read(localeProvider);
       final data = await _recipeService.listRecipes(cuisineId: cuisineId);
       final items = (data['items'] as List? ?? [])
-          .map((i) => RecipeSummary.fromJson(i as Map<String, dynamic>))
+          .map((i) => RecipeSummary.fromJson(i as Map<String, dynamic>, lang: lang))
           .toList();
       if (mounted) setState(() { _results = items; _searching = false; });
     } on DioException catch (e) {
@@ -132,37 +137,47 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
     'drinks': Icons.local_drink_outlined,
   };
 
-  String _resolveCategoryName(Map<String, dynamic> cat) {
+  String _resolveCategoryName(Map<String, dynamic> cat, String lang) {
     final trans = cat['translations'] as List? ?? [];
     if (trans.isEmpty) return cat['slug'] ?? '';
-    final en = trans.firstWhere(
-      (t) => t['language_code'] == 'en',
-      orElse: () => trans.first,
+    final match = trans.firstWhere(
+      (t) => t['language_code'] == lang,
+      orElse: () => trans.firstWhere(
+        (t) => t['language_code'] == 'en',
+        orElse: () => trans.first,
+      ),
     );
-    return en['name'] ?? cat['slug'] ?? '';
+    return match['name'] ?? cat['slug'] ?? '';
   }
 
-  String _resolveCuisineName(Map<String, dynamic> c) {
+  String _resolveCuisineName(Map<String, dynamic> c, String lang) {
     final trans = c['translations'] as List? ?? [];
     if (trans.isEmpty) return c['continent'] ?? '';
-    final en = trans.firstWhere(
-      (t) => t['language_code'] == 'en',
-      orElse: () => trans.first,
+    final match = trans.firstWhere(
+      (t) => t['language_code'] == lang,
+      orElse: () => trans.firstWhere(
+        (t) => t['language_code'] == 'en',
+        orElse: () => trans.first,
+      ),
     );
-    return en['name'] ?? '';
+    return match['name'] ?? '';
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
+    final t = Translations.of(context);
+    final lang = ref.watch(localeProvider);
+
+    ref.listen(localeProvider, (_, __) => _loadFilters());
 
     return Scaffold(
       appBar: AppBar(
         leading: _searchMode
             ? IconButton(icon: const Icon(Icons.arrow_back), onPressed: _clearSearch)
             : null,
-        title: const Text('Explore', style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w700)),
+        title: Text(t.nav.explore, style: const TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w700)),
       ),
       body: Column(
         children: [
@@ -171,7 +186,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
             child: SearchBar(
               controller: _searchCtrl,
-              hintText: 'Search recipes, ingredients...',
+              hintText: t.explore.searchHint,
               leading: const Icon(Icons.search),
               trailing: _searchMode
                   ? [IconButton(icon: const Icon(Icons.close), onPressed: _clearSearch)]
@@ -184,14 +199,14 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
           ),
           const SizedBox(height: 8),
           Expanded(
-            child: _searchMode ? _buildResults(cs) : _buildBrowse(theme, cs),
+            child: _searchMode ? _buildResults(cs, t) : _buildBrowse(theme, cs, t, lang),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildBrowse(ThemeData theme, ColorScheme cs) {
+  Widget _buildBrowse(ThemeData theme, ColorScheme cs, Translations t, String lang) {
     if (_loadingFilters) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -199,7 +214,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
       children: [
         // Categories grid
-        Text('Categories', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+        Text(t.explore.categories, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
         const SizedBox(height: 10),
         GridView.builder(
           shrinkWrap: true,
@@ -229,7 +244,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    _resolveCategoryName(cat),
+                    _resolveCategoryName(cat, lang),
                     style: const TextStyle(fontSize: 10),
                     textAlign: TextAlign.center,
                     maxLines: 1,
@@ -242,7 +257,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
         ),
         const SizedBox(height: 20),
         // Cuisines
-        Text('Cuisines', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+        Text(t.explore.cuisines, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
         const SizedBox(height: 8),
         ..._cuisines.map((c) => ListTile(
           contentPadding: const EdgeInsets.symmetric(horizontal: 0),
@@ -250,7 +265,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
             backgroundColor: cs.primary.withAlpha(20),
             child: Icon(Icons.public, color: cs.primary, size: 18),
           ),
-          title: Text(_resolveCuisineName(c)),
+          title: Text(_resolveCuisineName(c, lang)),
           trailing: const Icon(Icons.chevron_right),
           onTap: () => _filterByCuisine(c['id']),
           dense: true,
@@ -259,7 +274,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
     );
   }
 
-  Widget _buildResults(ColorScheme cs) {
+  Widget _buildResults(ColorScheme cs, Translations t) {
     if (_searching) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -272,13 +287,13 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
             const SizedBox(height: 8),
             Text(_error!),
             const SizedBox(height: 16),
-            FilledButton(onPressed: () => _search(_searchCtrl.text), child: const Text('Retry')),
+            FilledButton(onPressed: () => _search(_searchCtrl.text), child: Text(t.common.retry)),
           ],
         ),
       );
     }
     if (_results.isEmpty) {
-      return const Center(child: Text('No recipes found.'));
+      return Center(child: Text(t.common.noResults));
     }
     return ListView.builder(
       padding: const EdgeInsets.all(16),

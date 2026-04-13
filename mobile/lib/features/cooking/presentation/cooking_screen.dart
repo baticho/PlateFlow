@@ -7,8 +7,10 @@ import 'package:go_router/go_router.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/config/app_config.dart';
 import '../../../core/models/recipe.dart';
+import '../../../core/providers/locale_provider.dart';
 import '../../../core/services/meal_plan_service.dart';
 import '../../../core/services/recipe_service.dart';
+import '../../../i18n/strings.g.dart';
 
 class CookingScreen extends ConsumerStatefulWidget {
   final String recipeId;
@@ -41,9 +43,10 @@ class _CookingScreenState extends ConsumerState<CookingScreen> {
 
   Future<void> _loadRecipe() async {
     try {
+      final lang = ref.read(localeProvider);
       final data = await _service.getRecipe(widget.recipeId);
       if (mounted) setState(() {
-        _recipe = RecipeDetail.fromJson(data);
+        _recipe = RecipeDetail.fromJson(data, lang: lang);
         _loading = false;
       });
     } on DioException catch (e) {
@@ -90,7 +93,7 @@ class _CookingScreenState extends ConsumerState<CookingScreen> {
               const SizedBox(height: 8),
               Text(_error!),
               const SizedBox(height: 16),
-              FilledButton(onPressed: _loadRecipe, child: const Text('Retry')),
+              FilledButton(onPressed: _loadRecipe, child: Text(Translations.of(context).common.retry)),
             ],
           ),
         ),

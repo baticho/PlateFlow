@@ -17,11 +17,11 @@ class RecipeSummary {
     required this.servings,
   });
 
-  factory RecipeSummary.fromJson(Map<String, dynamic> j) {
+  factory RecipeSummary.fromJson(Map<String, dynamic> j, {String lang = 'en'}) {
     return RecipeSummary(
       id: j['id'].toString(),
-      title: _resolveTitle(j['translations']),
-      description: _resolveDescription(j['translations']),
+      title: _resolveTitle(j['translations'], lang),
+      description: _resolveDescription(j['translations'], lang),
       imageUrl: j['image_url'],
       totalTimeMinutes: j['total_time_minutes'] ?? 0,
       difficulty: j['difficulty'] ?? 'easy',
@@ -29,26 +29,32 @@ class RecipeSummary {
     );
   }
 
-  static String _resolveTitle(dynamic translations) {
+  static String _resolveTitle(dynamic translations, String lang) {
     if (translations == null) return 'Unknown';
     final list = translations as List;
     if (list.isEmpty) return 'Unknown';
-    final en = list.firstWhere(
-      (t) => t['language_code'] == 'en',
-      orElse: () => list.first,
+    final match = list.firstWhere(
+      (t) => t['language_code'] == lang,
+      orElse: () => list.firstWhere(
+        (t) => t['language_code'] == 'en',
+        orElse: () => list.first,
+      ),
     );
-    return en['title'] ?? 'Unknown';
+    return match['title'] ?? 'Unknown';
   }
 
-  static String? _resolveDescription(dynamic translations) {
+  static String? _resolveDescription(dynamic translations, String lang) {
     if (translations == null) return null;
     final list = translations as List;
     if (list.isEmpty) return null;
-    final en = list.firstWhere(
-      (t) => t['language_code'] == 'en',
-      orElse: () => list.first,
+    final match = list.firstWhere(
+      (t) => t['language_code'] == lang,
+      orElse: () => list.firstWhere(
+        (t) => t['language_code'] == 'en',
+        orElse: () => list.first,
+      ),
     );
-    return en['description'];
+    return match['description'];
   }
 }
 
@@ -67,25 +73,28 @@ class RecipeIngredient {
     required this.isOptional,
   });
 
-  factory RecipeIngredient.fromJson(Map<String, dynamic> j) {
+  factory RecipeIngredient.fromJson(Map<String, dynamic> j, {String lang = 'en'}) {
     return RecipeIngredient(
       id: j['id'],
-      name: _resolveName(j['ingredient_translations']),
+      name: _resolveName(j['ingredient_translations'], lang),
       quantity: (j['quantity'] as num).toDouble(),
       unit: j['unit'] ?? '',
       isOptional: j['is_optional'] ?? false,
     );
   }
 
-  static String _resolveName(dynamic translations) {
+  static String _resolveName(dynamic translations, String lang) {
     if (translations == null) return 'Unknown';
     final list = translations as List;
     if (list.isEmpty) return 'Unknown';
-    final en = list.firstWhere(
-      (t) => t['language_code'] == 'en',
-      orElse: () => list.first,
+    final match = list.firstWhere(
+      (t) => t['language_code'] == lang,
+      orElse: () => list.firstWhere(
+        (t) => t['language_code'] == 'en',
+        orElse: () => list.first,
+      ),
     );
-    return en['name'] ?? 'Unknown';
+    return match['name'] ?? 'Unknown';
   }
 }
 
@@ -100,18 +109,21 @@ class RecipeStep {
     this.imageUrl,
   });
 
-  factory RecipeStep.fromJson(Map<String, dynamic> j) {
+  factory RecipeStep.fromJson(Map<String, dynamic> j, {String lang = 'en'}) {
     final translations = j['translations'] as List? ?? [];
-    final en = translations.isNotEmpty
+    final match = translations.isNotEmpty
         ? translations.firstWhere(
-            (t) => t['language_code'] == 'en',
-            orElse: () => translations.first,
+            (t) => t['language_code'] == lang,
+            orElse: () => translations.firstWhere(
+              (t) => t['language_code'] == 'en',
+              orElse: () => translations.first,
+            ),
           )
         : null;
     return RecipeStep(
       order: j['order'] ?? 0,
-      instruction: en?['instruction'] ?? '',
-      imageUrl: en?['image_url'],
+      instruction: match?['instruction'] ?? '',
+      imageUrl: match?['image_url'],
     );
   }
 }
@@ -143,25 +155,28 @@ class RecipeDetail {
     required this.steps,
   });
 
-  factory RecipeDetail.fromJson(Map<String, dynamic> j) {
+  factory RecipeDetail.fromJson(Map<String, dynamic> j, {String lang = 'en'}) {
     final translations = j['translations'] as List? ?? [];
-    final en = translations.isNotEmpty
+    final match = translations.isNotEmpty
         ? translations.firstWhere(
-            (t) => t['language_code'] == 'en',
-            orElse: () => translations.first,
+            (t) => t['language_code'] == lang,
+            orElse: () => translations.firstWhere(
+              (t) => t['language_code'] == 'en',
+              orElse: () => translations.first,
+            ),
           )
         : null;
 
     final rawSteps = j['steps'] as List? ?? [];
     final sortedSteps = rawSteps
-        .map((s) => RecipeStep.fromJson(s as Map<String, dynamic>))
+        .map((s) => RecipeStep.fromJson(s as Map<String, dynamic>, lang: lang))
         .toList()
       ..sort((a, b) => a.order.compareTo(b.order));
 
     return RecipeDetail(
       id: j['id'].toString(),
-      title: en?['title'] ?? 'Unknown',
-      description: en?['description'],
+      title: match?['title'] ?? 'Unknown',
+      description: match?['description'],
       imageUrl: j['image_url'],
       prepTimeMinutes: j['prep_time_minutes'] ?? 0,
       cookTimeMinutes: j['cook_time_minutes'] ?? 0,
@@ -169,7 +184,7 @@ class RecipeDetail {
       servings: j['servings'] ?? 2,
       difficulty: j['difficulty'] ?? 'easy',
       ingredients: (j['ingredients'] as List? ?? [])
-          .map((i) => RecipeIngredient.fromJson(i as Map<String, dynamic>))
+          .map((i) => RecipeIngredient.fromJson(i as Map<String, dynamic>, lang: lang))
           .toList(),
       steps: sortedSteps,
     );
