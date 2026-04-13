@@ -4,9 +4,9 @@
 /// To regenerate, run: `dart run slang`
 ///
 /// Locales: 2
-/// Strings: 168 (84 per locale)
+/// Strings: 218 (109 per locale)
 ///
-/// Built on 2026-04-13 at 15:06 UTC
+/// Built on 2026-04-13 at 16:52 UTC
 
 // coverage:ignore-file
 // ignore_for_file: type=lint
@@ -155,6 +155,7 @@ class Translations implements BaseTranslations<AppLocale, Translations> {
 	late final _StringsExploreEn explore = _StringsExploreEn._(_root);
 	late final _StringsMealPlanEn mealPlan = _StringsMealPlanEn._(_root);
 	late final _StringsShoppingListEn shoppingList = _StringsShoppingListEn._(_root);
+	late final _StringsCookingEn cooking = _StringsCookingEn._(_root);
 	late final _StringsFavoritesEn favorites = _StringsFavoritesEn._(_root);
 	late final _StringsProfileEn profile = _StringsProfileEn._(_root);
 	late final _StringsUnitsEn units = _StringsUnitsEn._(_root);
@@ -213,6 +214,9 @@ class _StringsRecipeEn {
 	String cookTime({required Object minutes}) => 'Cook: ${minutes} min';
 	String totalTime({required Object minutes}) => '${minutes} min';
 	late final _StringsRecipeDifficultyEn difficulty = _StringsRecipeDifficultyEn._(_root);
+	String get portions => 'Portions';
+	String get description => 'Description';
+	String get noSteps => 'No steps available.';
 	String get addToMealPlan => 'Add to Meal Plan';
 	String get addToShoppingList => 'Add to Shopping List';
 	String get startCooking => 'Start Cooking';
@@ -257,6 +261,25 @@ class _StringsShoppingListEn {
 	String get title => 'Shopping List';
 	String get empty => 'No items yet. Generate from your meal plan!';
 	String get clearChecked => 'Clear Checked';
+	String itemsCount({required Object checked, required Object total}) => '${checked} / ${total} items';
+	late final _StringsShoppingListCategoriesEn categories = _StringsShoppingListCategoriesEn._(_root);
+}
+
+// Path: cooking
+class _StringsCookingEn {
+	_StringsCookingEn._(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+	String stepOf({required Object current, required Object total}) => 'Step ${current} of ${total}';
+	String get back => 'Back';
+	String get next => 'Next';
+	String get done => 'Done!';
+	String get complete => 'Recipe Complete!';
+	String get noSteps => 'No steps available for this recipe.';
+	String get backToMealPlan => 'Back to Meal Plan';
+	String get backToRecipe => 'Back to Recipe';
 }
 
 // Path: favorites
@@ -394,6 +417,28 @@ class _StringsMealPlanMealTypesEn {
 	String get snack => 'Snack';
 }
 
+// Path: shoppingList.categories
+class _StringsShoppingListCategoriesEn {
+	_StringsShoppingListCategoriesEn._(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+	String get produce => 'Produce';
+	String get dairy => 'Dairy';
+	String get meat => 'Meat';
+	String get seafood => 'Seafood';
+	String get grains => 'Grains';
+	String get spices => 'Spices';
+	String get oils => 'Oils & Fats';
+	String get sauces => 'Sauces';
+	String get baking => 'Baking';
+	String get canned => 'Canned';
+	String get frozen => 'Frozen';
+	String get beverages => 'Beverages';
+	String get other => 'Other';
+}
+
 // Path: <root>
 class _StringsBg implements Translations {
 	/// You can call this constructor and build your own translation instance of this locale.
@@ -425,6 +470,7 @@ class _StringsBg implements Translations {
 	@override late final _StringsExploreBg explore = _StringsExploreBg._(_root);
 	@override late final _StringsMealPlanBg mealPlan = _StringsMealPlanBg._(_root);
 	@override late final _StringsShoppingListBg shoppingList = _StringsShoppingListBg._(_root);
+	@override late final _StringsCookingBg cooking = _StringsCookingBg._(_root);
 	@override late final _StringsFavoritesBg favorites = _StringsFavoritesBg._(_root);
 	@override late final _StringsProfileBg profile = _StringsProfileBg._(_root);
 	@override late final _StringsUnitsBg units = _StringsUnitsBg._(_root);
@@ -483,6 +529,9 @@ class _StringsRecipeBg implements _StringsRecipeEn {
 	@override String cookTime({required Object minutes}) => 'Готвене: ${minutes} мин';
 	@override String totalTime({required Object minutes}) => '${minutes} мин';
 	@override late final _StringsRecipeDifficultyBg difficulty = _StringsRecipeDifficultyBg._(_root);
+	@override String get portions => 'Порции';
+	@override String get description => 'Описание';
+	@override String get noSteps => 'Няма налични стъпки.';
 	@override String get addToMealPlan => 'Добави към план';
 	@override String get addToShoppingList => 'Добави към списъка';
 	@override String get startCooking => 'Започни готвене';
@@ -527,6 +576,25 @@ class _StringsShoppingListBg implements _StringsShoppingListEn {
 	@override String get title => 'Списък за пазаруване';
 	@override String get empty => 'Все още няма продукти. Генерирай от плана!';
 	@override String get clearChecked => 'Изчисти отбелязаните';
+	@override String itemsCount({required Object checked, required Object total}) => '${checked} / ${total} продукта';
+	@override late final _StringsShoppingListCategoriesBg categories = _StringsShoppingListCategoriesBg._(_root);
+}
+
+// Path: cooking
+class _StringsCookingBg implements _StringsCookingEn {
+	_StringsCookingBg._(this._root);
+
+	@override final _StringsBg _root; // ignore: unused_field
+
+	// Translations
+	@override String stepOf({required Object current, required Object total}) => 'Стъпка ${current} от ${total}';
+	@override String get back => 'Назад';
+	@override String get next => 'Напред';
+	@override String get done => 'Готово!';
+	@override String get complete => 'Рецептата е готова!';
+	@override String get noSteps => 'Няма налични стъпки за тази рецепта.';
+	@override String get backToMealPlan => 'Към плана';
+	@override String get backToRecipe => 'Към рецептата';
 }
 
 // Path: favorites
@@ -664,6 +732,28 @@ class _StringsMealPlanMealTypesBg implements _StringsMealPlanMealTypesEn {
 	@override String get snack => 'Снакс';
 }
 
+// Path: shoppingList.categories
+class _StringsShoppingListCategoriesBg implements _StringsShoppingListCategoriesEn {
+	_StringsShoppingListCategoriesBg._(this._root);
+
+	@override final _StringsBg _root; // ignore: unused_field
+
+	// Translations
+	@override String get produce => 'Плодове и зеленчуци';
+	@override String get dairy => 'Млечни продукти';
+	@override String get meat => 'Месо';
+	@override String get seafood => 'Морски дарове';
+	@override String get grains => 'Зърнени';
+	@override String get spices => 'Подправки';
+	@override String get oils => 'Масла и мазнини';
+	@override String get sauces => 'Сосове';
+	@override String get baking => 'За печене';
+	@override String get canned => 'Консерви';
+	@override String get frozen => 'Замразени';
+	@override String get beverages => 'Напитки';
+	@override String get other => 'Друго';
+}
+
 /// Flat map(s) containing all translations.
 /// Only for edge cases! For simple maps, use the map function of this library.
 
@@ -688,6 +778,9 @@ extension on Translations {
 			case 'recipe.difficulty.easy': return 'Easy';
 			case 'recipe.difficulty.medium': return 'Medium';
 			case 'recipe.difficulty.hard': return 'Hard';
+			case 'recipe.portions': return 'Portions';
+			case 'recipe.description': return 'Description';
+			case 'recipe.noSteps': return 'No steps available.';
 			case 'recipe.addToMealPlan': return 'Add to Meal Plan';
 			case 'recipe.addToShoppingList': return 'Add to Shopping List';
 			case 'recipe.startCooking': return 'Start Cooking';
@@ -714,6 +807,28 @@ extension on Translations {
 			case 'shoppingList.title': return 'Shopping List';
 			case 'shoppingList.empty': return 'No items yet. Generate from your meal plan!';
 			case 'shoppingList.clearChecked': return 'Clear Checked';
+			case 'shoppingList.itemsCount': return ({required Object checked, required Object total}) => '${checked} / ${total} items';
+			case 'shoppingList.categories.produce': return 'Produce';
+			case 'shoppingList.categories.dairy': return 'Dairy';
+			case 'shoppingList.categories.meat': return 'Meat';
+			case 'shoppingList.categories.seafood': return 'Seafood';
+			case 'shoppingList.categories.grains': return 'Grains';
+			case 'shoppingList.categories.spices': return 'Spices';
+			case 'shoppingList.categories.oils': return 'Oils & Fats';
+			case 'shoppingList.categories.sauces': return 'Sauces';
+			case 'shoppingList.categories.baking': return 'Baking';
+			case 'shoppingList.categories.canned': return 'Canned';
+			case 'shoppingList.categories.frozen': return 'Frozen';
+			case 'shoppingList.categories.beverages': return 'Beverages';
+			case 'shoppingList.categories.other': return 'Other';
+			case 'cooking.stepOf': return ({required Object current, required Object total}) => 'Step ${current} of ${total}';
+			case 'cooking.back': return 'Back';
+			case 'cooking.next': return 'Next';
+			case 'cooking.done': return 'Done!';
+			case 'cooking.complete': return 'Recipe Complete!';
+			case 'cooking.noSteps': return 'No steps available for this recipe.';
+			case 'cooking.backToMealPlan': return 'Back to Meal Plan';
+			case 'cooking.backToRecipe': return 'Back to Recipe';
 			case 'favorites.title': return 'Favourites';
 			case 'favorites.empty': return 'Save recipes you love!';
 			case 'profile.title': return 'Profile';
@@ -780,6 +895,9 @@ extension on _StringsBg {
 			case 'recipe.difficulty.easy': return 'Лесно';
 			case 'recipe.difficulty.medium': return 'Средно';
 			case 'recipe.difficulty.hard': return 'Трудно';
+			case 'recipe.portions': return 'Порции';
+			case 'recipe.description': return 'Описание';
+			case 'recipe.noSteps': return 'Няма налични стъпки.';
 			case 'recipe.addToMealPlan': return 'Добави към план';
 			case 'recipe.addToShoppingList': return 'Добави към списъка';
 			case 'recipe.startCooking': return 'Започни готвене';
@@ -806,6 +924,28 @@ extension on _StringsBg {
 			case 'shoppingList.title': return 'Списък за пазаруване';
 			case 'shoppingList.empty': return 'Все още няма продукти. Генерирай от плана!';
 			case 'shoppingList.clearChecked': return 'Изчисти отбелязаните';
+			case 'shoppingList.itemsCount': return ({required Object checked, required Object total}) => '${checked} / ${total} продукта';
+			case 'shoppingList.categories.produce': return 'Плодове и зеленчуци';
+			case 'shoppingList.categories.dairy': return 'Млечни продукти';
+			case 'shoppingList.categories.meat': return 'Месо';
+			case 'shoppingList.categories.seafood': return 'Морски дарове';
+			case 'shoppingList.categories.grains': return 'Зърнени';
+			case 'shoppingList.categories.spices': return 'Подправки';
+			case 'shoppingList.categories.oils': return 'Масла и мазнини';
+			case 'shoppingList.categories.sauces': return 'Сосове';
+			case 'shoppingList.categories.baking': return 'За печене';
+			case 'shoppingList.categories.canned': return 'Консерви';
+			case 'shoppingList.categories.frozen': return 'Замразени';
+			case 'shoppingList.categories.beverages': return 'Напитки';
+			case 'shoppingList.categories.other': return 'Друго';
+			case 'cooking.stepOf': return ({required Object current, required Object total}) => 'Стъпка ${current} от ${total}';
+			case 'cooking.back': return 'Назад';
+			case 'cooking.next': return 'Напред';
+			case 'cooking.done': return 'Готово!';
+			case 'cooking.complete': return 'Рецептата е готова!';
+			case 'cooking.noSteps': return 'Няма налични стъпки за тази рецепта.';
+			case 'cooking.backToMealPlan': return 'Към плана';
+			case 'cooking.backToRecipe': return 'Към рецептата';
 			case 'favorites.title': return 'Любими';
 			case 'favorites.empty': return 'Запази рецепти, които харесваш!';
 			case 'profile.title': return 'Профил';

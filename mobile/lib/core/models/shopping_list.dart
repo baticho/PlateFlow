@@ -58,27 +58,10 @@ class ShoppingList {
     );
   }
 
-  static const categoryLabels = {
-    'produce': 'Produce',
-    'dairy': 'Dairy',
-    'meat': 'Meat',
-    'seafood': 'Seafood',
-    'grains': 'Grains',
-    'spices': 'Spices',
-    'oils': 'Oils & Fats',
-    'sauces': 'Sauces',
-    'baking': 'Baking',
-    'canned': 'Canned',
-    'frozen': 'Frozen',
-    'beverages': 'Beverages',
-    'other': 'Other',
-  };
-
   Map<String, List<ShoppingItem>> get itemsByCategory {
     final Map<String, List<ShoppingItem>> grouped = {};
     for (final item in items) {
-      final label = categoryLabels[item.ingredientCategory] ?? 'Other';
-      grouped.putIfAbsent(label, () => []).add(item);
+      grouped.putIfAbsent(item.ingredientCategory, () => []).add(item);
     }
     return grouped;
   }

@@ -131,6 +131,15 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
     } catch (_) {}
   }
 
+  String _translateDifficulty(String difficulty, Translations t) {
+    switch (difficulty.toLowerCase()) {
+      case 'easy': return t.recipe.difficulty.easy;
+      case 'medium': return t.recipe.difficulty.medium;
+      case 'hard': return t.recipe.difficulty.hard;
+      default: return difficulty;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = Translations.of(context);
@@ -203,14 +212,14 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                 children: [
                   // Meta row
                   Wrap(spacing: 8, children: [
-                    _MetaChip(Icons.schedule, '${recipe.totalTimeMinutes} min'),
-                    _MetaChip(Icons.bar_chart, recipe.difficulty),
-                    _MetaChip(Icons.people_outline, '${recipe.servings} servings'),
+                    _MetaChip(Icons.schedule, t.recipe.totalTime(minutes: recipe.totalTimeMinutes)),
+                    _MetaChip(Icons.bar_chart, _translateDifficulty(recipe.difficulty, t)),
+                    _MetaChip(Icons.people_outline, t.recipe.servings(count: recipe.servings)),
                   ]),
                   const SizedBox(height: 16),
                   // Portion selector
                   Row(children: [
-                    Text('Portions:', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
+                    Text('${t.recipe.portions}:', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
                     const SizedBox(width: 12),
                     _PortionSelector(
                       selected: _selectedServings,
@@ -220,7 +229,7 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                   ]),
                   if (recipe.description != null) ...[
                     const SizedBox(height: 16),
-                    Text('Description', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
+                    Text(t.recipe.description, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
                     const SizedBox(height: 6),
                     Text(recipe.description!),
                   ],
@@ -522,7 +531,7 @@ class _StepsList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (steps.isEmpty) {
-      return const Center(child: Text('No steps available.'));
+      return Center(child: Text(context.t.recipe.noSteps));
     }
     return ListView.separated(
       itemCount: steps.length,
@@ -535,7 +544,6 @@ class _StepsList extends StatelessWidget {
             child: Text('${step.order}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           ),
           title: Text(step.instruction),
-          isThreeLine: true,
         );
       },
     );

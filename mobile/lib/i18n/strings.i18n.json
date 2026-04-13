@@ -26,6 +26,9 @@
       "medium": "Medium",
       "hard": "Hard"
     },
+    "portions": "Portions",
+    "description": "Description",
+    "noSteps": "No steps available.",
     "addToMealPlan": "Add to Meal Plan",
     "addToShoppingList": "Add to Shopping List",
     "startCooking": "Start Cooking"
@@ -61,7 +64,33 @@
   "shoppingList": {
     "title": "Shopping List",
     "empty": "No items yet. Generate from your meal plan!",
-    "clearChecked": "Clear Checked"
+    "clearChecked": "Clear Checked",
+    "itemsCount": "$checked / $total items",
+    "categories": {
+      "produce": "Produce",
+      "dairy": "Dairy",
+      "meat": "Meat",
+      "seafood": "Seafood",
+      "grains": "Grains",
+      "spices": "Spices",
+      "oils": "Oils & Fats",
+      "sauces": "Sauces",
+      "baking": "Baking",
+      "canned": "Canned",
+      "frozen": "Frozen",
+      "beverages": "Beverages",
+      "other": "Other"
+    }
+  },
+  "cooking": {
+    "stepOf": "Step $current of $total",
+    "back": "Back",
+    "next": "Next",
+    "done": "Done!",
+    "complete": "Recipe Complete!",
+    "noSteps": "No steps available for this recipe.",
+    "backToMealPlan": "Back to Meal Plan",
+    "backToRecipe": "Back to Recipe"
   },
   "favorites": {
     "title": "Favourites",

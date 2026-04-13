@@ -109,7 +109,7 @@ class _CookingScreenState extends ConsumerState<CookingScreen> {
     if (recipe.steps.isEmpty) {
       return Scaffold(
         appBar: AppBar(title: Text(recipe.title, maxLines: 1, overflow: TextOverflow.ellipsis)),
-        body: const Center(child: Text('No steps available for this recipe.')),
+        body: Center(child: Text(Translations.of(context).cooking.noSteps)),
       );
     }
 
@@ -169,7 +169,7 @@ class _CookingView extends StatelessWidget {
                 color: cs.primary,
               ),
               child: Text(
-                'Step ${currentStep + 1} of $total',
+                context.t.cooking.stepOf(current: currentStep + 1, total: total),
                 style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13),
               ),
             ),
@@ -210,14 +210,14 @@ class _CookingView extends StatelessWidget {
             OutlinedButton.icon(
               onPressed: currentStep > 0 ? onPrev : null,
               icon: const Icon(Icons.arrow_back),
-              label: const Text('Back'),
+              label: Text(context.t.cooking.back),
             ),
             const Spacer(),
             // Next / Done button
             FilledButton.icon(
               onPressed: onNext,
               icon: Icon(isLast ? Icons.check : Icons.arrow_forward),
-              label: Text(isLast ? 'Done!' : 'Next'),
+              label: Text(isLast ? context.t.cooking.done : context.t.cooking.next),
             ),
           ]),
         ),
@@ -242,7 +242,7 @@ class _DoneView extends StatelessWidget {
             children: [
               Icon(Icons.check_circle, size: 100, color: cs.primary),
               const SizedBox(height: 24),
-              const Text('Recipe Complete!', style: TextStyle(fontSize: 26, fontWeight: FontWeight.w700)),
+              Text(context.t.cooking.complete, style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w700)),
               const SizedBox(height: 12),
               Text(recipe.title, style: const TextStyle(fontSize: 16, color: Colors.grey), textAlign: TextAlign.center),
               const SizedBox(height: 48),
@@ -251,7 +251,7 @@ class _DoneView extends StatelessWidget {
                 child: FilledButton.icon(
                   onPressed: () => context.go('/meal-plan'),
                   icon: const Icon(Icons.calendar_today_outlined),
-                  label: const Text('Back to Meal Plan'),
+                  label: Text(context.t.cooking.backToMealPlan),
                   style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(52)),
                 ),
               ),
@@ -261,7 +261,7 @@ class _DoneView extends StatelessWidget {
                 child: OutlinedButton.icon(
                   onPressed: () => context.pop(),
                   icon: const Icon(Icons.restaurant_menu),
-                  label: const Text('Back to Recipe'),
+                  label: Text(context.t.cooking.backToRecipe),
                   style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(52)),
                 ),
               ),

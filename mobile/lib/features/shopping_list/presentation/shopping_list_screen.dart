@@ -119,7 +119,7 @@ class _ShoppingListScreenState extends ConsumerState<ShoppingListScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(t.shoppingList.title, style: const TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w700)),
-            Text('$checked / $total items', style: TextStyle(fontSize: 12, color: cs.onSurface.withAlpha(160))),
+            Text(t.shoppingList.itemsCount(checked: checked, total: total), style: TextStyle(fontSize: 12, color: cs.onSurface.withAlpha(160))),
           ],
         ),
         actions: [
@@ -134,7 +134,7 @@ class _ShoppingListScreenState extends ConsumerState<ShoppingListScreen> {
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
               child: Text(
-                entry.key,
+                t['shoppingList.categories.${entry.key}'] as String? ?? entry.key,
                 style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12, color: cs.primary, letterSpacing: 0.5),
               ),
             ),

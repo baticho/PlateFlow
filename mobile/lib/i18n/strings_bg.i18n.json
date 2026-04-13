@@ -26,6 +26,9 @@
       "medium": "Средно",
       "hard": "Трудно"
     },
+    "portions": "Порции",
+    "description": "Описание",
+    "noSteps": "Няма налични стъпки.",
     "addToMealPlan": "Добави към план",
     "addToShoppingList": "Добави към списъка",
     "startCooking": "Започни готвене"
@@ -61,7 +64,33 @@
   "shoppingList": {
     "title": "Списък за пазаруване",
     "empty": "Все още няма продукти. Генерирай от плана!",
-    "clearChecked": "Изчисти отбелязаните"
+    "clearChecked": "Изчисти отбелязаните",
+    "itemsCount": "$checked / $total продукта",
+    "categories": {
+      "produce": "Плодове и зеленчуци",
+      "dairy": "Млечни продукти",
+      "meat": "Месо",
+      "seafood": "Морски дарове",
+      "grains": "Зърнени",
+      "spices": "Подправки",
+      "oils": "Масла и мазнини",
+      "sauces": "Сосове",
+      "baking": "За печене",
+      "canned": "Консерви",
+      "frozen": "Замразени",
+      "beverages": "Напитки",
+      "other": "Друго"
+    }
+  },
+  "cooking": {
+    "stepOf": "Стъпка $current от $total",
+    "back": "Назад",
+    "next": "Напред",
+    "done": "Готово!",
+    "complete": "Рецептата е готова!",
+    "noSteps": "Няма налични стъпки за тази рецепта.",
+    "backToMealPlan": "Към плана",
+    "backToRecipe": "Към рецептата"
   },
   "favorites": {
     "title": "Любими",
