@@ -59,7 +59,8 @@
       "lunch": "Lunch",
       "dinner": "Dinner",
       "snack": "Snack"
-    }
+    },
+    "viewPlan": "View Plan"
   },
   "shoppingList": {
     "title": "Shopping List",

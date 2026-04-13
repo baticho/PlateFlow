@@ -4,9 +4,9 @@
 /// To regenerate, run: `dart run slang`
 ///
 /// Locales: 2
-/// Strings: 218 (109 per locale)
+/// Strings: 220 (110 per locale)
 ///
-/// Built on 2026-04-13 at 16:52 UTC
+/// Built on 2026-04-13 at 16:57 UTC
 
 // coverage:ignore-file
 // ignore_for_file: type=lint
@@ -249,6 +249,7 @@ class _StringsMealPlanEn {
 	String get addMeal => 'Add Meal';
 	late final _StringsMealPlanDaysEn days = _StringsMealPlanDaysEn._(_root);
 	late final _StringsMealPlanMealTypesEn mealTypes = _StringsMealPlanMealTypesEn._(_root);
+	String get viewPlan => 'View Plan';
 }
 
 // Path: shoppingList
@@ -564,6 +565,7 @@ class _StringsMealPlanBg implements _StringsMealPlanEn {
 	@override String get addMeal => 'Добави ястие';
 	@override late final _StringsMealPlanDaysBg days = _StringsMealPlanDaysBg._(_root);
 	@override late final _StringsMealPlanMealTypesBg mealTypes = _StringsMealPlanMealTypesBg._(_root);
+	@override String get viewPlan => 'Виж план';
 }
 
 // Path: shoppingList
@@ -804,6 +806,7 @@ extension on Translations {
 			case 'mealPlan.mealTypes.lunch': return 'Lunch';
 			case 'mealPlan.mealTypes.dinner': return 'Dinner';
 			case 'mealPlan.mealTypes.snack': return 'Snack';
+			case 'mealPlan.viewPlan': return 'View Plan';
 			case 'shoppingList.title': return 'Shopping List';
 			case 'shoppingList.empty': return 'No items yet. Generate from your meal plan!';
 			case 'shoppingList.clearChecked': return 'Clear Checked';
@@ -921,6 +924,7 @@ extension on _StringsBg {
 			case 'mealPlan.mealTypes.lunch': return 'Обяд';
 			case 'mealPlan.mealTypes.dinner': return 'Вечеря';
 			case 'mealPlan.mealTypes.snack': return 'Снакс';
+			case 'mealPlan.viewPlan': return 'Виж план';
 			case 'shoppingList.title': return 'Списък за пазаруване';
 			case 'shoppingList.empty': return 'Все още няма продукти. Генерирай от плана!';
 			case 'shoppingList.clearChecked': return 'Изчисти отбелязаните';

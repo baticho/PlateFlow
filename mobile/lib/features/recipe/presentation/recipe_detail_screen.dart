@@ -112,8 +112,8 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
       messenger.showSnackBar(SnackBar(
         content: Text('$dayName — ${tLocal.shoppingList.title}'),
         behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 4),
-        action: SnackBarAction(label: 'View Plan', onPressed: () => context.go('/meal-plan')),
+        duration: const Duration(seconds: 2),
+        action: SnackBarAction(label: tLocal.mealPlan.viewPlan, onPressed: () => context.go('/meal-plan')),
       ));
     } on DioException catch (e) {
       if (!mounted) return;

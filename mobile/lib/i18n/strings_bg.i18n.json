@@ -59,7 +59,8 @@
       "lunch": "Обяд",
       "dinner": "Вечеря",
       "snack": "Снакс"
-    }
+    },
+    "viewPlan": "Виж план"
   },
   "shoppingList": {
     "title": "Списък за пазаруване",
