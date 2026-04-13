@@ -25,6 +25,7 @@ class RefreshRequest(BaseModel):
 
 
 class GoogleAuthRequest(BaseModel):
-    id_token: str
+    id_token: str | None = None
+    access_token: str | None = None
     preferred_language: str = "en"
     preferred_unit_system: str = "metric"

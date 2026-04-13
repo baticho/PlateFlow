@@ -44,6 +44,7 @@ async def google_auth(data: GoogleAuthRequest, db: AsyncSession = Depends(get_db
     user = await google_sign_in(
         db,
         id_token_str=data.id_token,
+        access_token_str=data.access_token,
         preferred_language=data.preferred_language,
         preferred_unit_system=data.preferred_unit_system,
     )

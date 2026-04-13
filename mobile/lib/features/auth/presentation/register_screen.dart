@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -35,7 +36,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
   static final _googleSignIn = GoogleSignIn(
     clientId: '256522369666-joi6447bpg9h47pp5nrfhdjhbkghc03g.apps.googleusercontent.com',
-    serverClientId: '256522369666-joi6447bpg9h47pp5nrfhdjhbkghc03g.apps.googleusercontent.com',
+    serverClientId: kIsWeb ? null : '256522369666-joi6447bpg9h47pp5nrfhdjhbkghc03g.apps.googleusercontent.com',
   );
 
   @override
@@ -61,14 +62,16 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
       final auth = await account.authentication;
       final idToken = auth.idToken;
-      if (idToken == null) {
+      final accessToken = auth.accessToken;
+      if (idToken == null && accessToken == null) {
         setState(() => _errorMessage = 'Google sign-in failed. Try again.');
         return;
       }
 
       final dio = ref.read(dioProvider);
       final res = await dio.post('/api/v1/auth/google', data: {
-        'id_token': idToken,
+        if (idToken != null) 'id_token': idToken,
+        if (idToken == null && accessToken != null) 'access_token': accessToken,
         'preferred_language': _language,
         'preferred_unit_system': _unitSystem,
       });
