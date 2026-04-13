@@ -26,8 +26,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   static const _storage = FlutterSecureStorage();
 
   static final _googleSignIn = GoogleSignIn(
-    serverClientId:
-        '256522369666-iro5qm9c5tjjf0c959stteca0s721fd3.apps.googleusercontent.com',
+    clientId: '256522369666-joi6447bpg9h47pp5nrfhdjhbkghc03g.apps.googleusercontent.com',
+    serverClientId: '256522369666-joi6447bpg9h47pp5nrfhdjhbkghc03g.apps.googleusercontent.com',
   );
 
   @override
@@ -227,6 +227,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       final auth = await account.authentication;
       final idToken = auth.idToken;
       if (idToken == null) {
+        debugPrint('[Google] idToken is null — serverClientId may be wrong or mismatched project');
         setState(() => _errorMessage = 'Google sign-in failed. Try again.');
         return;
       }
@@ -245,7 +246,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       setState(() {
         _errorMessage = detail is String ? detail : 'Google sign-in failed.';
       });
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[Google] Exception: $e');
       setState(() => _errorMessage = 'Google sign-in failed. Try again.');
     } finally {
       if (mounted) setState(() => _googleLoading = false);

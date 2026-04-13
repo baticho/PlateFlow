@@ -34,8 +34,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   static const _storage = FlutterSecureStorage();
 
   static final _googleSignIn = GoogleSignIn(
-    serverClientId:
-        '256522369666-iro5qm9c5tjjf0c959stteca0s721fd3.apps.googleusercontent.com',
+    clientId: '256522369666-joi6447bpg9h47pp5nrfhdjhbkghc03g.apps.googleusercontent.com',
+    serverClientId: '256522369666-joi6447bpg9h47pp5nrfhdjhbkghc03g.apps.googleusercontent.com',
   );
 
   @override
