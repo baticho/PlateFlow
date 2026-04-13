@@ -17,16 +17,20 @@ class ShoppingListItemResponse(BaseModel):
 
     @model_validator(mode='before')
     @classmethod
-    def resolve_ingredient(cls, v):
+    def resolve_ingredient(cls, v, info=None):
         if hasattr(v, 'ingredient') and v.ingredient:
-            en = next(
-                (t for t in v.ingredient.translations if t.language_code == 'en'),
-                v.ingredient.translations[0] if v.ingredient.translations else None,
+            lang = (info.context.get('lang', 'en') if (info and info.context) else 'en')
+            translation = next(
+                (t for t in v.ingredient.translations if t.language_code == lang),
+                next(
+                    (t for t in v.ingredient.translations if t.language_code == 'en'),
+                    v.ingredient.translations[0] if v.ingredient.translations else None,
+                ),
             )
             return {
                 'id': v.id,
                 'ingredient_id': v.ingredient_id,
-                'ingredient_name': en.name if en else f'#{v.ingredient_id}',
+                'ingredient_name': translation.name if translation else f'#{v.ingredient_id}',
                 'ingredient_category': v.ingredient.category.value,
                 'quantity': float(v.quantity),
                 'unit': v.unit,

@@ -7,8 +7,9 @@ from app.core.deps import get_current_user
 from app.database import get_db
 from app.domains.ingredients.models import Ingredient, IngredientTranslation
 from app.domains.shopping_lists.models import ShoppingList, ShoppingListItem
-from app.domains.shopping_lists.schemas import ShoppingListResponse
+from app.domains.shopping_lists.schemas import ShoppingListItemResponse, ShoppingListResponse
 from app.domains.users.models import User
+from app.middleware.i18n import current_language
 
 router = APIRouter()
 
@@ -18,6 +19,8 @@ async def list_shopping_lists(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    lang = current_language.get()
+
     result = await db.execute(
         select(ShoppingList)
         .where(ShoppingList.user_id == current_user.id)
@@ -28,7 +31,22 @@ async def list_shopping_lists(
         )
         .order_by(ShoppingList.created_at.desc())
     )
-    return result.scalars().all()
+    lists = result.scalars().all()
+
+    # Build responses with language-aware ingredient names
+    response = []
+    for sl in lists:
+        items = [
+            ShoppingListItemResponse.model_validate(item, context={'lang': lang})
+            for item in sl.items
+        ]
+        response.append(ShoppingListResponse(
+            id=sl.id,
+            name=sl.name,
+            items=items,
+            created_at=sl.created_at,
+        ))
+    return response
 
 
 @router.put("/{list_id}/items/{item_id}/toggle")
