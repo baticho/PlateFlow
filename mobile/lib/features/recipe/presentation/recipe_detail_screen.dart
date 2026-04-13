@@ -63,6 +63,10 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
     final recipe = _recipe;
     if (recipe == null) return;
 
+    // Capture context-dependent objects before async gaps
+    final messenger = ScaffoldMessenger.of(context);
+    final router = GoRouter.of(context);
+
     int? selectedDay;
     String? selectedMealType;
 
@@ -84,8 +88,6 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
     if (selectedDay == null || selectedMealType == null) return;
     if (!mounted) return;
 
-    final messenger = ScaffoldMessenger.of(context);
-
     try {
       // Get or create meal plan for this week
       Map<String, dynamic>? planData = await _mealPlanService.getCurrentPlan();
@@ -101,7 +103,8 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
 
       if (!mounted) return;
 
-      final tLocal = context.t;
+      // Use LocaleSettings directly to avoid stale context translations after async gaps
+      final tLocal = LocaleSettings.instance.currentTranslations;
       final dayNames = [
         tLocal.mealPlan.days.mon, tLocal.mealPlan.days.tue, tLocal.mealPlan.days.wed,
         tLocal.mealPlan.days.thu, tLocal.mealPlan.days.fri, tLocal.mealPlan.days.sat, tLocal.mealPlan.days.sun,
@@ -113,7 +116,7 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
         content: Text('$dayName — ${tLocal.shoppingList.title}'),
         behavior: SnackBarBehavior.floating,
         duration: const Duration(seconds: 2),
-        action: SnackBarAction(label: tLocal.mealPlan.viewPlan, onPressed: () => context.go('/meal-plan')),
+        action: SnackBarAction(label: tLocal.mealPlan.viewPlan, onPressed: () => router.go('/meal-plan')),
       ));
     } on DioException catch (e) {
       if (!mounted) return;

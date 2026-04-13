@@ -2,7 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../config/app_config.dart';
-import '../providers/locale_provider.dart';
+import '../../i18n/strings.g.dart';
 
 final dioProvider = Provider<Dio>((ref) {
   final dio = Dio(
@@ -15,7 +15,7 @@ final dioProvider = Provider<Dio>((ref) {
   );
 
   dio.interceptors.add(_AuthInterceptor(ref));
-  dio.interceptors.add(_LanguageInterceptor(ref));
+  dio.interceptors.add(_LanguageInterceptor());
 
   return dio;
 });
@@ -45,12 +45,9 @@ class _AuthInterceptor extends Interceptor {
 }
 
 class _LanguageInterceptor extends Interceptor {
-  final Ref ref;
-  _LanguageInterceptor(this.ref);
-
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
-    options.headers['Accept-Language'] = ref.read(localeProvider);
+    options.headers['Accept-Language'] = LocaleSettings.currentLocale.languageCode;
     handler.next(options);
   }
 }
