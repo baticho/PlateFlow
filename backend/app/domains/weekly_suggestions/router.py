@@ -12,7 +12,7 @@ from app.domains.weekly_suggestions.models import WeeklySuggestion
 router = APIRouter()
 
 
-@router.get("/")
+@router.get("")
 async def get_weekly_suggestions(
     week_start: date | None = Query(None),
     db: AsyncSession = Depends(get_db),

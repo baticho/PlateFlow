@@ -4,7 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/api/api_client.dart';
 import '../../../core/models/shopping_list.dart';
+import '../../../core/providers/locale_provider.dart';
 import '../../../core/services/shopping_list_service.dart';
+import '../../../i18n/strings.g.dart';
 
 class ShoppingListScreen extends ConsumerStatefulWidget {
   const ShoppingListScreen({super.key});
@@ -65,6 +67,9 @@ class _ShoppingListScreenState extends ConsumerState<ShoppingListScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
+    final t = Translations.of(context);
+
+    ref.listen(localeProvider, (_, __) => _loadList());
 
     if (_loading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
@@ -72,7 +77,7 @@ class _ShoppingListScreenState extends ConsumerState<ShoppingListScreen> {
 
     if (_error != null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Shopping List', style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w700))),
+        appBar: AppBar(title: Text(t.shoppingList.title, style: const TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w700))),
         body: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -81,7 +86,7 @@ class _ShoppingListScreenState extends ConsumerState<ShoppingListScreen> {
               const SizedBox(height: 8),
               Text(_error!),
               const SizedBox(height: 16),
-              FilledButton(onPressed: _loadList, child: const Text('Retry')),
+              FilledButton(onPressed: _loadList, child: Text(t.common.retry)),
             ],
           ),
         ),
@@ -90,16 +95,14 @@ class _ShoppingListScreenState extends ConsumerState<ShoppingListScreen> {
 
     if (_list == null || _list!.items.isEmpty) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Shopping List', style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w700))),
+        appBar: AppBar(title: Text(t.shoppingList.title, style: const TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w700))),
         body: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(Icons.shopping_cart_outlined, size: 64, color: Colors.grey.shade400),
               const SizedBox(height: 16),
-              const Text('No shopping list yet', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-              const SizedBox(height: 8),
-              Text('Add recipes to your meal plan to generate a list', style: TextStyle(color: Colors.grey.shade600), textAlign: TextAlign.center),
+              Text(t.shoppingList.empty, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600), textAlign: TextAlign.center),
             ],
           ),
         ),
@@ -115,12 +118,12 @@ class _ShoppingListScreenState extends ConsumerState<ShoppingListScreen> {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Shopping List', style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w700)),
+            Text(t.shoppingList.title, style: const TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w700)),
             Text('$checked / $total items', style: TextStyle(fontSize: 12, color: cs.onSurface.withAlpha(160))),
           ],
         ),
         actions: [
-          TextButton(onPressed: _clearChecked, child: const Text('Clear Checked')),
+          TextButton(onPressed: _clearChecked, child: Text(t.shoppingList.clearChecked)),
           IconButton(onPressed: _loadList, icon: const Icon(Icons.refresh)),
         ],
       ),
