@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/api/api_client.dart';
@@ -16,6 +17,7 @@ class ProfileScreen extends ConsumerStatefulWidget {
 
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   bool _metricUnits = true;
+  static const _storage = FlutterSecureStorage();
 
   @override
   Widget build(BuildContext context) {
@@ -145,7 +147,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             leading: const Icon(Icons.logout, color: Colors.red),
             title: Text(t.profile.logout,
                 style: const TextStyle(color: Colors.red)),
-            onTap: () => context.go('/login'),
+            onTap: () async {
+              await _storage.delete(key: 'access_token');
+              await _storage.delete(key: 'refresh_token');
+              ref.invalidate(userProvider);
+              if (context.mounted) context.go('/login');
+            },
           ),
         ],
       ),

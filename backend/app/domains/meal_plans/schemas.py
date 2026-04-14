@@ -8,6 +8,7 @@ class MealPlanItemCreate(BaseModel):
     recipe_id: uuid.UUID
     day_of_week: int
     meal_type: str
+    servings: int = 1
 
 
 class MealPlanCreate(BaseModel):
@@ -22,6 +23,7 @@ class MealPlanItemResponse(BaseModel):
     recipe_image_url: str | None
     day_of_week: int
     meal_type: str
+    servings: int = 1
     is_completed: bool = False
 
     model_config = {"from_attributes": True}
@@ -41,6 +43,7 @@ class MealPlanItemResponse(BaseModel):
                 'recipe_image_url': v.recipe.image_url,
                 'day_of_week': v.day_of_week,
                 'meal_type': v.meal_type,
+                'servings': v.servings,
                 'is_completed': v.is_completed,
             }
         return v

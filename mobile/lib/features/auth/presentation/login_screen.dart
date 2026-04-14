@@ -6,6 +6,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import '../../../core/api/api_client.dart';
+import '../../../core/providers/user_provider.dart';
 import '../../../i18n/strings.g.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -206,6 +207,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           key: 'access_token', value: res.data['access_token'] as String);
       await _storage.write(
           key: 'refresh_token', value: res.data['refresh_token'] as String);
+      ref.invalidate(userProvider);
       if (mounted) context.go('/home');
     } on DioException catch (e) {
       final detail = e.response?.data?['detail'];
@@ -245,6 +247,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           key: 'access_token', value: res.data['access_token'] as String);
       await _storage.write(
           key: 'refresh_token', value: res.data['refresh_token'] as String);
+      ref.invalidate(userProvider);
       if (mounted) context.go('/home');
     } on DioException catch (e) {
       final detail = e.response?.data?['detail'];

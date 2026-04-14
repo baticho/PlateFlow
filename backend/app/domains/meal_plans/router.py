@@ -85,6 +85,7 @@ async def add_meal_plan_item(
         recipe_id=item.recipe_id,
         day_of_week=item.day_of_week,
         meal_type=item.meal_type,
+        servings=item.servings,
     )
     db.add(new_item)
     await db.flush()
@@ -180,7 +181,7 @@ async def generate_shopping_list(
             select(RecipeIngredient).where(RecipeIngredient.recipe_id == meal_item.recipe_id)
         )).scalars().all()
         for ing in ings:
-            agg[(ing.ingredient_id, ing.unit)] += float(ing.quantity)
+            agg[(ing.ingredient_id, ing.unit)] += float(ing.quantity) * meal_item.servings
 
     list_name = f"Week of {plan.week_start_date}"
 

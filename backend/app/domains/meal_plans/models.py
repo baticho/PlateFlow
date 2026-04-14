@@ -42,6 +42,7 @@ class MealPlanItem(Base):
     recipe_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("recipes.id"), nullable=False)
     day_of_week: Mapped[int] = mapped_column(Integer, nullable=False)  # 0=Monday, 6=Sunday
     meal_type: Mapped[MealType] = mapped_column(Enum(MealType), nullable=False)
+    servings: Mapped[int] = mapped_column(Integer, default=1, server_default='1', nullable=False)
     is_completed: Mapped[bool] = mapped_column(Boolean, default=False, server_default='false', nullable=False)
 
     meal_plan = relationship("MealPlan", back_populates="items")

@@ -35,14 +35,21 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(path: '/home', builder: (_, __) => const HomeScreen()),
           GoRoute(
             path: '/explore',
-            builder: (_, __) => const ExploreScreen(),
+            builder: (_, state) => ExploreScreen(
+              fromDay: int.tryParse(state.uri.queryParameters['fromDay'] ?? ''),
+              fromMealType: state.uri.queryParameters['fromMealType'],
+            ),
           ),
           GoRoute(path: '/meal-plan', builder: (_, __) => const MealPlanScreen()),
           GoRoute(path: '/shopping-list', builder: (_, __) => const ShoppingListScreen()),
           GoRoute(path: '/profile', builder: (_, __) => const ProfileScreen()),
           GoRoute(
             path: '/recipe/:id',
-            builder: (_, state) => RecipeDetailScreen(recipeId: state.pathParameters['id']!),
+            builder: (_, state) => RecipeDetailScreen(
+              recipeId: state.pathParameters['id']!,
+              fromDay: int.tryParse(state.uri.queryParameters['fromDay'] ?? ''),
+              fromMealType: state.uri.queryParameters['fromMealType'],
+            ),
           ),
           GoRoute(path: '/favorites', builder: (_, __) => const FavoritesScreen()),
           GoRoute(path: '/subscription', builder: (_, __) => const SubscriptionScreen()),

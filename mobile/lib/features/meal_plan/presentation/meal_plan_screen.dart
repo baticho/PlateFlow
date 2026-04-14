@@ -8,6 +8,7 @@ import '../../../core/api/api_client.dart';
 import '../../../core/config/app_config.dart';
 import '../../../core/models/meal_plan.dart';
 import '../../../core/providers/locale_provider.dart';
+import '../../../core/providers/meal_plan_refresh_provider.dart';
 import '../../../core/services/meal_plan_service.dart';
 import '../../../i18n/strings.g.dart';
 
@@ -137,6 +138,7 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
     final cs = Theme.of(context).colorScheme;
     final t = Translations.of(context);
     ref.listen(localeProvider, (_, __) => _loadPlan());
+    ref.listen(mealPlanRefreshProvider, (_, __) => _loadPlan());
 
     final dayNames = [
       t.mealPlan.days.mon, t.mealPlan.days.tue, t.mealPlan.days.wed,
@@ -275,7 +277,7 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
                 mealIcon: _mealIcons[i],
                 items: items,
                 addLabel: t.mealPlan.addMeal,
-                onAddRecipe: () => context.go('/explore'),
+                onAddRecipe: () => context.go('/explore?fromDay=$_selectedDay&fromMealType=$mealType'),
                 onTapRecipe: (item) => context.push('/recipe/${item.recipeId}'),
                 onCookRecipe: (item) => context.push('/cooking/${item.recipeId}?planId=${_plan!.id}&itemId=${item.id}'),
                 onRemoveRecipe: (item) => _removeRecipe(item, t),
