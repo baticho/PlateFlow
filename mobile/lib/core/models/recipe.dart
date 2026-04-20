@@ -25,7 +25,7 @@ class RecipeSummary {
       imageUrl: j['image_url'],
       totalTimeMinutes: j['total_time_minutes'] ?? 0,
       difficulty: j['difficulty'] ?? 'easy',
-      servings: j['servings'] ?? 2,
+      servings: j['servings'] ?? 4,
     );
   }
 
@@ -181,7 +181,7 @@ class RecipeDetail {
       prepTimeMinutes: j['prep_time_minutes'] ?? 0,
       cookTimeMinutes: j['cook_time_minutes'] ?? 0,
       totalTimeMinutes: j['total_time_minutes'] ?? 0,
-      servings: j['servings'] ?? 2,
+      servings: j['servings'] ?? 4,
       difficulty: j['difficulty'] ?? 'easy',
       ingredients: (j['ingredients'] as List? ?? [])
           .map((i) => RecipeIngredient.fromJson(i as Map<String, dynamic>, lang: lang))

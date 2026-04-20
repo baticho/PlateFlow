@@ -6,6 +6,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import '../../../core/api/api_client.dart';
+import '../../../core/providers/auth_state.dart';
 import '../../../core/providers/user_provider.dart';
 import '../../../i18n/strings.g.dart';
 
@@ -29,7 +30,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   static const _storage = FlutterSecureStorage();
 
   static final _googleSignIn = GoogleSignIn(
-    clientId: '256522369666-joi6447bpg9h47pp5nrfhdjhbkghc03g.apps.googleusercontent.com',
+    clientId: kIsWeb ? '256522369666-joi6447bpg9h47pp5nrfhdjhbkghc03g.apps.googleusercontent.com' : null,
     serverClientId: kIsWeb ? null : '256522369666-joi6447bpg9h47pp5nrfhdjhbkghc03g.apps.googleusercontent.com',
   );
 
@@ -207,6 +208,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           key: 'access_token', value: res.data['access_token'] as String);
       await _storage.write(
           key: 'refresh_token', value: res.data['refresh_token'] as String);
+      ref.read(authStateProvider).markLoggedIn();
       ref.invalidate(userProvider);
       if (mounted) context.go('/home');
     } on DioException catch (e) {
@@ -227,11 +229,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     });
     try {
       final account = await _googleSignIn.signIn();
+      debugPrint('[Google] signIn returned: ${account?.email}');
       if (account == null) return; // User cancelled
 
       final auth = await account.authentication;
       final idToken = auth.idToken;
       final accessToken = auth.accessToken;
+      debugPrint('[Google] idToken=${idToken != null} accessToken=${accessToken != null}');
       if (idToken == null && accessToken == null) {
         debugPrint('[Google] Both idToken and accessToken are null');
         setState(() => _errorMessage = 'Google sign-in failed. Try again.');
@@ -247,6 +251,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           key: 'access_token', value: res.data['access_token'] as String);
       await _storage.write(
           key: 'refresh_token', value: res.data['refresh_token'] as String);
+      ref.read(authStateProvider).markLoggedIn();
       ref.invalidate(userProvider);
       if (mounted) context.go('/home');
     } on DioException catch (e) {

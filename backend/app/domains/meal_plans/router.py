@@ -162,7 +162,7 @@ async def generate_shopping_list(
 ):
     from collections import defaultdict
 
-    from app.domains.recipes.models import RecipeIngredient
+    from app.domains.recipes.models import Recipe, RecipeIngredient
     from app.domains.shopping_lists.models import ShoppingList, ShoppingListItem
 
     result = await db.execute(
@@ -177,11 +177,15 @@ async def generate_shopping_list(
     # Aggregate ingredients across all meal plan items
     agg: dict[tuple, float] = defaultdict(float)
     for meal_item in plan.items:
+        recipe = (await db.execute(
+            select(Recipe).where(Recipe.id == meal_item.recipe_id)
+        )).scalar_one()
         ings = (await db.execute(
             select(RecipeIngredient).where(RecipeIngredient.recipe_id == meal_item.recipe_id)
         )).scalars().all()
+        ratio = meal_item.servings / recipe.servings if recipe.servings > 0 else 1
         for ing in ings:
-            agg[(ing.ingredient_id, ing.unit)] += float(ing.quantity) * meal_item.servings
+            agg[(ing.ingredient_id, ing.unit)] += float(ing.quantity) * ratio
 
     list_name = f"Week of {plan.week_start_date}"
 

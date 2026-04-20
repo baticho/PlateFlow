@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:go_router/go_router.dart';
+import '../providers/auth_state.dart';
 import '../../features/auth/presentation/login_screen.dart';
 import '../../features/auth/presentation/register_screen.dart';
 import '../../features/home/presentation/home_screen.dart';
@@ -14,16 +14,17 @@ import '../../features/subscription/presentation/subscription_screen.dart';
 import '../../features/cooking/presentation/cooking_screen.dart';
 import '../widgets/main_shell.dart';
 
-const _storage = FlutterSecureStorage();
-
 final appRouterProvider = Provider<GoRouter>((ref) {
+  final authState = ref.read(authStateProvider);
   return GoRouter(
-    initialLocation: '/home',
-    redirect: (context, state) async {
-      final token = await _storage.read(key: 'access_token');
-      final isOnAuthPage = state.matchedLocation == '/login' ||
+    initialLocation: authState.isLoggedIn ? '/home' : '/login',
+    refreshListenable: authState,
+    redirect: (context, state) {
+      if (!authState.initialized) return null;
+      final onAuthPage = state.matchedLocation == '/login' ||
           state.matchedLocation == '/register';
-      if (token == null && !isOnAuthPage) return '/login';
+      if (!authState.isLoggedIn && !onAuthPage) return '/login';
+      if (authState.isLoggedIn && onAuthPage) return '/home';
       return null;
     },
     routes: [

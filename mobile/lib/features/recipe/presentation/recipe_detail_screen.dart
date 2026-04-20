@@ -31,6 +31,7 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
   bool _loading = true;
   String? _error;
   int _selectedServings = 2;
+  bool _servingsInitialized = false;
   bool _isFavorite = false;
 
   @override
@@ -50,7 +51,10 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
       if (mounted) {
         setState(() {
           _recipe = recipe;
-          _selectedServings = recipe.servings;
+          if (!_servingsInitialized) {
+            _selectedServings = recipe.servings;
+            _servingsInitialized = true;
+          }
           _loading = false;
         });
       }
@@ -68,6 +72,7 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
 
     // Capture context-dependent objects before async gaps
     final messenger = ScaffoldMessenger.of(context);
+    final router = GoRouter.of(context);
 
     int? selectedDay;
     String? selectedMealType;
@@ -102,9 +107,8 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
 
       final planId = planData['id'] as int;
 
-      // Add the recipe (compute servings multiplier relative to recipe base)
-      final multiplier = recipe.servings > 0 ? _selectedServings ~/ recipe.servings : 1;
-      await _mealPlanService.addItem(planId, recipe.id, selectedDay!, selectedMealType!, servings: multiplier);
+      // Add the recipe with the actual selected servings count
+      await _mealPlanService.addItem(planId, recipe.id, selectedDay!, selectedMealType!, servings: _selectedServings);
 
       // Regenerate shopping list
       await _mealPlanService.generateShoppingList(planId);
@@ -124,9 +128,14 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
 
       messenger.clearSnackBars();
       messenger.showSnackBar(SnackBar(
-        content: Text('$dayName — ${tLocal.mealPlan.viewPlan}'),
+        content: Text(dayName),
         behavior: SnackBarBehavior.floating,
         duration: const Duration(seconds: 2),
+        showCloseIcon: true,
+        action: SnackBarAction(
+          label: tLocal.mealPlan.viewPlan,
+          onPressed: () => router.go('/meal-plan'),
+        ),
       ));
     } on DioException catch (e) {
       if (!mounted) return;
