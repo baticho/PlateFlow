@@ -8,6 +8,7 @@ import '../../../core/api/api_client.dart';
 import '../../../core/config/app_config.dart';
 import '../../../core/models/meal_plan.dart';
 import '../../../core/providers/locale_provider.dart';
+import '../../../core/providers/meal_plan_refresh_provider.dart';
 import '../../../core/services/meal_plan_service.dart';
 import '../../../i18n/strings.g.dart';
 
@@ -137,6 +138,7 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
     final cs = Theme.of(context).colorScheme;
     final t = Translations.of(context);
     ref.listen(localeProvider, (_, __) => _loadPlan());
+    ref.listen(mealPlanRefreshProvider, (_, __) => _loadPlan());
 
     final dayNames = [
       t.mealPlan.days.mon, t.mealPlan.days.tue, t.mealPlan.days.wed,
@@ -275,7 +277,7 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
                 mealIcon: _mealIcons[i],
                 items: items,
                 addLabel: t.mealPlan.addMeal,
-                onAddRecipe: () => context.go('/explore'),
+                onAddRecipe: () => context.go('/explore?fromDay=$_selectedDay&fromMealType=$mealType'),
                 onTapRecipe: (item) => context.push('/recipe/${item.recipeId}'),
                 onCookRecipe: (item) => context.push('/cooking/${item.recipeId}?planId=${_plan!.id}&itemId=${item.id}'),
                 onRemoveRecipe: (item) => _removeRecipe(item, t),
@@ -373,7 +375,7 @@ class _RecipeCard extends StatelessWidget {
         width: width,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(10),
-          color: item.isCompleted ? Colors.green.withAlpha(20) : cs.primary.withAlpha(10),
+          color: item.isCompleted ? Colors.grey.withAlpha(30) : cs.primary.withAlpha(10),
           border: Border.all(color: cs.primary.withAlpha(25)),
         ),
         child: Column(
@@ -381,22 +383,32 @@ class _RecipeCard extends StatelessWidget {
           children: [
             ClipRRect(
               borderRadius: const BorderRadius.vertical(top: Radius.circular(10)),
-              child: resolvedUrl != null
-                  ? CachedNetworkImage(
-                      imageUrl: resolvedUrl,
-                      width: width,
-                      height: 90,
-                      fit: BoxFit.cover,
-                      errorWidget: (_, __, ___) => Container(
+              child: ColorFiltered(
+                colorFilter: item.isCompleted
+                    ? const ColorFilter.matrix(<double>[
+                        0.2126, 0.7152, 0.0722, 0, 0,
+                        0.2126, 0.7152, 0.0722, 0, 0,
+                        0.2126, 0.7152, 0.0722, 0, 0,
+                        0,      0,      0,      1, 0,
+                      ])
+                    : const ColorFilter.mode(Colors.transparent, BlendMode.multiply),
+                child: resolvedUrl != null
+                    ? CachedNetworkImage(
+                        imageUrl: resolvedUrl,
+                        width: width,
+                        height: 90,
+                        fit: BoxFit.cover,
+                        errorWidget: (_, __, ___) => Container(
+                          width: width, height: 90,
+                          color: cs.primary.withAlpha(20),
+                          child: Icon(Icons.restaurant, color: cs.primary, size: 32),
+                        ))
+                    : Container(
                         width: width, height: 90,
                         color: cs.primary.withAlpha(20),
                         child: Icon(Icons.restaurant, color: cs.primary, size: 32),
-                      ))
-                  : Container(
-                      width: width, height: 90,
-                      color: cs.primary.withAlpha(20),
-                      child: Icon(Icons.restaurant, color: cs.primary, size: 32),
-                    ),
+                      ),
+              ),
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(8, 6, 8, 0),
@@ -405,12 +417,16 @@ class _RecipeCard extends StatelessWidget {
                   if (item.isCompleted)
                     const Padding(
                       padding: EdgeInsets.only(right: 4),
-                      child: Icon(Icons.check_circle, color: Colors.green, size: 14),
+                      child: Icon(Icons.check_circle, color: Colors.grey, size: 14),
                     ),
                   Expanded(
                     child: Text(
                       item.recipeTitle,
-                      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12,
+                        color: item.isCompleted ? Colors.grey : null,
+                      ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),

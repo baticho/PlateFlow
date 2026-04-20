@@ -8,6 +8,7 @@ import '../../../core/api/api_client.dart';
 import '../../../core/config/app_config.dart';
 import '../../../core/models/recipe.dart';
 import '../../../core/providers/locale_provider.dart';
+import '../../../core/providers/meal_plan_refresh_provider.dart';
 import '../../../core/services/meal_plan_service.dart';
 import '../../../core/services/recipe_service.dart';
 import '../../../i18n/strings.g.dart';
@@ -65,6 +66,7 @@ class _CookingScreenState extends ConsumerState<CookingScreen> {
       if (widget.planId != null && widget.itemId != null) {
         try {
           await _mealPlanService.markItemComplete(widget.planId!, widget.itemId!);
+          ref.read(mealPlanRefreshProvider.notifier).state++;
         } catch (_) {
           // silently ignore — the done view still shows
         }

@@ -8,13 +8,16 @@ import '../../../core/api/api_client.dart';
 import '../../../core/config/app_config.dart';
 import '../../../core/models/recipe.dart';
 import '../../../core/providers/locale_provider.dart';
+import '../../../core/providers/meal_plan_refresh_provider.dart';
 import '../../../core/services/meal_plan_service.dart';
 import '../../../core/services/recipe_service.dart';
 import '../../../i18n/strings.g.dart';
 
 class RecipeDetailScreen extends ConsumerStatefulWidget {
   final String recipeId;
-  const RecipeDetailScreen({super.key, required this.recipeId});
+  final int? fromDay;
+  final String? fromMealType;
+  const RecipeDetailScreen({super.key, required this.recipeId, this.fromDay, this.fromMealType});
 
   @override
   ConsumerState<RecipeDetailScreen> createState() => _RecipeDetailScreenState();
@@ -28,6 +31,7 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
   bool _loading = true;
   String? _error;
   int _selectedServings = 2;
+  bool _servingsInitialized = false;
   bool _isFavorite = false;
 
   @override
@@ -47,7 +51,10 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
       if (mounted) {
         setState(() {
           _recipe = recipe;
-          _selectedServings = recipe.servings;
+          if (!_servingsInitialized) {
+            _selectedServings = recipe.servings;
+            _servingsInitialized = true;
+          }
           _loading = false;
         });
       }
@@ -70,20 +77,25 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
     int? selectedDay;
     String? selectedMealType;
 
-    await showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) => _AddToMealPlanSheet(
-        onConfirm: (day, mealType) {
-          selectedDay = day;
-          selectedMealType = mealType;
-          Navigator.pop(ctx);
-        },
-      ),
-    );
+    if (widget.fromDay != null && widget.fromMealType != null) {
+      selectedDay = widget.fromDay;
+      selectedMealType = widget.fromMealType;
+    } else {
+      await showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        builder: (ctx) => _AddToMealPlanSheet(
+          onConfirm: (day, mealType) {
+            selectedDay = day;
+            selectedMealType = mealType;
+            Navigator.pop(ctx);
+          },
+        ),
+      );
+    }
 
     if (selectedDay == null || selectedMealType == null) return;
     if (!mounted) return;
@@ -95,11 +107,14 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
 
       final planId = planData['id'] as int;
 
-      // Add the recipe
-      await _mealPlanService.addItem(planId, recipe.id, selectedDay!, selectedMealType!);
+      // Add the recipe with the actual selected servings count
+      await _mealPlanService.addItem(planId, recipe.id, selectedDay!, selectedMealType!, servings: _selectedServings);
 
       // Regenerate shopping list
       await _mealPlanService.generateShoppingList(planId);
+
+      // Signal MealPlanScreen to reload
+      ref.read(mealPlanRefreshProvider.notifier).state++;
 
       if (!mounted) return;
 
@@ -113,10 +128,14 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
 
       messenger.clearSnackBars();
       messenger.showSnackBar(SnackBar(
-        content: Text('$dayName — ${tLocal.shoppingList.title}'),
+        content: Text(dayName),
         behavior: SnackBarBehavior.floating,
         duration: const Duration(seconds: 2),
-        action: SnackBarAction(label: tLocal.mealPlan.viewPlan, onPressed: () => router.go('/meal-plan')),
+        showCloseIcon: true,
+        action: SnackBarAction(
+          label: tLocal.mealPlan.viewPlan,
+          onPressed: () => router.go('/meal-plan'),
+        ),
       ));
     } on DioException catch (e) {
       if (!mounted) return;

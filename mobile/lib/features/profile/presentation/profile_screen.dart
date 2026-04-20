@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/api/api_client.dart';
+import '../../../core/providers/auth_state.dart';
 import '../../../core/providers/locale_provider.dart';
 import '../../../core/providers/user_provider.dart';
 import '../../../i18n/strings.g.dart';
@@ -145,7 +146,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             leading: const Icon(Icons.logout, color: Colors.red),
             title: Text(t.profile.logout,
                 style: const TextStyle(color: Colors.red)),
-            onTap: () => context.go('/login'),
+            onTap: () async {
+              await ref.read(authStateProvider).logout();
+              ref.invalidate(userProvider);
+              if (context.mounted) context.go('/login');
+            },
           ),
         ],
       ),

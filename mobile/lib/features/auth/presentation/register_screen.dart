@@ -6,6 +6,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import '../../../core/api/api_client.dart';
+import '../../../core/providers/auth_state.dart';
 import '../../../i18n/strings.g.dart';
 import 'login_screen.dart' show GoogleLogo;
 
@@ -36,7 +37,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   static const _storage = FlutterSecureStorage();
 
   static final _googleSignIn = GoogleSignIn(
-    clientId: '256522369666-joi6447bpg9h47pp5nrfhdjhbkghc03g.apps.googleusercontent.com',
+    clientId: kIsWeb ? '256522369666-joi6447bpg9h47pp5nrfhdjhbkghc03g.apps.googleusercontent.com' : null,
     serverClientId: kIsWeb ? null : '256522369666-joi6447bpg9h47pp5nrfhdjhbkghc03g.apps.googleusercontent.com',
   );
 
@@ -80,6 +81,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           key: 'access_token', value: res.data['access_token'] as String);
       await _storage.write(
           key: 'refresh_token', value: res.data['refresh_token'] as String);
+      ref.read(authStateProvider).markLoggedIn();
       if (mounted) context.go('/home');
     } on DioException catch (e) {
       final detail = e.response?.data?['detail'];
@@ -110,6 +112,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       });
       await _storage.write(key: 'access_token', value: res.data['access_token'] as String);
       await _storage.write(key: 'refresh_token', value: res.data['refresh_token'] as String);
+      ref.read(authStateProvider).markLoggedIn();
       if (mounted) context.go('/home');
     } on DioException catch (e) {
       final detail = e.response?.data?['detail'];

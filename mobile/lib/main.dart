@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'core/config/app_config.dart';
+import 'core/providers/auth_state.dart';
 import 'i18n/strings.g.dart';
 import 'app.dart';
 
@@ -48,8 +49,12 @@ void main() async {
   final savedLocale = prefs.getString('app_locale') ?? 'en';
   LocaleSettings.setLocaleRaw(savedLocale);
 
+  final container = ProviderContainer();
+  await container.read(authStateProvider).hydrate();
+
   runApp(
-    ProviderScope(
+    UncontrolledProviderScope(
+      container: container,
       child: TranslationProvider(
         child: const PlateFlowApp(),
       ),

@@ -12,7 +12,9 @@ import '../../../core/services/recipe_service.dart';
 import '../../../i18n/strings.g.dart';
 
 class ExploreScreen extends ConsumerStatefulWidget {
-  const ExploreScreen({super.key});
+  final int? fromDay;
+  final String? fromMealType;
+  const ExploreScreen({super.key, this.fromDay, this.fromMealType});
 
   @override
   ConsumerState<ExploreScreen> createState() => _ExploreScreenState();
@@ -300,7 +302,10 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
       itemCount: _results.length,
       itemBuilder: (context, idx) {
         final r = _results[idx];
-        return _RecipeCard(recipe: r, onTap: () => context.push('/recipe/${r.id}'));
+        final mealCtx = widget.fromDay != null && widget.fromMealType != null
+            ? '?fromDay=${widget.fromDay}&fromMealType=${widget.fromMealType}'
+            : '';
+        return _RecipeCard(recipe: r, onTap: () => context.push('/recipe/${r.id}$mealCtx'));
       },
     );
   }

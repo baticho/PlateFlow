@@ -27,14 +27,16 @@ class MealPlanService {
     int planId,
     String recipeId,
     int dayOfWeek,
-    String mealType,
-  ) async {
+    String mealType, {
+    int servings = 1,
+  }) async {
     final response = await _dio.post(
       '/api/v1/meal-plans/$planId/items',
       data: {
         'recipe_id': recipeId,
         'day_of_week': dayOfWeek,
         'meal_type': mealType,
+        'servings': servings,
       },
     );
     return response.data as Map<String, dynamic>;

@@ -69,7 +69,10 @@ class _ShoppingListScreenState extends ConsumerState<ShoppingListScreen> {
     final cs = theme.colorScheme;
     final t = Translations.of(context);
 
-    ref.listen(localeProvider, (_, __) => _loadList());
+    ref.watch(localeProvider);
+    ref.listen(localeProvider, (prev, next) {
+      if (prev != next) _loadList();
+    });
 
     if (_loading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));

@@ -12,7 +12,7 @@ from app.domains.weekly_suggestions.models import WeeklySuggestion
 router = APIRouter()
 
 
-@router.get("")
+@router.get("/")
 async def get_weekly_suggestions(
     week_start: date | None = Query(None),
     db: AsyncSession = Depends(get_db),
@@ -31,6 +31,17 @@ async def get_weekly_suggestions(
         .order_by(WeeklySuggestion.position)
     )
     suggestions = result.scalars().all()
+
+    # Fall back to the most recent active suggestions when none exist for this week
+    if not suggestions:
+        fallback_result = await db.execute(
+            select(WeeklySuggestion)
+            .where(WeeklySuggestion.is_active == True)  # noqa: E712
+            .options(selectinload(WeeklySuggestion.recipe).selectinload(Recipe.translations))
+            .order_by(WeeklySuggestion.week_start_date.desc(), WeeklySuggestion.position)
+        )
+        suggestions = fallback_result.scalars().all()
+
     return {
         "week_start": week_start,
         "items": [
