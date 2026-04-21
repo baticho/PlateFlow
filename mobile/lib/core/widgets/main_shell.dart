@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../i18n/strings.g.dart';
+import '../providers/shopping_list_count_provider.dart';
 
-class MainShell extends StatelessWidget {
+class MainShell extends ConsumerWidget {
   final Widget child;
   const MainShell({super.key, required this.child});
 
@@ -22,9 +24,15 @@ class MainShell extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final selectedIndex = _getSelectedIndex(context);
     final t = Translations.of(context);
+    final itemCount = ref.watch(shoppingListCountProvider).valueOrNull ?? 0;
+
+    Widget shoppingIcon(IconData iconData) {
+      if (itemCount <= 0) return Icon(iconData);
+      return Badge.count(count: itemCount, child: Icon(iconData));
+    }
 
     final navItems = [
       (t.nav.home, Icons.home_outlined, Icons.home),
@@ -42,11 +50,17 @@ class MainShell extends StatelessWidget {
           const routes = ['/home', '/explore', '/meal-plan', '/shopping-list', '/profile'];
           context.go(routes[idx]);
         },
-        destinations: navItems.map((item) => NavigationDestination(
-          icon: Icon(item.$2),
-          selectedIcon: Icon(item.$3),
-          label: item.$1,
-        )).toList(),
+        destinations: [
+          NavigationDestination(icon: Icon(navItems[0].$2), selectedIcon: Icon(navItems[0].$3), label: navItems[0].$1),
+          NavigationDestination(icon: Icon(navItems[1].$2), selectedIcon: Icon(navItems[1].$3), label: navItems[1].$1),
+          NavigationDestination(icon: Icon(navItems[2].$2), selectedIcon: Icon(navItems[2].$3), label: navItems[2].$1),
+          NavigationDestination(
+            icon: shoppingIcon(navItems[3].$2),
+            selectedIcon: shoppingIcon(navItems[3].$3),
+            label: navItems[3].$1,
+          ),
+          NavigationDestination(icon: Icon(navItems[4].$2), selectedIcon: Icon(navItems[4].$3), label: navItems[4].$1),
+        ],
       ),
     );
   }

@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -77,3 +77,25 @@ async def toggle_item(
     item.is_checked = not item.is_checked
     await db.flush()
     return {"id": item.id, "is_checked": item.is_checked}
+
+
+@router.delete("/{list_id}/items/checked", status_code=status.HTTP_204_NO_CONTENT)
+async def clear_checked_items(
+    list_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(ShoppingList).where(
+            ShoppingList.id == list_id, ShoppingList.user_id == current_user.id
+        )
+    )
+    if not result.scalar_one_or_none():
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Shopping list not found")
+
+    await db.execute(
+        delete(ShoppingListItem).where(
+            ShoppingListItem.shopping_list_id == list_id,
+            ShoppingListItem.is_checked == True,  # noqa: E712
+        )
+    )

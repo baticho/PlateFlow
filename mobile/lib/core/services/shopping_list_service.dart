@@ -12,4 +12,8 @@ class ShoppingListService {
   Future<void> toggleItem(int listId, int itemId) async {
     await _dio.put('/api/v1/shopping-lists/$listId/items/$itemId/toggle');
   }
+
+  Future<void> clearCheckedItems(int listId) async {
+    await _dio.delete('/api/v1/shopping-lists/$listId/items/checked');
+  }
 }
