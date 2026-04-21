@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/models/shopping_list.dart';
 import '../../../core/providers/locale_provider.dart';
+import '../../../core/providers/shopping_list_count_provider.dart';
 import '../../../core/services/shopping_list_service.dart';
 import '../../../i18n/strings.g.dart';
 
@@ -37,6 +38,7 @@ class _ShoppingListScreenState extends ConsumerState<ShoppingListScreen> {
         _list = lists.isNotEmpty ? ShoppingList.fromJson(lists.first) : null;
         _loading = false;
       });
+      _syncBadgeCount();
     } on DioException catch (e) {
       if (mounted) setState(() {
         _error = e.response?.data?['detail'] ?? 'Failed to load';
@@ -45,22 +47,39 @@ class _ShoppingListScreenState extends ConsumerState<ShoppingListScreen> {
     }
   }
 
+  void _syncBadgeCount() {
+    ref.read(shoppingListCountProvider.notifier)
+        .setCount(_list?.items.where((i) => !i.isChecked).length ?? 0);
+  }
+
   Future<void> _toggle(ShoppingItem item) async {
-    // Optimistic update
     setState(() => item.isChecked = !item.isChecked);
+    _syncBadgeCount();
     try {
       await _service.toggleItem(_list!.id, item.id);
     } catch (_) {
-      // Revert on failure
-      if (mounted) setState(() => item.isChecked = !item.isChecked);
+      if (mounted) {
+        setState(() => item.isChecked = !item.isChecked);
+        _syncBadgeCount();
+      }
     }
   }
 
-  void _clearChecked() {
+  Future<void> _clearChecked() async {
     if (_list == null) return;
     setState(() {
       _list!.items.removeWhere((i) => i.isChecked);
     });
+    _syncBadgeCount();
+    await _service.clearCheckedItems(_list!.id);
+  }
+
+  @override
+  void dispose() {
+    if (_list != null && _list!.items.any((i) => i.isChecked)) {
+      _service.clearCheckedItems(_list!.id).ignore();
+    }
+    super.dispose();
   }
 
   @override

@@ -11,14 +11,14 @@ const String kDevPassword = String.fromEnvironment(
   defaultValue: 'admin123',
 );
 
-/// API base URL.
+/// API base URL — read from MOBILE_API_BASE_URL via --dart-define-from-file=../.env
 ///
-/// Default: http://localhost:8005 (Flutter web / iOS simulator / host machine)
-/// Android emulator needs: --dart-define=API_BASE_URL=http://10.0.2.2:8005
-/// Physical device needs:  --dart-define=API_BASE_URL=http://<LAN_IP>:8005
+/// Build/run: flutter build apk --dart-define-from-file=../.env
+///            flutter run       --dart-define-from-file=../.env
+/// Local override: --dart-define=MOBILE_API_BASE_URL=http://10.0.2.2:8005
 const String kApiBaseUrl = String.fromEnvironment(
-  'API_BASE_URL',
-  defaultValue: 'http://localhost:8005',
+  'MOBILE_API_BASE_URL',
+  defaultValue: 'https://plate-api.t800.space',
 );
 
 /// Resolves a potentially-relative image URL to an absolute one.
