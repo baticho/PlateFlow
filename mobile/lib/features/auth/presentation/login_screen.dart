@@ -228,6 +228,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       _errorMessage = null;
     });
     try {
+      await _googleSignIn.signOut();
       final account = await _googleSignIn.signIn();
       debugPrint('[Google] signIn returned: ${account?.email}');
       if (account == null) return; // User cancelled
