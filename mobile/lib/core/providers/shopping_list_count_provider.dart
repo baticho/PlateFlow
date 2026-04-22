@@ -28,6 +28,8 @@ class ShoppingListCountNotifier extends StateNotifier<AsyncValue<int>> {
   }
 
   void setCount(int count) => state = AsyncValue.data(count);
+
+  Future<void> refresh() => _fetch();
 }
 
 final shoppingListCountProvider =

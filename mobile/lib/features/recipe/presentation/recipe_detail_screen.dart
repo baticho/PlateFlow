@@ -9,6 +9,7 @@ import '../../../core/config/app_config.dart';
 import '../../../core/models/recipe.dart';
 import '../../../core/providers/locale_provider.dart';
 import '../../../core/providers/meal_plan_refresh_provider.dart';
+import '../../../core/providers/shopping_list_count_provider.dart';
 import '../../../core/services/meal_plan_service.dart';
 import '../../../core/services/recipe_service.dart';
 import '../../../i18n/strings.g.dart';
@@ -113,8 +114,9 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
       // Regenerate shopping list
       await _mealPlanService.generateShoppingList(planId);
 
-      // Signal MealPlanScreen to reload
+      // Signal MealPlanScreen to reload and refresh badge count
       ref.read(mealPlanRefreshProvider.notifier).state++;
+      await ref.read(shoppingListCountProvider.notifier).refresh();
 
       if (!mounted) return;
 
@@ -127,16 +129,16 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
       final dayName = dayNames[selectedDay!];
 
       messenger.clearSnackBars();
-      messenger.showSnackBar(SnackBar(
+      final controller = messenger.showSnackBar(SnackBar(
         content: Text(dayName),
         behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 2),
         showCloseIcon: true,
         action: SnackBarAction(
-          label: tLocal.mealPlan.viewPlan,
-          onPressed: () => router.go('/meal-plan'),
+          label: tLocal.shoppingList.title,
+          onPressed: () => router.go('/shopping-list'),
         ),
       ));
+      Future.delayed(const Duration(seconds: 2), controller.close);
     } on DioException catch (e) {
       if (!mounted) return;
       messenger.showSnackBar(SnackBar(
