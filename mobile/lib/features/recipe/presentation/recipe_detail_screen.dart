@@ -111,12 +111,20 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
       // Add the recipe with the actual selected servings count
       await _mealPlanService.addItem(planId, recipe.id, selectedDay!, selectedMealType!, servings: _selectedServings);
 
-      // Regenerate shopping list
-      await _mealPlanService.generateShoppingList(planId);
+      // Regenerate shopping list — free plan will return 403, silently skip
+      bool shoppingListUpdated = false;
+      try {
+        await _mealPlanService.generateShoppingList(planId);
+        shoppingListUpdated = true;
+      } on DioException catch (e) {
+        if (e.response?.statusCode != 403) rethrow;
+      }
 
       // Signal MealPlanScreen to reload and refresh badge count
       ref.read(mealPlanRefreshProvider.notifier).state++;
-      await ref.read(shoppingListCountProvider.notifier).refresh();
+      if (shoppingListUpdated) {
+        await ref.read(shoppingListCountProvider.notifier).refresh();
+      }
 
       if (!mounted) return;
 
@@ -133,11 +141,12 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
         content: Row(
           children: [
             Expanded(child: Text(dayName)),
-            TextButton(
-              style: TextButton.styleFrom(foregroundColor: Colors.white),
-              onPressed: () => router.go('/shopping-list'),
-              child: Text(tLocal.shoppingList.title),
-            ),
+            if (shoppingListUpdated)
+              TextButton(
+                style: TextButton.styleFrom(foregroundColor: Colors.white),
+                onPressed: () => router.go('/shopping-list'),
+                child: Text(tLocal.shoppingList.title),
+              ),
           ],
         ),
         behavior: SnackBarBehavior.floating,
@@ -146,9 +155,18 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
       Future.delayed(const Duration(seconds: 2), controller.close);
     } on DioException catch (e) {
       if (!mounted) return;
+      final is403 = e.response?.statusCode == 403;
+      final msg = e.response?.data?['detail'] ?? 'Failed to add to meal plan';
       messenger.showSnackBar(SnackBar(
-        content: Text(e.response?.data?['detail'] ?? 'Failed to add to meal plan'),
-        backgroundColor: Colors.red,
+        content: Text(msg.toString()),
+        backgroundColor: is403 ? null : Colors.red,
+        action: is403
+            ? SnackBarAction(
+                label: 'Upgrade',
+                onPressed: () => router.push('/subscription'),
+              )
+            : null,
+        duration: const Duration(seconds: 4),
       ));
     }
   }

@@ -92,7 +92,11 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
 
     try {
       await _service.removeItem(plan.id, item.id);
-      await _service.generateShoppingList(plan.id);
+      try {
+        await _service.generateShoppingList(plan.id);
+      } on DioException catch (e) {
+        if (e.response?.statusCode != 403) rethrow;
+      }
       await _loadPlan();
     } on DioException catch (e) {
       if (!mounted) return;
@@ -116,9 +120,19 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
       context.go('/shopping-list');
     } on DioException catch (e) {
       if (!mounted) return;
+      final is403 = e.response?.statusCode == 403;
+      final msg = e.response?.data?['detail'] ?? 'Failed to generate list';
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(e.response?.data?['detail'] ?? 'Failed to generate list'),
-        backgroundColor: Colors.red,
+        content: Text(msg.toString()),
+        backgroundColor: is403 ? Theme.of(context).colorScheme.primary : Colors.red,
+        action: is403
+            ? SnackBarAction(
+                label: 'Upgrade',
+                textColor: Colors.white,
+                onPressed: () => context.push('/subscription'),
+              )
+            : null,
+        duration: const Duration(seconds: 4),
       ));
     }
   }
