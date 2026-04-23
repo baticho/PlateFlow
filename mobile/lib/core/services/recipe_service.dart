@@ -8,6 +8,7 @@ class RecipeService {
     String? q,
     int? categoryId,
     int? cuisineId,
+    List<int>? ingredientIds,
     int page = 1,
     int pageSize = 20,
   }) async {
@@ -17,6 +18,7 @@ class RecipeService {
       if (q != null && q.isNotEmpty) 'q': q,
       if (categoryId != null) 'category_id': categoryId,
       if (cuisineId != null) 'cuisine_id': cuisineId,
+      if (ingredientIds != null && ingredientIds.isNotEmpty) 'ingredient_ids': ingredientIds,
     };
     final response = await _dio.get('/api/v1/recipes/', queryParameters: params);
     return response.data as Map<String, dynamic>;

@@ -39,7 +39,13 @@
     "cuisines": "Кухни",
     "filters": "Филтри",
     "filterByTime": "Макс. време за готвене",
-    "filterByDifficulty": "Трудност"
+    "filterByDifficulty": "Трудност",
+    "searchByIngredients": "Търси по съставки",
+    "searchByIngredientsDesc": "Намери рецепти от продукти в хладилника",
+    "ingredientHint": "Въведи съставка...",
+    "findRecipes": "Намери рецепти",
+    "premiumOnly": "Премиум функция",
+    "premiumOnlyDesc": "Надгради до Премиум, за да търсиш по съставки"
   },
   "mealPlan": {
     "title": "Хранителен план",
