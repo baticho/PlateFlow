@@ -130,13 +130,18 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
 
       messenger.clearSnackBars();
       final controller = messenger.showSnackBar(SnackBar(
-        content: Text(dayName),
+        content: Row(
+          children: [
+            Expanded(child: Text(dayName)),
+            TextButton(
+              style: TextButton.styleFrom(foregroundColor: Colors.white),
+              onPressed: () => router.go('/shopping-list'),
+              child: Text(tLocal.shoppingList.title),
+            ),
+          ],
+        ),
         behavior: SnackBarBehavior.floating,
         showCloseIcon: true,
-        action: SnackBarAction(
-          label: tLocal.shoppingList.title,
-          onPressed: () => router.go('/shopping-list'),
-        ),
       ));
       Future.delayed(const Duration(seconds: 2), controller.close);
     } on DioException catch (e) {

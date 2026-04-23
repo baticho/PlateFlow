@@ -264,7 +264,14 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
         ),
         // Meal slots
         Expanded(
-          child: ListView(
+          child: GestureDetector(
+            onHorizontalDragEnd: (details) {
+              final v = details.primaryVelocity;
+              if (v == null) return;
+              if (v < -300 && _selectedDay < 6) setState(() => _selectedDay++);
+              if (v > 300 && _selectedDay > 0) setState(() => _selectedDay--);
+            },
+            child: ListView(
             padding: const EdgeInsets.all(14),
             children: List.generate(3, (i) {
               final mealType = _mealTypes[i];
@@ -283,6 +290,7 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
                 onRemoveRecipe: (item) => _removeRecipe(item, t),
               );
             }),
+            ),
           ),
         ),
       ],
