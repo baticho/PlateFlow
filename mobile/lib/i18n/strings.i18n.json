@@ -39,7 +39,13 @@
     "cuisines": "Cuisines",
     "filters": "Filters",
     "filterByTime": "Max Cook Time",
-    "filterByDifficulty": "Difficulty"
+    "filterByDifficulty": "Difficulty",
+    "searchByIngredients": "Search by Ingredients",
+    "searchByIngredientsDesc": "Find recipes using what's in your fridge",
+    "ingredientHint": "Type an ingredient...",
+    "findRecipes": "Find Recipes",
+    "premiumOnly": "Premium Feature",
+    "premiumOnlyDesc": "Upgrade to Premium to search recipes by ingredients"
   },
   "mealPlan": {
     "title": "Meal Plan",

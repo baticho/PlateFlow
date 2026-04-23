@@ -235,6 +235,12 @@ class _StringsExploreEn {
 	String get filters => 'Filters';
 	String get filterByTime => 'Max Cook Time';
 	String get filterByDifficulty => 'Difficulty';
+	String get searchByIngredients => 'Search by Ingredients';
+	String get searchByIngredientsDesc => 'Find recipes using what\'s in your fridge';
+	String get ingredientHint => 'Type an ingredient...';
+	String get findRecipes => 'Find Recipes';
+	String get premiumOnly => 'Premium Feature';
+	String get premiumOnlyDesc => 'Upgrade to Premium to search recipes by ingredients';
 }
 
 // Path: mealPlan
@@ -551,6 +557,12 @@ class _StringsExploreBg implements _StringsExploreEn {
 	@override String get filters => 'Филтри';
 	@override String get filterByTime => 'Макс. време за готвене';
 	@override String get filterByDifficulty => 'Трудност';
+	@override String get searchByIngredients => 'Търси по съставки';
+	@override String get searchByIngredientsDesc => 'Намери рецепти от продукти в хладилника';
+	@override String get ingredientHint => 'Въведи съставка...';
+	@override String get findRecipes => 'Намери рецепти';
+	@override String get premiumOnly => 'Премиум функция';
+	@override String get premiumOnlyDesc => 'Надгради до Премиум, за да търсиш по съставки';
 }
 
 // Path: mealPlan
@@ -792,6 +804,12 @@ extension on Translations {
 			case 'explore.filters': return 'Filters';
 			case 'explore.filterByTime': return 'Max Cook Time';
 			case 'explore.filterByDifficulty': return 'Difficulty';
+			case 'explore.searchByIngredients': return 'Search by Ingredients';
+			case 'explore.searchByIngredientsDesc': return 'Find recipes using what\'s in your fridge';
+			case 'explore.ingredientHint': return 'Type an ingredient...';
+			case 'explore.findRecipes': return 'Find Recipes';
+			case 'explore.premiumOnly': return 'Premium Feature';
+			case 'explore.premiumOnlyDesc': return 'Upgrade to Premium to search recipes by ingredients';
 			case 'mealPlan.title': return 'Meal Plan';
 			case 'mealPlan.generateShoppingList': return 'Generate Shopping List';
 			case 'mealPlan.addMeal': return 'Add Meal';
@@ -910,6 +928,12 @@ extension on _StringsBg {
 			case 'explore.filters': return 'Филтри';
 			case 'explore.filterByTime': return 'Макс. време за готвене';
 			case 'explore.filterByDifficulty': return 'Трудност';
+			case 'explore.searchByIngredients': return 'Търси по съставки';
+			case 'explore.searchByIngredientsDesc': return 'Намери рецепти от продукти в хладилника';
+			case 'explore.ingredientHint': return 'Въведи съставка...';
+			case 'explore.findRecipes': return 'Намери рецепти';
+			case 'explore.premiumOnly': return 'Премиум функция';
+			case 'explore.premiumOnlyDesc': return 'Надгради до Премиум, за да търсиш по съставки';
 			case 'mealPlan.title': return 'Хранителен план';
 			case 'mealPlan.generateShoppingList': return 'Генерирай списък за пазар';
 			case 'mealPlan.addMeal': return 'Добави ястие';

@@ -2,7 +2,7 @@ import uuid
 from datetime import date, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -11,9 +11,31 @@ from app.database import get_db
 from app.domains.meal_plans.models import MealPlan, MealPlanItem
 from app.domains.meal_plans.schemas import MealPlanCreate, MealPlanItemCreate, MealPlanItemResponse, MealPlanResponse
 from app.domains.recipes.models import Recipe, RecipeTranslation
+from app.domains.subscriptions.models import SubscriptionPlan
 from app.domains.users.models import User
 
 router = APIRouter()
+
+
+async def _get_plan_limits(db: AsyncSession, user: User) -> SubscriptionPlan | None:
+    if user.subscription_plan_id is None:
+        return None
+    result = await db.execute(
+        select(SubscriptionPlan).where(SubscriptionPlan.id == user.subscription_plan_id)
+    )
+    return result.scalar_one_or_none()
+
+
+def _max_meal_plans(plan: SubscriptionPlan | None) -> int:
+    return plan.max_meal_plans if plan else 1
+
+
+def _max_recipes_per_week(plan: SubscriptionPlan | None) -> int:
+    return plan.max_recipes_per_week if plan else 5
+
+
+def _can_export(plan: SubscriptionPlan | None) -> bool:
+    return plan.can_export_shopping_list if plan else False
 
 _PLAN_OPTS = [
     selectinload(MealPlan.items)
@@ -46,6 +68,26 @@ async def create_meal_plan(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    sub_plan = await _get_plan_limits(db, current_user)
+    max_plans = _max_meal_plans(sub_plan)
+
+    count_result = await db.execute(
+        select(func.count()).select_from(MealPlan).where(MealPlan.user_id == current_user.id)
+    )
+    existing_count = count_result.scalar_one()
+    if existing_count >= max_plans:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Your plan allows a maximum of {max_plans} meal plan(s). Upgrade to create more.",
+        )
+
+    max_recipes = _max_recipes_per_week(sub_plan)
+    if len(data.items) > max_recipes:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Your plan allows a maximum of {max_recipes} recipes per week. Upgrade to add more.",
+        )
+
     plan = MealPlan(user_id=current_user.id, week_start_date=data.week_start_date)
     db.add(plan)
     await db.flush()
@@ -79,6 +121,18 @@ async def add_meal_plan_item(
     plan = result.scalar_one_or_none()
     if not plan:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Meal plan not found")
+
+    sub_plan = await _get_plan_limits(db, current_user)
+    max_recipes = _max_recipes_per_week(sub_plan)
+    item_count_result = await db.execute(
+        select(func.count()).select_from(MealPlanItem).where(MealPlanItem.meal_plan_id == plan_id)
+    )
+    item_count = item_count_result.scalar_one()
+    if item_count >= max_recipes:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Your plan allows a maximum of {max_recipes} recipes per week. Upgrade to add more.",
+        )
 
     new_item = MealPlanItem(
         meal_plan_id=plan.id,
@@ -164,6 +218,13 @@ async def generate_shopping_list(
 
     from app.domains.recipes.models import Recipe, RecipeIngredient
     from app.domains.shopping_lists.models import ShoppingList, ShoppingListItem
+
+    sub_plan = await _get_plan_limits(db, current_user)
+    if not _can_export(sub_plan):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Shopping list export requires a Trial or Premium plan. Upgrade to use this feature.",
+        )
 
     result = await db.execute(
         select(MealPlan)
