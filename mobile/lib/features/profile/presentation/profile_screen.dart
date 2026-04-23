@@ -87,13 +87,37 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             ),
           ),
           // Subscription
-          ListTile(
-            leading: Icon(Icons.star, color: cs.secondary),
-            title: Text(t.profile.subscription),
-            subtitle: const Text('Free Plan'),
-            trailing: FilledButton.tonal(
-              onPressed: () => context.push('/subscription'),
-              child: const Text('Upgrade'),
+          userAsync.when(
+            data: (user) {
+              final planName = user['subscription_plan_name'] as String? ?? 'Free';
+              final isPremium = (user['subscription_plan_slug'] as String?)
+                      ?.startsWith('premium') ??
+                  false;
+              return ListTile(
+                leading: Icon(Icons.star, color: cs.secondary),
+                title: Text(t.profile.subscription),
+                subtitle: Text(planName),
+                trailing: isPremium
+                    ? null
+                    : FilledButton.tonal(
+                        onPressed: () => context.push('/subscription'),
+                        child: const Text('Upgrade'),
+                      ),
+              );
+            },
+            loading: () => ListTile(
+              leading: Icon(Icons.star, color: cs.secondary),
+              title: Text(t.profile.subscription),
+              subtitle: const Text('—'),
+            ),
+            error: (_, __) => ListTile(
+              leading: Icon(Icons.star, color: cs.secondary),
+              title: Text(t.profile.subscription),
+              subtitle: const Text('Free'),
+              trailing: FilledButton.tonal(
+                onPressed: () => context.push('/subscription'),
+                child: const Text('Upgrade'),
+              ),
             ),
           ),
           const Divider(),

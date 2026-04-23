@@ -59,6 +59,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       _errorMessage = null;
     });
     try {
+      await _googleSignIn.signOut();
       final account = await _googleSignIn.signIn();
       if (account == null) return;
 
