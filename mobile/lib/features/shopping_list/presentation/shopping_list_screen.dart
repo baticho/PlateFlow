@@ -6,6 +6,7 @@ import '../../../core/api/api_client.dart';
 import '../../../core/models/shopping_list.dart';
 import '../../../core/providers/locale_provider.dart';
 import '../../../core/providers/shopping_list_count_provider.dart';
+import '../../../core/providers/shopping_list_refresh_provider.dart';
 import '../../../core/services/shopping_list_service.dart';
 import '../../../i18n/strings.g.dart';
 
@@ -92,6 +93,7 @@ class _ShoppingListScreenState extends ConsumerState<ShoppingListScreen> {
     ref.listen(localeProvider, (prev, next) {
       if (prev != next) _loadList();
     });
+    ref.listen(shoppingListRefreshProvider, (_, __) => _loadList());
 
     if (_loading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));

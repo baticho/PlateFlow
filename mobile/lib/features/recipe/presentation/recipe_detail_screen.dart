@@ -10,6 +10,7 @@ import '../../../core/models/recipe.dart';
 import '../../../core/providers/locale_provider.dart';
 import '../../../core/providers/meal_plan_refresh_provider.dart';
 import '../../../core/providers/shopping_list_count_provider.dart';
+import '../../../core/providers/shopping_list_refresh_provider.dart';
 import '../../../core/services/meal_plan_service.dart';
 import '../../../core/services/recipe_service.dart';
 import '../../../i18n/strings.g.dart';
@@ -111,7 +112,7 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
       // Add the recipe with the actual selected servings count
       await _mealPlanService.addItem(planId, recipe.id, selectedDay!, selectedMealType!, servings: _selectedServings);
 
-      // Regenerate shopping list — free plan will return 403, silently skip
+      // Regenerate shopping list; silently skip 403 (plan restriction)
       bool shoppingListUpdated = false;
       try {
         await _mealPlanService.generateShoppingList(planId);
@@ -120,10 +121,11 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
         if (e.response?.statusCode != 403) rethrow;
       }
 
-      // Signal MealPlanScreen to reload and refresh badge count
+      // Signal MealPlanScreen to reload and refresh shopping list
       ref.read(mealPlanRefreshProvider.notifier).state++;
       if (shoppingListUpdated) {
         await ref.read(shoppingListCountProvider.notifier).refresh();
+        ref.read(shoppingListRefreshProvider.notifier).state++;
       }
 
       if (!mounted) return;
@@ -136,11 +138,23 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
       ];
       final dayName = dayNames[selectedDay!];
 
+      final mealTypeLabels = {
+        'breakfast': tLocal.mealPlan.mealTypes.breakfast,
+        'lunch': tLocal.mealPlan.mealTypes.lunch,
+        'dinner': tLocal.mealPlan.mealTypes.dinner,
+      };
+      final mealTypeLabel = mealTypeLabels[selectedMealType] ?? selectedMealType!;
+
       messenger.clearSnackBars();
       final controller = messenger.showSnackBar(SnackBar(
         content: Row(
           children: [
-            Expanded(child: Text(dayName)),
+            Expanded(
+              child: Text(
+                '${recipe.title} · $dayName · $mealTypeLabel',
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
             if (shoppingListUpdated)
               TextButton(
                 style: TextButton.styleFrom(foregroundColor: Colors.white),

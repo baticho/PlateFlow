@@ -149,6 +149,7 @@
     "delete": "Delete",
     "edit": "Edit",
     "search": "Search",
-    "noResults": "No results found"
+    "noResults": "No results found",
+    "pressBackAgainToExit": "Press back again to exit"
   }
 }
