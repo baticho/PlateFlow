@@ -9,6 +9,7 @@ import '../../../core/config/app_config.dart';
 import '../../../core/models/meal_plan.dart';
 import '../../../core/providers/locale_provider.dart';
 import '../../../core/providers/meal_plan_refresh_provider.dart';
+import '../../../core/providers/shopping_list_refresh_provider.dart';
 import '../../../core/services/meal_plan_service.dart';
 import '../../../i18n/strings.g.dart';
 
@@ -112,6 +113,7 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
     if (plan == null) return;
     try {
       await _service.generateShoppingList(plan.id);
+      ref.read(shoppingListRefreshProvider.notifier).state++;
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(t.shoppingList.title),
@@ -298,7 +300,7 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
                 mealIcon: _mealIcons[i],
                 items: items,
                 addLabel: t.mealPlan.addMeal,
-                onAddRecipe: () => context.go('/explore?fromDay=$_selectedDay&fromMealType=$mealType'),
+                onAddRecipe: () => context.push('/explore?fromDay=$_selectedDay&fromMealType=$mealType'),
                 onTapRecipe: (item) => context.push('/recipe/${item.recipeId}'),
                 onCookRecipe: (item) => context.push('/cooking/${item.recipeId}?planId=${_plan!.id}&itemId=${item.id}'),
                 onRemoveRecipe: (item) => _removeRecipe(item, t),

@@ -1,4 +1,3 @@
-import uuid
 from datetime import date, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -10,7 +9,7 @@ from app.core.deps import get_current_user
 from app.database import get_db
 from app.domains.meal_plans.models import MealPlan, MealPlanItem
 from app.domains.meal_plans.schemas import MealPlanCreate, MealPlanItemCreate, MealPlanItemResponse, MealPlanResponse
-from app.domains.recipes.models import Recipe, RecipeTranslation
+from app.domains.recipes.models import Recipe
 from app.domains.subscriptions.models import SubscriptionPlan
 from app.domains.users.models import User
 
@@ -33,9 +32,6 @@ def _max_meal_plans(plan: SubscriptionPlan | None) -> int:
 def _max_recipes_per_week(plan: SubscriptionPlan | None) -> int:
     return plan.max_recipes_per_week if plan else 5
 
-
-def _can_export(plan: SubscriptionPlan | None) -> bool:
-    return plan.can_export_shopping_list if plan else False
 
 _PLAN_OPTS = [
     selectinload(MealPlan.items)
@@ -218,13 +214,6 @@ async def generate_shopping_list(
 
     from app.domains.recipes.models import Recipe, RecipeIngredient
     from app.domains.shopping_lists.models import ShoppingList, ShoppingListItem
-
-    sub_plan = await _get_plan_limits(db, current_user)
-    if not _can_export(sub_plan):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Shopping list export requires a Trial or Premium plan. Upgrade to use this feature.",
-        )
 
     result = await db.execute(
         select(MealPlan)

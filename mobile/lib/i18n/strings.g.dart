@@ -4,9 +4,9 @@
 /// To regenerate, run: `dart run slang`
 ///
 /// Locales: 2
-/// Strings: 220 (110 per locale)
+/// Strings: 234 (117 per locale)
 ///
-/// Built on 2026-04-13 at 16:57 UTC
+/// Built on 2026-04-24 at 05:36 UTC
 
 // coverage:ignore-file
 // ignore_for_file: type=lint
@@ -381,6 +381,7 @@ class _StringsCommonEn {
 	String get edit => 'Edit';
 	String get search => 'Search';
 	String get noResults => 'No results found';
+	String get pressBackAgainToExit => 'Press back again to exit';
 }
 
 // Path: recipe.difficulty
@@ -703,6 +704,7 @@ class _StringsCommonBg implements _StringsCommonEn {
 	@override String get edit => 'Редактирай';
 	@override String get search => 'Търси';
 	@override String get noResults => 'Няма намерени резултати';
+	@override String get pressBackAgainToExit => 'Натисни назад отново за изход';
 }
 
 // Path: recipe.difficulty
@@ -890,6 +892,7 @@ extension on Translations {
 			case 'common.edit': return 'Edit';
 			case 'common.search': return 'Search';
 			case 'common.noResults': return 'No results found';
+			case 'common.pressBackAgainToExit': return 'Press back again to exit';
 			default: return null;
 		}
 	}
@@ -1014,6 +1017,7 @@ extension on _StringsBg {
 			case 'common.edit': return 'Редактирай';
 			case 'common.search': return 'Търси';
 			case 'common.noResults': return 'Няма намерени резултати';
+			case 'common.pressBackAgainToExit': return 'Натисни назад отново за изход';
 			default: return null;
 		}
 	}
