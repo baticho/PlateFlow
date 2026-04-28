@@ -58,6 +58,23 @@ async def get_current_meal_plan(
     return plan
 
 
+@router.get("/by-monday/{monday}", response_model=MealPlanResponse)
+async def get_plan_by_monday(
+    monday: date,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(MealPlan)
+        .where(MealPlan.user_id == current_user.id, MealPlan.week_start_date == monday)
+        .options(*_PLAN_OPTS)
+    )
+    plan = result.scalar_one_or_none()
+    if not plan:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No meal plan for this week")
+    return plan
+
+
 @router.post("/", response_model=MealPlanResponse, status_code=status.HTTP_201_CREATED)
 async def create_meal_plan(
     data: MealPlanCreate,

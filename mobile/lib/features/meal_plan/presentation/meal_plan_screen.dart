@@ -23,10 +23,17 @@ class MealPlanScreen extends ConsumerStatefulWidget {
 class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
   late final MealPlanService _service;
 
-  MealPlan? _plan;
+  /// First day of the visible 7-day window.
+  late DateTime _anchorDate;
+
+  /// 0..6 — which of the 7 visible days is currently selected.
+  int _selectedOffset = 0;
+
+  /// Plans keyed by their week_start_date ISO (Monday).
+  final Map<String, MealPlan> _plansByMonday = {};
+
   bool _loading = true;
   String? _error;
-  int _selectedDay = DateTime.now().weekday - 1; // 0=Mon
 
   static const _mealTypes = ['breakfast', 'lunch', 'dinner'];
   static const _mealIcons = [Icons.wb_sunny_outlined, Icons.wb_cloudy_outlined, Icons.nights_stay_outlined];
@@ -35,15 +42,56 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
   void initState() {
     super.initState();
     _service = MealPlanService(ref.read(dioProvider));
-    _loadPlan();
+    final today = DateTime.now();
+    _anchorDate = DateTime(today.year, today.month, today.day);
+    _loadWindow();
   }
 
-  Future<void> _loadPlan() async {
+  List<DateTime> get _windowDays =>
+      List.generate(7, (i) => _anchorDate.add(Duration(days: i)));
+
+  /// Returns the unique Mondays needed to cover the visible 7-day window.
+  /// A window can span at most two ISO weeks.
+  List<DateTime> get _windowMondays {
+    final first = MealPlanService.mondayFor(_anchorDate);
+    final last = MealPlanService.mondayFor(_anchorDate.add(const Duration(days: 6)));
+    if (first == last) return [first];
+    return [first, last];
+  }
+
+  MealPlan? _planForDate(DateTime date) {
+    final monday = MealPlanService.mondayIsoFor(date);
+    return _plansByMonday[monday];
+  }
+
+  List<MealPlanItem> _itemsForDate(DateTime date, String mealType) {
+    final plan = _planForDate(date);
+    if (plan == null) return const [];
+    final dow = MealPlanService.dayOfWeekFor(date);
+    return plan.items
+        .where((i) => i.dayOfWeek == dow && i.mealType == mealType)
+        .toList();
+  }
+
+  Future<void> _loadWindow() async {
     setState(() { _loading = true; _error = null; });
     try {
-      final data = await _service.getCurrentPlan();
-      if (mounted) setState(() {
-        _plan = data != null ? MealPlan.fromJson(data) : null;
+      final mondays = _windowMondays;
+      final results = await Future.wait(
+        mondays.map((m) async {
+          final iso = MealPlanService.mondayIsoFor(m);
+          final data = await _service.getPlanByMonday(iso);
+          return MapEntry(iso, data);
+        }),
+      );
+      if (!mounted) return;
+      setState(() {
+        _plansByMonday.clear();
+        for (final entry in results) {
+          if (entry.value != null) {
+            _plansByMonday[entry.key] = MealPlan.fromJson(entry.value!);
+          }
+        }
         _loading = false;
       });
     } on DioException catch (e) {
@@ -54,26 +102,7 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
     }
   }
 
-  Future<void> _createAndLoad() async {
-    setState(() => _loading = true);
-    try {
-      final data = await _service.createPlan(MealPlanService.getMondayIso());
-      if (mounted) setState(() {
-        _plan = MealPlan.fromJson(data);
-        _loading = false;
-      });
-    } on DioException catch (e) {
-      if (mounted) setState(() {
-        _error = e.response?.data?['detail'] ?? 'Failed to create plan';
-        _loading = false;
-      });
-    }
-  }
-
-  Future<void> _removeRecipe(MealPlanItem item, Translations t) async {
-    final plan = _plan;
-    if (plan == null) return;
-
+  Future<void> _removeRecipe(MealPlanItem item, MealPlan plan, Translations t) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -98,7 +127,7 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
       } on DioException catch (e) {
         if (e.response?.statusCode != 403) rethrow;
       }
-      await _loadPlan();
+      await _loadWindow();
     } on DioException catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -109,10 +138,17 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
   }
 
   Future<void> _generateList(Translations t) async {
-    final plan = _plan;
-    if (plan == null) return;
+    // Generate a shopping list for each ISO week in the visible window.
+    final plans = _windowMondays
+        .map((m) => _plansByMonday[MealPlanService.mondayIsoFor(m)])
+        .whereType<MealPlan>()
+        .toList();
+    if (plans.isEmpty) return;
+
     try {
-      await _service.generateShoppingList(plan.id);
+      for (final plan in plans) {
+        await _service.generateShoppingList(plan.id);
+      }
       ref.read(shoppingListRefreshProvider.notifier).state++;
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -139,24 +175,47 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
     }
   }
 
-  List<DateTime> get _weekDays {
-    if (_plan == null) {
-      final now = DateTime.now();
-      final monday = now.subtract(Duration(days: now.weekday - 1));
-      return List.generate(7, (i) => monday.add(Duration(days: i)));
-    }
-    final start = _plan!.weekStart;
-    return List.generate(7, (i) => start.add(Duration(days: i)));
+  void _shiftWindow(int days) {
+    setState(() {
+      _anchorDate = _anchorDate.add(Duration(days: days));
+      _selectedOffset = 0;
+    });
+    _loadWindow();
+  }
+
+  void _resetToToday() {
+    final today = DateTime.now();
+    setState(() {
+      _anchorDate = DateTime(today.year, today.month, today.day);
+      _selectedOffset = 0;
+    });
+    _loadWindow();
+  }
+
+  Future<void> _pickAnchorDate() async {
+    final today = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _anchorDate,
+      firstDate: DateTime(today.year - 2),
+      lastDate: DateTime(today.year + 1, 12, 31),
+    );
+    if (picked == null) return;
+    setState(() {
+      _anchorDate = DateTime(picked.year, picked.month, picked.day);
+      _selectedOffset = 0;
+    });
+    _loadWindow();
   }
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final t = Translations.of(context);
-    ref.listen(localeProvider, (_, __) => _loadPlan());
-    ref.listen(mealPlanRefreshProvider, (_, __) => _loadPlan());
+    ref.listen(localeProvider, (_, __) => _loadWindow());
+    ref.listen(mealPlanRefreshProvider, (_, __) => _loadWindow());
 
-    final dayNames = [
+    final dayShortNames = [
       t.mealPlan.days.mon, t.mealPlan.days.tue, t.mealPlan.days.wed,
       t.mealPlan.days.thu, t.mealPlan.days.fri, t.mealPlan.days.sat, t.mealPlan.days.sun,
     ];
@@ -166,18 +225,25 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
       t.mealPlan.mealTypes.dinner,
     ];
 
+    final hasAnyItems = _plansByMonday.values.any((p) => p.items.isNotEmpty);
+
     return Scaffold(
       appBar: AppBar(
         title: Text(t.mealPlan.title, style: const TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w700)),
         actions: [
-          if (_plan != null)
+          IconButton(
+            onPressed: _pickAnchorDate,
+            icon: const Icon(Icons.calendar_month_outlined),
+            tooltip: t.mealPlan.title,
+          ),
+          if (hasAnyItems)
             IconButton(
               onPressed: () => _generateList(t),
               icon: const Icon(Icons.shopping_cart_outlined),
               tooltip: t.mealPlan.generateShoppingList,
             ),
           IconButton(
-            onPressed: _loadPlan,
+            onPressed: _loadWindow,
             icon: const Icon(Icons.refresh),
             tooltip: t.common.retry,
           ),
@@ -187,9 +253,7 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
           ? const Center(child: CircularProgressIndicator())
           : _error != null
               ? _buildError(t)
-              : _plan == null
-                  ? _buildEmpty(t)
-                  : _buildPlan(cs, t, dayNames, mealLabels),
+              : _buildPlan(cs, t, dayShortNames, mealLabels),
     );
   }
 
@@ -202,36 +266,49 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
           const SizedBox(height: 8),
           Text(_error!),
           const SizedBox(height: 16),
-          FilledButton(onPressed: _loadPlan, child: Text(t.common.retry)),
+          FilledButton(onPressed: _loadWindow, child: Text(t.common.retry)),
         ],
       ),
     );
   }
 
-  Widget _buildEmpty(Translations t) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.calendar_today_outlined, size: 64, color: Colors.grey.shade400),
-          const SizedBox(height: 16),
-          Text(t.mealPlan.title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-          const SizedBox(height: 24),
-          FilledButton.icon(
-            onPressed: _createAndLoad,
-            icon: const Icon(Icons.add),
-            label: Text(t.mealPlan.addMeal),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPlan(ColorScheme cs, Translations t, List<String> dayNames, List<String> mealLabels) {
-    final weekDays = _weekDays;
+  Widget _buildPlan(ColorScheme cs, Translations t, List<String> dayShortNames, List<String> mealLabels) {
+    final days = _windowDays;
+    final today = DateUtils.dateOnly(DateTime.now());
+    final selectedDate = days[_selectedOffset];
+    final isPastSelected = DateUtils.dateOnly(selectedDate).isBefore(today);
 
     return Column(
       children: [
+        // Window navigation row
+        Padding(
+          padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
+          child: Row(
+            children: [
+              IconButton(
+                onPressed: () => _shiftWindow(-7),
+                icon: const Icon(Icons.chevron_left),
+                tooltip: '−7',
+              ),
+              Expanded(
+                child: Center(
+                  child: TextButton(
+                    onPressed: _resetToToday,
+                    child: Text(
+                      _windowRangeLabel(days),
+                      style: TextStyle(color: cs.primary, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ),
+              ),
+              IconButton(
+                onPressed: () => _shiftWindow(7),
+                icon: const Icon(Icons.chevron_right),
+                tooltip: '+7',
+              ),
+            ],
+          ),
+        ),
         // Day selector
         Container(
           height: 76,
@@ -241,10 +318,12 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             itemCount: 7,
             itemBuilder: (context, idx) {
-              final date = weekDays[idx];
-              final isSelected = _selectedDay == idx;
+              final date = days[idx];
+              final isSelected = _selectedOffset == idx;
+              final isToday = DateUtils.isSameDay(date, today);
+              final dayLabel = dayShortNames[date.weekday - 1];
               return GestureDetector(
-                onTap: () => setState(() => _selectedDay = idx),
+                onTap: () => setState(() => _selectedOffset = idx),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
                   margin: const EdgeInsets.symmetric(horizontal: 4),
@@ -252,12 +331,15 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(24),
                     color: isSelected ? cs.primary : cs.primary.withAlpha(15),
+                    border: isToday && !isSelected
+                        ? Border.all(color: cs.primary, width: 1.5)
+                        : null,
                   ),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        dayNames[idx],
+                        dayLabel,
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
@@ -284,34 +366,54 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
             onHorizontalDragEnd: (details) {
               final v = details.primaryVelocity;
               if (v == null) return;
-              if (v < -300 && _selectedDay < 6) setState(() => _selectedDay++);
-              if (v > 300 && _selectedDay > 0) setState(() => _selectedDay--);
+              if (v < -300 && _selectedOffset < 6) setState(() => _selectedOffset++);
+              if (v > 300 && _selectedOffset > 0) setState(() => _selectedOffset--);
             },
             child: ListView(
-            padding: const EdgeInsets.all(14),
-            children: List.generate(3, (i) {
-              final mealType = _mealTypes[i];
-              final items = _plan!
-                  .itemsForDay(_selectedDay)
-                  .where((item) => item.mealType == mealType)
-                  .toList();
-              return _MealSlotCard(
-                mealLabel: mealLabels[i],
-                mealIcon: _mealIcons[i],
-                items: items,
-                addLabel: t.mealPlan.addMeal,
-                onAddRecipe: () => context.push('/explore?fromDay=$_selectedDay&fromMealType=$mealType'),
-                onTapRecipe: (item) => context.push('/recipe/${item.recipeId}'),
-                onCookRecipe: (item) => context.push('/cooking/${item.recipeId}?planId=${_plan!.id}&itemId=${item.id}'),
-                onRemoveRecipe: (item) => _removeRecipe(item, t),
-              );
-            }),
+              padding: const EdgeInsets.all(14),
+              children: List.generate(3, (i) {
+                final mealType = _mealTypes[i];
+                final items = _itemsForDate(selectedDate, mealType);
+                return _MealSlotCard(
+                  mealLabel: mealLabels[i],
+                  mealIcon: _mealIcons[i],
+                  items: items,
+                  addLabel: t.mealPlan.addMeal,
+                  isReadOnly: isPastSelected,
+                  onAddRecipe: () {
+                    final iso = _isoDate(selectedDate);
+                    context.push('/explore?fromDate=$iso&fromMealType=$mealType');
+                  },
+                  onTapRecipe: (item) => context.push('/recipe/${item.recipeId}'),
+                  onCookRecipe: (item) {
+                    final plan = _planForDate(selectedDate);
+                    if (plan == null) return;
+                    context.push('/cooking/${item.recipeId}?planId=${plan.id}&itemId=${item.id}');
+                  },
+                  onRemoveRecipe: (item) {
+                    final plan = _planForDate(selectedDate);
+                    if (plan == null) return;
+                    _removeRecipe(item, plan, t);
+                  },
+                );
+              }),
             ),
           ),
         ),
       ],
     );
   }
+
+  String _windowRangeLabel(List<DateTime> days) {
+    final first = days.first;
+    final last = days.last;
+    String fmt(DateTime d) =>
+        '${d.day.toString().padLeft(2, '0')}.${d.month.toString().padLeft(2, '0')}';
+    return '${fmt(first)} – ${fmt(last)} · ${last.year}';
+  }
+
+  static String _isoDate(DateTime d) =>
+      '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 }
 
 class _MealSlotCard extends StatelessWidget {
@@ -319,6 +421,7 @@ class _MealSlotCard extends StatelessWidget {
   final IconData mealIcon;
   final List<MealPlanItem> items;
   final String addLabel;
+  final bool isReadOnly;
   final VoidCallback onAddRecipe;
   final void Function(MealPlanItem) onTapRecipe;
   final void Function(MealPlanItem) onCookRecipe;
@@ -329,6 +432,7 @@ class _MealSlotCard extends StatelessWidget {
     required this.mealIcon,
     required this.items,
     required this.addLabel,
+    required this.isReadOnly,
     required this.onAddRecipe,
     required this.onTapRecipe,
     required this.onCookRecipe,
@@ -359,6 +463,7 @@ class _MealSlotCard extends StatelessWidget {
                 children: items.map((item) => _RecipeCard(
                   item: item,
                   width: cardWidth,
+                  isReadOnly: isReadOnly,
                   onTap: () => onTapRecipe(item),
                   onCook: () => onCookRecipe(item),
                   onRemove: () => onRemoveRecipe(item),
@@ -366,14 +471,15 @@ class _MealSlotCard extends StatelessWidget {
               ),
             ],
             const SizedBox(height: 8),
-            OutlinedButton.icon(
-              onPressed: onAddRecipe,
-              icon: const Icon(Icons.add, size: 18),
-              label: Text(addLabel),
-              style: OutlinedButton.styleFrom(
-                side: BorderSide(color: cs.primary.withAlpha(80)),
+            if (!isReadOnly)
+              OutlinedButton.icon(
+                onPressed: onAddRecipe,
+                icon: const Icon(Icons.add, size: 18),
+                label: Text(addLabel),
+                style: OutlinedButton.styleFrom(
+                  side: BorderSide(color: cs.primary.withAlpha(80)),
+                ),
               ),
-            ),
           ],
         ),
       ),
@@ -384,10 +490,18 @@ class _MealSlotCard extends StatelessWidget {
 class _RecipeCard extends StatelessWidget {
   final MealPlanItem item;
   final double width;
+  final bool isReadOnly;
   final VoidCallback onTap;
   final VoidCallback onCook;
   final VoidCallback onRemove;
-  const _RecipeCard({required this.item, required this.width, required this.onTap, required this.onCook, required this.onRemove});
+  const _RecipeCard({
+    required this.item,
+    required this.width,
+    required this.isReadOnly,
+    required this.onTap,
+    required this.onCook,
+    required this.onRemove,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -461,20 +575,22 @@ class _RecipeCard extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                IconButton(
-                  icon: const Icon(Icons.play_circle_outline, size: 20),
-                  color: cs.primary,
-                  padding: const EdgeInsets.all(6),
-                  constraints: const BoxConstraints(),
-                  onPressed: onCook,
-                ),
-                IconButton(
-                  icon: const Icon(Icons.delete_outline, size: 20),
-                  color: Colors.red,
-                  padding: const EdgeInsets.all(6),
-                  constraints: const BoxConstraints(),
-                  onPressed: onRemove,
-                ),
+                if (!isReadOnly)
+                  IconButton(
+                    icon: const Icon(Icons.play_circle_outline, size: 20),
+                    color: cs.primary,
+                    padding: const EdgeInsets.all(6),
+                    constraints: const BoxConstraints(),
+                    onPressed: onCook,
+                  ),
+                if (!isReadOnly)
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline, size: 20),
+                    color: Colors.red,
+                    padding: const EdgeInsets.all(6),
+                    constraints: const BoxConstraints(),
+                    onPressed: onRemove,
+                  ),
                 const SizedBox(width: 4),
               ],
             ),
