@@ -25,12 +25,46 @@ async def _get_plan_limits(db: AsyncSession, user: User) -> SubscriptionPlan | N
     return result.scalar_one_or_none()
 
 
+def _is_free_plan(plan: SubscriptionPlan | None) -> bool:
+    """Free users (no subscription or 'free' slug) get the rolling 7-day model:
+    a single budget of recipes spread across [today, today+6], no history."""
+    if plan is None:
+        return True
+    return plan.slug == "free"
+
+
 def _max_meal_plans(plan: SubscriptionPlan | None) -> int:
     return plan.max_meal_plans if plan else 1
 
 
 def _max_recipes_per_week(plan: SubscriptionPlan | None) -> int:
     return plan.max_recipes_per_week if plan else 5
+
+
+async def _count_items_in_rolling_window(
+    db: AsyncSession, user_id, today: date
+) -> int:
+    """Count meal plan items whose date falls within [today, today+6].
+    Used for the Free-plan rolling 7-day quota."""
+    end_date = today + timedelta(days=6)
+    plans_result = await db.execute(
+        select(MealPlan)
+        .where(
+            MealPlan.user_id == user_id,
+            # A plan covers [week_start, week_start+6]; we want overlap with
+            # [today, today+6], which means week_start ∈ [today-6, today+6].
+            MealPlan.week_start_date >= today - timedelta(days=6),
+            MealPlan.week_start_date <= end_date,
+        )
+        .options(selectinload(MealPlan.items))
+    )
+    count = 0
+    for plan in plans_result.scalars().all():
+        for item in plan.items:
+            item_date = plan.week_start_date + timedelta(days=item.day_of_week)
+            if today <= item_date <= end_date:
+                count += 1
+    return count
 
 
 _PLAN_OPTS = [
@@ -82,24 +116,34 @@ async def create_meal_plan(
     db: AsyncSession = Depends(get_db),
 ):
     sub_plan = await _get_plan_limits(db, current_user)
-    max_plans = _max_meal_plans(sub_plan)
 
-    count_result = await db.execute(
-        select(func.count()).select_from(MealPlan).where(MealPlan.user_id == current_user.id)
-    )
-    existing_count = count_result.scalar_one()
-    if existing_count >= max_plans:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=f"Your plan allows a maximum of {max_plans} meal plan(s). Upgrade to create more.",
+    # Free users live in a rolling 7-day window that may span two ISO weeks,
+    # so they don't have a max-plans cap — the recipe count is the real limit.
+    if not _is_free_plan(sub_plan):
+        max_plans = _max_meal_plans(sub_plan)
+        today = date.today()
+        current_week_monday = today - timedelta(days=today.weekday())
+        count_result = await db.execute(
+            select(func.count())
+            .select_from(MealPlan)
+            .where(
+                MealPlan.user_id == current_user.id,
+                MealPlan.week_start_date >= current_week_monday,
+            )
         )
+        existing_count = count_result.scalar_one()
+        if existing_count >= max_plans:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Your plan allows a maximum of {max_plans} active meal plan(s). Upgrade to create more.",
+            )
 
-    max_recipes = _max_recipes_per_week(sub_plan)
-    if len(data.items) > max_recipes:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=f"Your plan allows a maximum of {max_recipes} recipes per week. Upgrade to add more.",
-        )
+        max_recipes = _max_recipes_per_week(sub_plan)
+        if len(data.items) > max_recipes:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Your plan allows a maximum of {max_recipes} recipes per week. Upgrade to add more.",
+            )
 
     plan = MealPlan(user_id=current_user.id, week_start_date=data.week_start_date)
     db.add(plan)
@@ -137,15 +181,33 @@ async def add_meal_plan_item(
 
     sub_plan = await _get_plan_limits(db, current_user)
     max_recipes = _max_recipes_per_week(sub_plan)
-    item_count_result = await db.execute(
-        select(func.count()).select_from(MealPlanItem).where(MealPlanItem.meal_plan_id == plan_id)
-    )
-    item_count = item_count_result.scalar_one()
-    if item_count >= max_recipes:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=f"Your plan allows a maximum of {max_recipes} recipes per week. Upgrade to add more.",
+
+    if _is_free_plan(sub_plan):
+        # Free: rolling 7-day window. Reject items outside [today, today+6]
+        # and cap the total across all of the user's plans in that window.
+        today = date.today()
+        target_date = plan.week_start_date + timedelta(days=item.day_of_week)
+        if target_date < today or target_date > today + timedelta(days=6):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Free plan only supports recipes for the next 7 days. Upgrade for full planning.",
+            )
+        rolling_count = await _count_items_in_rolling_window(db, current_user.id, today)
+        if rolling_count >= max_recipes:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Free plan allows a maximum of {max_recipes} recipes in the next 7 days. Upgrade for more.",
+            )
+    else:
+        item_count_result = await db.execute(
+            select(func.count()).select_from(MealPlanItem).where(MealPlanItem.meal_plan_id == plan_id)
         )
+        item_count = item_count_result.scalar_one()
+        if item_count >= max_recipes:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Your plan allows a maximum of {max_recipes} recipes per week. Upgrade to add more.",
+            )
 
     new_item = MealPlanItem(
         meal_plan_id=plan.id,
