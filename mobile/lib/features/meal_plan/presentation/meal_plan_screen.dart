@@ -10,6 +10,7 @@ import '../../../core/models/meal_plan.dart';
 import '../../../core/providers/locale_provider.dart';
 import '../../../core/providers/meal_plan_refresh_provider.dart';
 import '../../../core/providers/shopping_list_refresh_provider.dart';
+import '../../../core/providers/user_provider.dart';
 import '../../../core/services/meal_plan_service.dart';
 import '../../../i18n/strings.g.dart';
 
@@ -175,30 +176,42 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
     }
   }
 
+  DateTime get _todayDate {
+    final t = DateTime.now();
+    return DateTime(t.year, t.month, t.day);
+  }
+
+  /// Anchor cannot move past today — when anchor == today the window
+  /// already covers the next 7 days, which is the maximum lookahead.
+  bool get _canShiftForward => _anchorDate.isBefore(_todayDate);
+
   void _shiftWindow(int days) {
+    final today = _todayDate;
+    var next = _anchorDate.add(Duration(days: days));
+    if (next.isAfter(today)) next = today;
+    if (next == _anchorDate) return;
     setState(() {
-      _anchorDate = _anchorDate.add(Duration(days: days));
+      _anchorDate = next;
       _selectedOffset = 0;
     });
     _loadWindow();
   }
 
   void _resetToToday() {
-    final today = DateTime.now();
     setState(() {
-      _anchorDate = DateTime(today.year, today.month, today.day);
+      _anchorDate = _todayDate;
       _selectedOffset = 0;
     });
     _loadWindow();
   }
 
   Future<void> _pickAnchorDate() async {
-    final today = DateTime.now();
+    final today = _todayDate;
     final picked = await showDatePicker(
       context: context,
       initialDate: _anchorDate,
       firstDate: DateTime(today.year - 2),
-      lastDate: DateTime(today.year + 1, 12, 31),
+      lastDate: today,
     );
     if (picked == null) return;
     setState(() {
@@ -227,15 +240,22 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
 
     final hasAnyItems = _plansByMonday.values.any((p) => p.items.isNotEmpty);
 
+    // Free users only see the rolling next-7-days window — no history,
+    // no jump-to-date picker.
+    final user = ref.watch(userProvider).valueOrNull;
+    final slug = user?['subscription_plan_slug'] as String?;
+    final isFree = slug == null || slug == 'free';
+
     return Scaffold(
       appBar: AppBar(
         title: Text(t.mealPlan.title, style: const TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w700)),
         actions: [
-          IconButton(
-            onPressed: _pickAnchorDate,
-            icon: const Icon(Icons.calendar_month_outlined),
-            tooltip: t.mealPlan.title,
-          ),
+          if (!isFree)
+            IconButton(
+              onPressed: _pickAnchorDate,
+              icon: const Icon(Icons.calendar_month_outlined),
+              tooltip: t.mealPlan.title,
+            ),
           if (hasAnyItems)
             IconButton(
               onPressed: () => _generateList(t),
@@ -253,7 +273,7 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
           ? const Center(child: CircularProgressIndicator())
           : _error != null
               ? _buildError(t)
-              : _buildPlan(cs, t, dayShortNames, mealLabels),
+              : _buildPlan(cs, t, dayShortNames, mealLabels, isFree: isFree),
     );
   }
 
@@ -272,7 +292,13 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
     );
   }
 
-  Widget _buildPlan(ColorScheme cs, Translations t, List<String> dayShortNames, List<String> mealLabels) {
+  Widget _buildPlan(
+    ColorScheme cs,
+    Translations t,
+    List<String> dayShortNames,
+    List<String> mealLabels, {
+    required bool isFree,
+  }) {
     final days = _windowDays;
     final today = DateUtils.dateOnly(DateTime.now());
     final selectedDate = days[_selectedOffset];
@@ -286,7 +312,7 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
           child: Row(
             children: [
               IconButton(
-                onPressed: () => _shiftWindow(-7),
+                onPressed: isFree ? null : () => _shiftWindow(-7),
                 icon: const Icon(Icons.chevron_left),
                 tooltip: '−7',
               ),
@@ -302,7 +328,7 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
                 ),
               ),
               IconButton(
-                onPressed: () => _shiftWindow(7),
+                onPressed: _canShiftForward ? () => _shiftWindow(7) : null,
                 icon: const Icon(Icons.chevron_right),
                 tooltip: '+7',
               ),
