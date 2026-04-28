@@ -58,4 +58,7 @@ class MealPlan {
     final parts = weekStartDate.split('-');
     return DateTime(int.parse(parts[0]), int.parse(parts[1]), int.parse(parts[2]));
   }
+
+  DateTime dateForItem(MealPlanItem item) =>
+      weekStart.add(Duration(days: item.dayOfWeek));
 }

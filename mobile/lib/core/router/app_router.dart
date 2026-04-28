@@ -37,7 +37,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/explore',
             builder: (_, state) => ExploreScreen(
-              fromDay: int.tryParse(state.uri.queryParameters['fromDay'] ?? ''),
+              fromDate: state.uri.queryParameters['fromDate'],
               fromMealType: state.uri.queryParameters['fromMealType'],
             ),
           ),
@@ -48,7 +48,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             path: '/recipe/:id',
             builder: (_, state) => RecipeDetailScreen(
               recipeId: state.pathParameters['id']!,
-              fromDay: int.tryParse(state.uri.queryParameters['fromDay'] ?? ''),
+              fromDate: state.uri.queryParameters['fromDate'],
               fromMealType: state.uri.queryParameters['fromMealType'],
             ),
           ),

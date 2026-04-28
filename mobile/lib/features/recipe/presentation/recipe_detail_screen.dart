@@ -17,9 +17,9 @@ import '../../../i18n/strings.g.dart';
 
 class RecipeDetailScreen extends ConsumerStatefulWidget {
   final String recipeId;
-  final int? fromDay;
+  final String? fromDate;
   final String? fromMealType;
-  const RecipeDetailScreen({super.key, required this.recipeId, this.fromDay, this.fromMealType});
+  const RecipeDetailScreen({super.key, required this.recipeId, this.fromDate, this.fromMealType});
 
   @override
   ConsumerState<RecipeDetailScreen> createState() => _RecipeDetailScreenState();
@@ -76,13 +76,14 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
     final messenger = ScaffoldMessenger.of(context);
     final router = GoRouter.of(context);
 
-    int? selectedDay;
+    DateTime? selectedDate;
     String? selectedMealType;
 
-    if (widget.fromDay != null && widget.fromMealType != null) {
-      selectedDay = widget.fromDay;
+    if (widget.fromDate != null && widget.fromMealType != null) {
+      selectedDate = DateTime.tryParse(widget.fromDate!);
       selectedMealType = widget.fromMealType;
-    } else {
+    }
+    if (selectedDate == null || selectedMealType == null) {
       await showModalBottomSheet(
         context: context,
         isScrollControlled: true,
@@ -90,8 +91,8 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
         builder: (ctx) => _AddToMealPlanSheet(
-          onConfirm: (day, mealType) {
-            selectedDay = day;
+          onConfirm: (date, mealType) {
+            selectedDate = date;
             selectedMealType = mealType;
             Navigator.pop(ctx);
           },
@@ -99,18 +100,19 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
       );
     }
 
-    if (selectedDay == null || selectedMealType == null) return;
+    if (selectedDate == null || selectedMealType == null) return;
     if (!mounted) return;
 
     try {
-      // Get or create meal plan for this week
-      Map<String, dynamic>? planData = await _mealPlanService.getCurrentPlan();
-      planData ??= await _mealPlanService.createPlan(MealPlanService.getMondayIso());
+      // Find or create the meal plan for the ISO week containing selectedDate
+      final mondayIso = MealPlanService.mondayIsoFor(selectedDate!);
+      final planData = await _mealPlanService.ensurePlanForMonday(mondayIso);
 
       final planId = planData['id'] as int;
+      final dayOfWeek = MealPlanService.dayOfWeekFor(selectedDate!);
 
       // Add the recipe with the actual selected servings count
-      await _mealPlanService.addItem(planId, recipe.id, selectedDay!, selectedMealType!, servings: _selectedServings);
+      await _mealPlanService.addItem(planId, recipe.id, dayOfWeek, selectedMealType!, servings: _selectedServings);
 
       // Regenerate shopping list; silently skip 403 (plan restriction)
       bool shoppingListUpdated = false;
@@ -136,7 +138,9 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
         tLocal.mealPlan.days.mon, tLocal.mealPlan.days.tue, tLocal.mealPlan.days.wed,
         tLocal.mealPlan.days.thu, tLocal.mealPlan.days.fri, tLocal.mealPlan.days.sat, tLocal.mealPlan.days.sun,
       ];
-      final dayName = dayNames[selectedDay!];
+      final dayName = dayNames[selectedDate!.weekday - 1];
+      final dateLabel =
+          '$dayName ${selectedDate!.day.toString().padLeft(2, '0')}.${selectedDate!.month.toString().padLeft(2, '0')}';
 
       final mealTypeLabels = {
         'breakfast': tLocal.mealPlan.mealTypes.breakfast,
@@ -151,7 +155,7 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
           children: [
             Expanded(
               child: Text(
-                '${recipe.title} · $dayName · $mealTypeLabel',
+                '${recipe.title} · $dateLabel · $mealTypeLabel',
                 overflow: TextOverflow.ellipsis,
               ),
             ),
@@ -352,7 +356,7 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
 }
 
 class _AddToMealPlanSheet extends StatefulWidget {
-  final void Function(int day, String mealType) onConfirm;
+  final void Function(DateTime date, String mealType) onConfirm;
   const _AddToMealPlanSheet({required this.onConfirm});
 
   @override
@@ -360,25 +364,32 @@ class _AddToMealPlanSheet extends StatefulWidget {
 }
 
 class _AddToMealPlanSheetState extends State<_AddToMealPlanSheet> {
-  int _selectedDay = DateTime.now().weekday - 1; // 0=Mon
+  late DateTime _today;
+  late DateTime _selectedDate;
   String _selectedMealType = 'lunch';
 
   static const _mealTypes = ['breakfast', 'lunch', 'dinner'];
   static const _mealIcons = [Icons.wb_sunny_outlined, Icons.wb_cloudy_outlined, Icons.nights_stay_outlined];
   static const _mealColors = [Colors.orange, Colors.teal, Colors.indigo];
 
-  List<DateTime> get _weekDays {
+  @override
+  void initState() {
+    super.initState();
     final now = DateTime.now();
-    final monday = now.subtract(Duration(days: now.weekday - 1));
-    return List.generate(7, (i) => monday.add(Duration(days: i)));
+    _today = DateTime(now.year, now.month, now.day);
+    _selectedDate = _today;
   }
+
+  /// Rolling 7-day window starting today.
+  List<DateTime> get _windowDays =>
+      List.generate(7, (i) => _today.add(Duration(days: i)));
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final t = context.t;
-    final days = _weekDays;
-    final dayNames = [
+    final days = _windowDays;
+    final dayShortNames = [
       t.mealPlan.days.mon, t.mealPlan.days.tue, t.mealPlan.days.wed,
       t.mealPlan.days.thu, t.mealPlan.days.fri, t.mealPlan.days.sat, t.mealPlan.days.sun,
     ];
@@ -398,44 +409,33 @@ class _AddToMealPlanSheetState extends State<_AddToMealPlanSheet> {
           children: [
             Text(t.recipe.addToMealPlan, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
             const SizedBox(height: 16),
-            const SizedBox(height: 8),
-            const SizedBox(height: 8),
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
                 children: List.generate(7, (i) {
-                  final isSelected = i == _selectedDay;
                   final date = days[i];
-                  final today = DateUtils.dateOnly(DateTime.now());
-                  final isPast = DateUtils.dateOnly(date).isBefore(today);
+                  final isSelected = DateUtils.isSameDay(date, _selectedDate);
+                  final dayLabel = dayShortNames[date.weekday - 1];
                   return GestureDetector(
-                    onTap: isPast ? null : () => setState(() => _selectedDay = i),
+                    onTap: () => setState(() => _selectedDate = date),
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 150),
                       margin: const EdgeInsets.only(right: 8),
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(20),
-                        color: isPast
-                            ? Colors.grey.withAlpha(30)
-                            : isSelected
-                                ? cs.primary
-                                : cs.primary.withAlpha(15),
+                        color: isSelected ? cs.primary : cs.primary.withAlpha(15),
                       ),
                       child: Column(
                         children: [
-                          Text(dayNames[i], style: TextStyle(
+                          Text(dayLabel, style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
-                            color: isPast
-                                ? Colors.grey.withAlpha(120)
-                                : isSelected ? Colors.white : cs.primary,
+                            color: isSelected ? Colors.white : cs.primary,
                           )),
                           Text('${date.day}', style: TextStyle(
                             fontSize: 12,
-                            color: isPast
-                                ? Colors.grey.withAlpha(100)
-                                : isSelected ? Colors.white70 : cs.primary.withAlpha(180),
+                            color: isSelected ? Colors.white70 : cs.primary.withAlpha(180),
                           )),
                         ],
                       ),
@@ -483,7 +483,7 @@ class _AddToMealPlanSheetState extends State<_AddToMealPlanSheet> {
             SizedBox(
               width: double.infinity,
               child: FilledButton(
-                onPressed: () => widget.onConfirm(_selectedDay, _selectedMealType),
+                onPressed: () => widget.onConfirm(_selectedDate, _selectedMealType),
                 child: Text(t.common.save),
               ),
             ),
