@@ -52,7 +52,11 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
                 name: 'Free',
                 price: '0',
                 period: 'Forever',
-                features: const ['5 recipes / week', '1 meal plan', 'Basic search'],
+                features: const [
+                  '5 recipes for the next 7 days',
+                  'Plan ahead only — no history',
+                  'Basic search',
+                ],
                 highlighted: false,
                 isCurrent: currentSlug == null || currentSlug == 'free',
                 cs: cs,
