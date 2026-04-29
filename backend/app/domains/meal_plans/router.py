@@ -44,31 +44,29 @@ def _max_recipes_per_week(plan: SubscriptionPlan | None) -> int:
 async def _count_items_in_rolling_window(
     db: AsyncSession, user_id, today: date
 ) -> int:
-    """Count meal plan items whose date falls within [today, today+6].
-    Used for the Free-plan rolling 7-day quota."""
+    """Count meal plan items whose date falls within [today, today+6], including
+    soft-deleted items. The free-plan budget is cumulative — once a slot is
+    spent, removing the item must not free it."""
     end_date = today + timedelta(days=6)
-    plans_result = await db.execute(
-        select(MealPlan)
+    result = await db.execute(
+        select(MealPlanItem.day_of_week, MealPlan.week_start_date)
+        .join(MealPlan, MealPlanItem.meal_plan_id == MealPlan.id)
         .where(
             MealPlan.user_id == user_id,
-            # A plan covers [week_start, week_start+6]; we want overlap with
-            # [today, today+6], which means week_start ∈ [today-6, today+6].
             MealPlan.week_start_date >= today - timedelta(days=6),
             MealPlan.week_start_date <= end_date,
         )
-        .options(selectinload(MealPlan.items))
     )
     count = 0
-    for plan in plans_result.scalars().all():
-        for item in plan.items:
-            item_date = plan.week_start_date + timedelta(days=item.day_of_week)
-            if today <= item_date <= end_date:
-                count += 1
+    for day_of_week, week_start in result.all():
+        item_date = week_start + timedelta(days=day_of_week)
+        if today <= item_date <= end_date:
+            count += 1
     return count
 
 
 _PLAN_OPTS = [
-    selectinload(MealPlan.items)
+    selectinload(MealPlan.items.and_(MealPlanItem.is_deleted == False))  # noqa: E712
     .selectinload(MealPlanItem.recipe)
     .selectinload(Recipe.translations)
 ]
@@ -200,7 +198,10 @@ async def add_meal_plan_item(
             )
     else:
         item_count_result = await db.execute(
-            select(func.count()).select_from(MealPlanItem).where(MealPlanItem.meal_plan_id == plan_id)
+            select(func.count()).select_from(MealPlanItem).where(
+                MealPlanItem.meal_plan_id == plan_id,
+                MealPlanItem.is_deleted == False,  # noqa: E712
+            )
         )
         item_count = item_count_result.scalar_one()
         if item_count >= max_recipes:
@@ -246,7 +247,11 @@ async def mark_item_complete(
 
     item_result = await db.execute(
         select(MealPlanItem)
-        .where(MealPlanItem.id == item_id, MealPlanItem.meal_plan_id == plan_id)
+        .where(
+            MealPlanItem.id == item_id,
+            MealPlanItem.meal_plan_id == plan_id,
+            MealPlanItem.is_deleted == False,  # noqa: E712
+        )
         .options(selectinload(MealPlanItem.recipe).selectinload(Recipe.translations))
     )
     item = item_result.scalar_one_or_none()
@@ -273,14 +278,132 @@ async def remove_meal_plan_item(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Meal plan not found")
 
     item_result = await db.execute(
-        select(MealPlanItem).where(MealPlanItem.id == item_id, MealPlanItem.meal_plan_id == plan_id)
+        select(MealPlanItem).where(
+            MealPlanItem.id == item_id,
+            MealPlanItem.meal_plan_id == plan_id,
+            MealPlanItem.is_deleted == False,  # noqa: E712
+        )
     )
     item = item_result.scalar_one_or_none()
     if not item:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Item not found")
 
-    await db.delete(item)
+    # Soft-delete: free-plan quota is cumulative, so the row must remain
+    # visible to _count_items_in_rolling_window.
+    item.is_deleted = True
     await db.flush()
+
+
+async def _get_or_create_week_shopping_list(
+    db: AsyncSession, user_id, week_start_date: date,
+):
+    """Find-or-create the shopping list for a meal plan week."""
+    from app.domains.shopping_lists.models import ShoppingList
+
+    list_name = f"Week of {week_start_date}"
+    existing_result = await db.execute(
+        select(ShoppingList).where(
+            ShoppingList.user_id == user_id,
+            ShoppingList.name == list_name,
+        )
+    )
+    existing = existing_result.scalar_one_or_none()
+    if existing:
+        return existing
+    shopping_list = ShoppingList(user_id=user_id, name=list_name)
+    db.add(shopping_list)
+    await db.flush()
+    return shopping_list
+
+
+async def _apply_recipe_to_shopping_list(
+    db: AsyncSession, shopping_list_id: int, recipe_id, servings: int,
+) -> None:
+    """Aggregate one recipe's ingredients into a shopping list:
+    - If an unchecked row exists for (ingredient_id, unit): increase its quantity.
+    - Else (no row, or only a checked row): insert a new unchecked row with the
+      recipe's quantity. The checked row is left untouched — the user already
+      bought that amount; the new amount is what they still need.
+    Quantities are scaled by `servings / recipe.servings`.
+    """
+    from app.domains.recipes.models import Recipe, RecipeIngredient
+    from app.domains.shopping_lists.models import ShoppingListItem
+
+    recipe = (await db.execute(
+        select(Recipe).where(Recipe.id == recipe_id)
+    )).scalar_one()
+    ings = (await db.execute(
+        select(RecipeIngredient).where(RecipeIngredient.recipe_id == recipe_id)
+    )).scalars().all()
+    ratio = servings / recipe.servings if recipe.servings > 0 else 1
+
+    existing_items = (await db.execute(
+        select(ShoppingListItem).where(
+            ShoppingListItem.shopping_list_id == shopping_list_id
+        )
+    )).scalars().all()
+    unchecked_by_key: dict[tuple, ShoppingListItem] = {}
+    for it in existing_items:
+        if not it.is_checked:
+            unchecked_by_key.setdefault((it.ingredient_id, it.unit), it)
+
+    for ing in ings:
+        qty_needed = float(ing.quantity) * ratio
+        key = (ing.ingredient_id, ing.unit)
+        unchecked_row = unchecked_by_key.get(key)
+        if unchecked_row is not None:
+            unchecked_row.quantity = float(unchecked_row.quantity) + qty_needed
+            continue
+        new_row = ShoppingListItem(
+            shopping_list_id=shopping_list_id,
+            ingredient_id=ing.ingredient_id,
+            quantity=qty_needed,
+            unit=ing.unit,
+            is_checked=False,
+            added_from_recipe_id=recipe_id,
+        )
+        db.add(new_row)
+        unchecked_by_key[key] = new_row
+
+
+@router.post("/{plan_id}/items/{item_id}/sync-shopping-list")
+async def sync_shopping_list_for_item(
+    plan_id: int,
+    item_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Append a single just-added meal plan item's ingredients to the week's
+    shopping list. Does NOT touch existing items beyond the aggregation rule —
+    cleared (deleted) items stay cleared, checked items stay checked."""
+    plan_result = await db.execute(
+        select(MealPlan).where(
+            MealPlan.id == plan_id, MealPlan.user_id == current_user.id
+        )
+    )
+    plan = plan_result.scalar_one_or_none()
+    if not plan:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Meal plan not found")
+
+    item_result = await db.execute(
+        select(MealPlanItem).where(
+            MealPlanItem.id == item_id,
+            MealPlanItem.meal_plan_id == plan_id,
+            MealPlanItem.is_deleted == False,  # noqa: E712
+        )
+    )
+    item = item_result.scalar_one_or_none()
+    if not item:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Item not found")
+
+    shopping_list = await _get_or_create_week_shopping_list(
+        db, current_user.id, plan.week_start_date
+    )
+    await _apply_recipe_to_shopping_list(
+        db, shopping_list.id, item.recipe_id, item.servings
+    )
+    await db.flush()
+    return {"shopping_list_id": shopping_list.id}
 
 
 @router.post("/{plan_id}/generate-shopping-list")
@@ -289,61 +412,34 @@ async def generate_shopping_list(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    from collections import defaultdict
-
-    from app.domains.recipes.models import Recipe, RecipeIngredient
-    from app.domains.shopping_lists.models import ShoppingList, ShoppingListItem
+    """Manual full rebuild. Deletes only unchecked items (preserves checked-off
+    history), then aggregates every active meal plan item back into the list."""
+    from app.domains.shopping_lists.models import ShoppingListItem
 
     result = await db.execute(
         select(MealPlan)
         .where(MealPlan.id == plan_id, MealPlan.user_id == current_user.id)
-        .options(selectinload(MealPlan.items))
+        .options(selectinload(MealPlan.items.and_(MealPlanItem.is_deleted == False)))  # noqa: E712
     )
     plan = result.scalar_one_or_none()
     if not plan:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Meal plan not found")
 
-    # Aggregate ingredients across all meal plan items
-    agg: dict[tuple, float] = defaultdict(float)
-    for meal_item in plan.items:
-        recipe = (await db.execute(
-            select(Recipe).where(Recipe.id == meal_item.recipe_id)
-        )).scalar_one()
-        ings = (await db.execute(
-            select(RecipeIngredient).where(RecipeIngredient.recipe_id == meal_item.recipe_id)
-        )).scalars().all()
-        ratio = meal_item.servings / recipe.servings if recipe.servings > 0 else 1
-        for ing in ings:
-            agg[(ing.ingredient_id, ing.unit)] += float(ing.quantity) * ratio
+    shopping_list = await _get_or_create_week_shopping_list(
+        db, current_user.id, plan.week_start_date
+    )
 
-    list_name = f"Week of {plan.week_start_date}"
-
-    # Check if a list already exists for this week — make it idempotent
-    existing_result = await db.execute(
-        select(ShoppingList).where(
-            ShoppingList.user_id == current_user.id,
-            ShoppingList.name == list_name,
+    await db.execute(
+        delete(ShoppingListItem).where(
+            ShoppingListItem.shopping_list_id == shopping_list.id,
+            ShoppingListItem.is_checked == False,  # noqa: E712
         )
     )
-    existing = existing_result.scalar_one_or_none()
-
-    if existing:
-        # Delete old items and reuse the list
-        await db.execute(
-            delete(ShoppingListItem).where(ShoppingListItem.shopping_list_id == existing.id)
-        )
-        shopping_list = existing
-    else:
-        shopping_list = ShoppingList(user_id=current_user.id, name=list_name)
-        db.add(shopping_list)
-        await db.flush()
-
-    for (ing_id, unit), qty in agg.items():
-        db.add(ShoppingListItem(
-            shopping_list_id=shopping_list.id,
-            ingredient_id=ing_id,
-            quantity=qty,
-            unit=unit,
-        ))
     await db.flush()
-    return {"shopping_list_id": shopping_list.id, "items_count": len(agg)}
+
+    for meal_item in plan.items:
+        await _apply_recipe_to_shopping_list(
+            db, shopping_list.id, meal_item.recipe_id, meal_item.servings
+        )
+    await db.flush()
+    return {"shopping_list_id": shopping_list.id}

@@ -112,12 +112,14 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
       final dayOfWeek = MealPlanService.dayOfWeekFor(selectedDate!);
 
       // Add the recipe with the actual selected servings count
-      await _mealPlanService.addItem(planId, recipe.id, dayOfWeek, selectedMealType!, servings: _selectedServings);
+      final newItem = await _mealPlanService.addItem(planId, recipe.id, dayOfWeek, selectedMealType!, servings: _selectedServings);
+      final newItemId = newItem['id'] as int;
 
-      // Regenerate shopping list; silently skip 403 (plan restriction)
+      // Sync only this recipe's ingredients into the shopping list. The
+      // endpoint preserves cleared (deleted) and checked items.
       bool shoppingListUpdated = false;
       try {
-        await _mealPlanService.generateShoppingList(planId);
+        await _mealPlanService.syncShoppingListForItem(planId, newItemId);
         shoppingListUpdated = true;
       } on DioException catch (e) {
         if (e.response?.statusCode != 403) rethrow;

@@ -123,11 +123,8 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
 
     try {
       await _service.removeItem(plan.id, item.id);
-      try {
-        await _service.generateShoppingList(plan.id);
-      } on DioException catch (e) {
-        if (e.response?.statusCode != 403) rethrow;
-      }
+      // Removing a recipe does NOT touch the shopping list — the user manages
+      // it via toggle/clear, and the manual "Generate" button does a full rebuild.
       await _loadWindow();
     } on DioException catch (e) {
       if (!mounted) return;

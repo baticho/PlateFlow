@@ -44,6 +44,7 @@ class MealPlanItem(Base):
     meal_type: Mapped[MealType] = mapped_column(Enum(MealType), nullable=False)
     servings: Mapped[int] = mapped_column(Integer, default=1, server_default='1', nullable=False)
     is_completed: Mapped[bool] = mapped_column(Boolean, default=False, server_default='false', nullable=False)
+    is_deleted: Mapped[bool] = mapped_column(Boolean, default=False, server_default='false', nullable=False)
 
     meal_plan = relationship("MealPlan", back_populates="items")
     recipe = relationship("Recipe")
