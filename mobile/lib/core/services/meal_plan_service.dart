@@ -65,6 +65,15 @@ class MealPlanService {
     return response.data as Map<String, dynamic>;
   }
 
+  /// Append a single just-added item's ingredients to the week's shopping list.
+  /// Preserves checked-off items and previously cleared items.
+  Future<Map<String, dynamic>> syncShoppingListForItem(int planId, int itemId) async {
+    final response = await _dio.post(
+      '/api/v1/meal-plans/$planId/items/$itemId/sync-shopping-list',
+    );
+    return response.data as Map<String, dynamic>;
+  }
+
   Future<Map<String, dynamic>> markItemComplete(int planId, int itemId) async {
     final response = await _dio.patch('/api/v1/meal-plans/$planId/items/$itemId/complete');
     return response.data as Map<String, dynamic>;
