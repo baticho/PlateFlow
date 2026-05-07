@@ -115,18 +115,19 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
       final newItem = await _mealPlanService.addItem(planId, recipe.id, dayOfWeek, selectedMealType!, servings: _selectedServings);
       final newItemId = newItem['id'] as int;
 
-      // Sync only this recipe's ingredients into the shopping list. The
-      // endpoint preserves cleared (deleted) and checked items.
+      // Signal MealPlanScreen to reload — always do this after a successful add.
+      ref.read(mealPlanRefreshProvider.notifier).state++;
+
+      // Sync this recipe's ingredients into the shopping list (best-effort).
+      // Failures here do not affect the meal plan — the user can generate
+      // the shopping list manually at any time.
       bool shoppingListUpdated = false;
       try {
         await _mealPlanService.syncShoppingListForItem(planId, newItemId);
         shoppingListUpdated = true;
-      } on DioException catch (e) {
-        if (e.response?.statusCode != 403) rethrow;
+      } on DioException catch (_) {
+        // Silently ignore — recipe is in the plan, shopping list sync failed
       }
-
-      // Signal MealPlanScreen to reload and refresh shopping list
-      ref.read(mealPlanRefreshProvider.notifier).state++;
       if (shoppingListUpdated) {
         await ref.read(shoppingListCountProvider.notifier).refresh();
         ref.read(shoppingListRefreshProvider.notifier).state++;
