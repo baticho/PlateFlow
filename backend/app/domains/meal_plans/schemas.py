@@ -3,6 +3,8 @@ from datetime import date, datetime
 
 from pydantic import BaseModel, model_validator
 
+from app.middleware.i18n import current_language
+
 
 class MealPlanItemCreate(BaseModel):
     recipe_id: uuid.UUID
@@ -32,10 +34,11 @@ class MealPlanItemResponse(BaseModel):
     @classmethod
     def resolve_recipe(cls, v):
         if hasattr(v, 'recipe') and v.recipe:
-            en = next(
-                (t for t in v.recipe.translations if t.language_code == 'en'),
-                v.recipe.translations[0] if v.recipe.translations else None,
-            )
+            lang = current_language.get()
+            trs = v.recipe.translations
+            en = (next((t for t in trs if t.language_code == lang), None)
+                  or next((t for t in trs if t.language_code == 'en'), None)
+                  or (trs[0] if trs else None))
             return {
                 'id': v.id,
                 'recipe_id': v.recipe_id,

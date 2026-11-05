@@ -16,5 +16,5 @@ from app.domains.shopping_lists.models import ShoppingList, ShoppingListItem  # 
 from app.domains.stores.models import Store  # noqa: F401
 from app.domains.subscriptions.models import SubscriptionPlan  # noqa: F401
 from app.domains.tags.models import Tag, TagTranslation, recipe_tags  # noqa: F401
-from app.domains.users.models import User  # noqa: F401
+from app.domains.users.models import Household, User  # noqa: F401
 from app.domains.weekly_suggestions.models import WeeklySuggestion  # noqa: F401

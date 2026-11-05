@@ -5,7 +5,7 @@ from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.core.deps import get_current_user
+from app.core.deps import get_current_user, get_plan_owner
 from app.database import get_db
 from app.domains.meal_plans.models import MealPlan, MealPlanItem
 from app.domains.meal_plans.schemas import MealPlanCreate, MealPlanItemCreate, MealPlanItemResponse, MealPlanResponse
@@ -74,7 +74,7 @@ _PLAN_OPTS = [
 
 @router.get("/current", response_model=MealPlanResponse)
 async def get_current_meal_plan(
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_plan_owner),
     db: AsyncSession = Depends(get_db),
 ):
     today = date.today()
@@ -93,7 +93,7 @@ async def get_current_meal_plan(
 @router.get("/by-monday/{monday}", response_model=MealPlanResponse)
 async def get_plan_by_monday(
     monday: date,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_plan_owner),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
@@ -110,7 +110,7 @@ async def get_plan_by_monday(
 @router.post("/", response_model=MealPlanResponse, status_code=status.HTTP_201_CREATED)
 async def create_meal_plan(
     data: MealPlanCreate,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_plan_owner),
     db: AsyncSession = Depends(get_db),
 ):
     sub_plan = await _get_plan_limits(db, current_user)
@@ -167,7 +167,7 @@ async def create_meal_plan(
 async def add_meal_plan_item(
     plan_id: int,
     item: MealPlanItemCreate,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_plan_owner),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
@@ -235,7 +235,7 @@ async def add_meal_plan_item(
 async def mark_item_complete(
     plan_id: int,
     item_id: int,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_plan_owner),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
@@ -267,7 +267,7 @@ async def mark_item_complete(
 async def remove_meal_plan_item(
     plan_id: int,
     item_id: int,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_plan_owner),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
@@ -292,6 +292,46 @@ async def remove_meal_plan_item(
     # visible to _count_items_in_rolling_window.
     item.is_deleted = True
     await db.flush()
+
+    # Take this recipe's ingredients back out of the week's shopping list
+    # (only what is still unchecked; rows that drop to zero are removed).
+    await _remove_recipe_from_shopping_list(db, current_user.id, plan.week_start_date, item.recipe_id, item.servings)
+    await db.flush()
+
+
+async def _remove_recipe_from_shopping_list(db: AsyncSession, user_id, week_start_date: date, recipe_id, servings: int) -> None:
+    from app.domains.recipes.models import Recipe, RecipeIngredient
+    from app.domains.shopping_lists.models import ShoppingList, ShoppingListItem
+
+    shopping_list = (await db.execute(
+        select(ShoppingList).where(ShoppingList.user_id == user_id, ShoppingList.name == f"Week of {week_start_date}")
+    )).scalar_one_or_none()
+    if not shopping_list:
+        return
+    recipe = (await db.execute(select(Recipe).where(Recipe.id == recipe_id))).scalar_one_or_none()
+    if not recipe:
+        return
+    ratio = servings / recipe.servings if recipe.servings > 0 else 1
+    ings = (await db.execute(select(RecipeIngredient).where(RecipeIngredient.recipe_id == recipe_id))).scalars().all()
+    rows = (await db.execute(
+        select(ShoppingListItem).where(
+            ShoppingListItem.shopping_list_id == shopping_list.id,
+            ShoppingListItem.is_checked == False,  # noqa: E712
+        )
+    )).scalars().all()
+    by_key = {}
+    for r in rows:
+        by_key.setdefault((r.ingredient_id, r.unit), r)
+    for ing in ings:
+        row = by_key.get((ing.ingredient_id, ing.unit))
+        if row is None:
+            continue
+        left = float(row.quantity) - float(ing.quantity) * ratio
+        if left <= 0.01:
+            await db.delete(row)
+            by_key.pop((ing.ingredient_id, ing.unit))
+        else:
+            row.quantity = left
 
 
 async def _get_or_create_week_shopping_list(
@@ -370,7 +410,7 @@ async def _apply_recipe_to_shopping_list(
 async def sync_shopping_list_for_item(
     plan_id: int,
     item_id: int,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_plan_owner),
     db: AsyncSession = Depends(get_db),
 ):
     """Append a single just-added meal plan item's ingredients to the week's
@@ -409,7 +449,7 @@ async def sync_shopping_list_for_item(
 @router.post("/{plan_id}/generate-shopping-list")
 async def generate_shopping_list(
     plan_id: int,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_plan_owner),
     db: AsyncSession = Depends(get_db),
 ):
     """Manual full rebuild. Deletes only unchecked items (preserves checked-off

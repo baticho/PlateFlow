@@ -28,7 +28,7 @@ from app.domains.recipes.models import (
 )
 from app.domains.subscriptions.models import SubscriptionPlan
 from app.domains.tags.models import Tag, TagTranslation, recipe_tags
-from app.domains.users.models import AdminRole, User
+from app.domains.users.models import AdminRole, Household, User
 from app.domains.weekly_suggestions.models import WeeklySuggestion
 
 router = APIRouter()
@@ -65,8 +65,13 @@ async def dashboard_stats(
 USER_ROLES = ["user"] + [r.value for r in AdminRole]
 
 
-def user_out(u: User) -> dict:
+def user_out(u: User, households: dict | None = None, plans: dict | None = None) -> dict:
+    hh = (households or {}).get(u.household_id) if u.household_id else None
     return {
+        "household_id": u.household_id,
+        "household_name": hh.name if hh else None,
+        "is_household_owner": bool(hh and hh.owner_id == u.id),
+        "subscription_plan_slug": (plans or {}).get(u.subscription_plan_id),
         "id": u.id, "email": u.email, "full_name": u.full_name, "is_active": u.is_active,
         "is_admin": u.is_admin, "admin_role": u.admin_role.value if u.admin_role else None,
         "role": u.admin_role.value if u.admin_role else ("super_admin" if u.is_admin else "user"),
@@ -83,6 +88,7 @@ async def admin_list_users(
     q: str | None = Query(None),
     role: str | None = Query(None),
     active: bool | None = Query(None),
+    plan: str | None = Query(None),
     sort: str = Query("created_at"),
     order: str = Query("desc"),
     db: AsyncSession = Depends(get_db),
@@ -99,13 +105,20 @@ async def admin_list_users(
         query = query.where(User.admin_role == AdminRole(role))
     if active is not None:
         query = query.where(User.is_active.is_(active))
+    if plan == "none":
+        query = query.where(User.subscription_plan_id.is_(None))
+    elif plan:
+        query = query.where(User.subscription_plan_id.in_(select(SubscriptionPlan.id).where(SubscriptionPlan.slug == plan)))
     cols = {"name": User.full_name, "email": User.email, "created_at": User.created_at,
-            "role": User.admin_role, "active": User.is_active}
+            "role": User.admin_role, "active": User.is_active, "plan": User.subscription_plan_id,
+            "family": User.household_id}
     col = cols.get(sort, User.created_at)
     query = query.order_by(col.desc().nulls_last() if order == "desc" else col.asc().nulls_first(), User.id)
     total = (await db.execute(select(func.count()).select_from(query.subquery()))).scalar_one()
     users = (await db.execute(query.offset((page - 1) * page_size).limit(page_size))).scalars().all()
-    return {"items": [user_out(u) for u in users], "total": total, "page": page,
+    households = {h.id: h for h in (await db.execute(select(Household))).scalars()}
+    plans = {p.id: p.slug for p in (await db.execute(select(SubscriptionPlan))).scalars()}
+    return {"items": [user_out(u, households, plans) for u in users], "total": total, "page": page,
             "pages": (total + page_size - 1) // page_size}
 
 
@@ -144,6 +157,7 @@ async def admin_create_user(
     )
     db.add(user)
     await db.flush()
+    await db.refresh(user)
     return user_out(user)
 
 
@@ -151,6 +165,7 @@ class AdminUpdateUser(BaseModel):
     is_active: bool | None = None
     admin_role: str | None = None
     password: str | None = None
+    subscription_plan_id: int | None = None   # send 0 to clear (= free)
 
 
 @router.patch("/users/{user_id}")
@@ -175,8 +190,93 @@ async def admin_update_user(
         user.is_admin = data.admin_role != "user"
     if data.password is not None:
         user.password_hash = hash_password(data.password)
+    if data.subscription_plan_id is not None:
+        if data.subscription_plan_id == 0:
+            user.subscription_plan_id = None
+        else:
+            if not await db.get(SubscriptionPlan, data.subscription_plan_id):
+                raise HTTPException(status_code=400, detail="Unknown subscription plan")
+            user.subscription_plan_id = data.subscription_plan_id
     await db.flush()
+    await db.refresh(user)
     return user_out(user)
+
+
+# ─── Families (households) ─────────────────────────────────────────────────
+
+class HouseholdCreate(BaseModel):
+    name: str
+    owner_id: uuid.UUID
+
+
+class HouseholdMember(BaseModel):
+    user_id: uuid.UUID
+
+
+async def _household_out(db: AsyncSession, h: Household) -> dict:
+    members = (await db.execute(select(User).where(User.household_id == h.id).order_by(User.full_name))).scalars().all()
+    return {"id": h.id, "name": h.name, "owner_id": h.owner_id,
+            "members": [{"id": m.id, "full_name": m.full_name, "email": m.email, "is_owner": m.id == h.owner_id}
+                        for m in members]}
+
+
+@router.get("/households")
+async def admin_list_households(db: AsyncSession = Depends(get_db), _admin: User = Depends(get_current_admin)):
+    hs = (await db.execute(select(Household).order_by(Household.name))).scalars().all()
+    return [await _household_out(db, h) for h in hs]
+
+
+@router.post("/households", status_code=status.HTTP_201_CREATED)
+async def admin_create_household(data: HouseholdCreate, db: AsyncSession = Depends(get_db),
+                                 _admin: User = Depends(get_current_admin)):
+    owner = await db.get(User, data.owner_id)
+    if not owner:
+        raise HTTPException(status_code=404, detail="User not found")
+    if owner.household_id:
+        raise HTTPException(status_code=400, detail="User is already in a family")
+    import secrets
+    h = Household(name=data.name.strip() or f"{owner.full_name} family", owner_id=owner.id,
+                  invite_code="".join(secrets.choice("ABCDEFGHJKLMNPQRSTUVWXYZ23456789") for _ in range(8)))
+    db.add(h)
+    await db.flush()
+    owner.household_id = h.id
+    await db.flush()
+    return await _household_out(db, h)
+
+
+@router.post("/households/{household_id}/members")
+async def admin_add_household_member(household_id: int, data: HouseholdMember, db: AsyncSession = Depends(get_db),
+                                     _admin: User = Depends(get_current_admin)):
+    h = await db.get(Household, household_id)
+    user = await db.get(User, data.user_id)
+    if not h or not user:
+        raise HTTPException(status_code=404, detail="Family or user not found")
+    owns_other = (await db.execute(select(Household).where(Household.owner_id == user.id, Household.id != h.id))).scalar_one_or_none()
+    if owns_other:
+        raise HTTPException(status_code=400, detail=f"User owns the family '{owns_other.name}'; remove it first")
+    user.household_id = h.id
+    await db.flush()
+    return await _household_out(db, h)
+
+
+@router.delete("/households/{household_id}/members/{user_id}")
+async def admin_remove_household_member(household_id: int, user_id: uuid.UUID, db: AsyncSession = Depends(get_db),
+                                        _admin: User = Depends(get_current_admin)):
+    h = await db.get(Household, household_id)
+    if not h:
+        raise HTTPException(status_code=404, detail="Family not found")
+    if h.owner_id == user_id:   # removing the owner dissolves the family
+        for m in (await db.execute(select(User).where(User.household_id == h.id))).scalars():
+            m.household_id = None
+        await db.flush()
+        await db.delete(h)
+        await db.flush()
+        return {"dissolved": True}
+    user = await db.get(User, user_id)
+    if user and user.household_id == h.id:
+        user.household_id = None
+        await db.flush()
+    return await _household_out(db, h)
 
 
 # ─── Recipes ──────────────────────────────────────────────────────────────────

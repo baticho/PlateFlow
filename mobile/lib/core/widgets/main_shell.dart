@@ -30,6 +30,7 @@ class _MainShellState extends ConsumerState<MainShell> {
     if (location.startsWith('/recipe')) return 1;
     if (location.startsWith('/cooking')) return 0;
     if (location.startsWith('/favorites')) return 4;
+    if (location.startsWith('/family')) return 4;
     if (location.startsWith('/subscription')) return 4;
     return 0;
   }

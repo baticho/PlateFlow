@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/api/api_client.dart';
 import '../../../core/config/app_config.dart';
@@ -76,6 +77,101 @@ class _ShoppingListScreenState extends ConsumerState<ShoppingListScreen> {
     });
     _syncBadgeCount();
     await _service.clearCheckedItems(_list!.id);
+  }
+
+  void _showDetails(ShoppingItem item) {
+    final t = context.t;
+    final cs = Theme.of(context).colorScheme;
+    final img = resolveImageUrl(item.imageUrl);
+    String fmt(double v) => v == v.roundToDouble() ? v.toInt().toString() : v.toStringAsFixed(1);
+    final nutrition = [
+      if (item.caloriesPer100g != null) (t.shoppingList.details.calories, '${fmt(item.caloriesPer100g!)} kcal'),
+      if (item.proteinPer100g != null) (t.shoppingList.details.protein, '${fmt(item.proteinPer100g!)} g'),
+      if (item.carbsPer100g != null) (t.shoppingList.details.carbs, '${fmt(item.carbsPer100g!)} g'),
+      if (item.fatPer100g != null) (t.shoppingList.details.fat, '${fmt(item.fatPer100g!)} g'),
+    ];
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) => SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+          child: StatefulBuilder(
+            builder: (ctx, setSheet) => Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: AspectRatio(
+                    aspectRatio: 1.4,
+                    child: img == null
+                        ? Container(color: cs.primary.withAlpha(20), child: Icon(Icons.eco_outlined, size: 72, color: cs.primary))
+                        : CachedNetworkImage(
+                            imageUrl: img, fit: BoxFit.cover,
+                            placeholder: (_, __) => Container(color: cs.primary.withAlpha(20)),
+                            errorWidget: (_, __, ___) => Container(
+                                color: cs.primary.withAlpha(20), child: Icon(Icons.eco_outlined, size: 72, color: cs.primary)),
+                          ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(capFirst(item.ingredientName),
+                    style: const TextStyle(fontFamily: 'Poppins', fontSize: 22, fontWeight: FontWeight.w700)),
+                const SizedBox(height: 4),
+                Text(t['shoppingList.categories.${item.ingredientCategory}'] as String? ?? item.ingredientCategory,
+                    style: TextStyle(color: cs.primary, fontWeight: FontWeight.w600)),
+                const SizedBox(height: 16),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.scale_outlined),
+                  title: Text(t.shoppingList.details.quantity),
+                  trailing: Text(item.quantityDisplay, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                ),
+                if (item.recipeTitle != null)
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.restaurant_menu),
+                    title: Text(t.shoppingList.details.fromRecipe),
+                    subtitle: Text(item.recipeTitle!),
+                    trailing: item.recipeId != null ? const Icon(Icons.chevron_right) : null,
+                    onTap: item.recipeId == null
+                        ? null
+                        : () {
+                            Navigator.pop(ctx);
+                            context.push('/recipe/${item.recipeId}');
+                          },
+                  ),
+                if (nutrition.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Text(t.shoppingList.details.per100g, style: const TextStyle(fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 8),
+                  Row(children: [
+                    for (final n in nutrition)
+                      Expanded(
+                        child: Column(children: [
+                          Text(n.$2, style: const TextStyle(fontWeight: FontWeight.w700)),
+                          Text(n.$1, style: TextStyle(fontSize: 12, color: cs.onSurface.withAlpha(150))),
+                        ]),
+                      ),
+                  ]),
+                ],
+                const SizedBox(height: 20),
+                FilledButton.icon(
+                  icon: Icon(item.isChecked ? Icons.undo : Icons.check),
+                  label: Text(item.isChecked ? t.shoppingList.details.unmark : t.shoppingList.details.markBought),
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    _toggle(item);
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -166,7 +262,7 @@ class _ShoppingListScreenState extends ConsumerState<ShoppingListScreen> {
               ),
             ),
             ...entry.value.map((item) => ListTile(
-              onTap: () => _toggle(item),
+              onTap: () => _showDetails(item),
               dense: true,
               contentPadding: const EdgeInsets.only(left: 4, right: 16),
               leading: Row(mainAxisSize: MainAxisSize.min, children: [

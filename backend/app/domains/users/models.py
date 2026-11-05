@@ -2,7 +2,7 @@ import enum
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, String, func
+from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Integer, String, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -53,7 +53,28 @@ class User(Base):
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
     )
 
+    household_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("households.id", ondelete="SET NULL", use_alter=True), nullable=True, index=True
+    )
+
     subscription_plan = relationship("SubscriptionPlan", back_populates="users")
+    household = relationship("Household", foreign_keys=[household_id], back_populates="members")
     favorites = relationship("Favorite", back_populates="user", cascade="all, delete-orphan")
     meal_plans = relationship("MealPlan", back_populates="user", cascade="all, delete-orphan")
     shopping_lists = relationship("ShoppingList", back_populates="user", cascade="all, delete-orphan")
+
+
+class Household(Base):
+    """A family: members share the owner's meal plan, shopping list and subscription."""
+    __tablename__ = "households"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    invite_code: Mapped[str | None] = mapped_column(String(16), unique=True, nullable=True)
+    owner_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    owner = relationship("User", foreign_keys=[owner_id])
+    members = relationship("User", foreign_keys="User.household_id", back_populates="household")

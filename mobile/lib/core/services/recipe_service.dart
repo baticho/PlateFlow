@@ -63,9 +63,13 @@ class RecipeService {
     return !isFavorite;
   }
 
-  Future<Set<String>> getFavoriteIds() async {
+  Future<List<Map<String, dynamic>>> getFavorites() async {
     final response = await _dio.get('/api/v1/favorites/');
-    final items = response.data as List;
-    return items.map((i) => i['id'].toString()).toSet();
+    final data = response.data;
+    final items = data is Map ? (data['items'] as List? ?? []) : (data as List);
+    return items.whereType<Map>().map((e) => e.cast<String, dynamic>()).toList();
   }
+
+  Future<Set<String>> getFavoriteIds() async =>
+      (await getFavorites()).map((i) => i['id'].toString()).toSet();
 }

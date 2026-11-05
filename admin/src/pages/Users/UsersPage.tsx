@@ -1,10 +1,11 @@
 import { useState } from 'react'
-import { Table, Input, Space, Tag, Button, Typography, Switch, message, Modal, Form, Select, Segmented } from 'antd'
+import { Table, Input, Space, Tag, Button, Typography, Switch, message, Modal, Form, Select, Segmented, Popconfirm, Tooltip } from 'antd'
 import type { TablePaginationConfig } from 'antd'
 import type { SorterResult } from 'antd/es/table/interface'
-import { SearchOutlined, PlusOutlined, KeyOutlined } from '@ant-design/icons'
+import { SearchOutlined, PlusOutlined, KeyOutlined, CrownOutlined, TeamOutlined, CloseOutlined } from '@ant-design/icons'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { usersApi } from '../../api/endpoints/users'
+import { subscriptionsApi } from '../../api/endpoints/subscriptions'
 import { useAuth } from '../../contexts/AuthContext'
 
 const { Title } = Typography
@@ -18,6 +19,11 @@ interface User {
   admin_role: string | null
   role: string
   preferred_language?: string
+  subscription_plan_id: number | null
+  subscription_plan_slug: string | null
+  household_id: number | null
+  household_name: string | null
+  is_household_owner: boolean
   created_at: string
 }
 
@@ -34,6 +40,7 @@ export function UsersPage() {
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(20)
   const [role, setRole] = useState<string | undefined>()
+  const [plan, setPlan] = useState<string | undefined>()
   const [active, setActive] = useState<'all' | 'active' | 'inactive'>('all')
   const [sort, setSort] = useState<{ key: string; order: 'asc' | 'desc' }>({ key: 'created_at', order: 'desc' })
   const [createOpen, setCreateOpen] = useState(false)
@@ -43,7 +50,7 @@ export function UsersPage() {
   const queryClient = useQueryClient()
 
   const params = {
-    page, page_size: pageSize, q: search || undefined, role, sort: sort.key, order: sort.order,
+    page, page_size: pageSize, q: search || undefined, role, plan, sort: sort.key, order: sort.order,
     active: active === 'all' ? undefined : active === 'active',
   }
   const { data, isLoading } = useQuery({
@@ -51,6 +58,25 @@ export function UsersPage() {
     queryFn: () => usersApi.list(params).then((r) => r.data),
     placeholderData: (prev) => prev,
   })
+
+  const { data: plans } = useQuery({
+    queryKey: ['subscription-plans'],
+    queryFn: () => subscriptionsApi.list().then((r) => r.data as { id: number; slug: string; name: string; price_monthly: string }[]),
+  })
+  const { data: households } = useQuery({
+    queryKey: ['households'],
+    queryFn: () => usersApi.households().then((r) => r.data as { id: number; name: string; owner_id: string; members: { id: string }[] }[]),
+  })
+  const refreshFamilies = () => {
+    queryClient.invalidateQueries({ queryKey: ['admin-users'] })
+    queryClient.invalidateQueries({ queryKey: ['households'] })
+  }
+  const familyAction = useMutation({
+    mutationFn: (fn: () => Promise<unknown>) => fn(),
+    onSuccess: () => { refreshFamilies(); message.success('Family updated') },
+    onError: (err) => message.error(errorText(err, 'Failed to update family')),
+  })
+  const isPaid = (slug: string | null) => !!slug && slug !== 'free'
 
   const errorText = (err: any, fallback: string) => {
     const detail = err?.response?.data?.detail
@@ -108,6 +134,61 @@ export function UsersPage() {
       ),
     },
     {
+      title: 'Plan', key: 'plan', width: 190, sorter: true, sortOrder: sortOrder('plan'),
+      render: (_: unknown, r: User) => (
+        <Select
+          size="small"
+          style={{ width: 170 }}
+          value={r.subscription_plan_id ?? 0}
+          onChange={(value) => updateUser.mutate({ id: r.id, data: { subscription_plan_id: value } })}
+          options={[
+            { value: 0, label: <Tag style={{ margin: 0 }}>Free (none)</Tag> },
+            ...(plans ?? []).map((p) => ({
+              value: p.id,
+              label: <Tag color={isPaid(p.slug) ? 'green' : undefined} style={{ margin: 0 }}>{p.name}</Tag>,
+            })),
+          ]}
+        />
+      ),
+    },
+    {
+      title: 'Family', key: 'family', width: 230, sorter: true, sortOrder: sortOrder('family'),
+      render: (_: unknown, r: User) => r.household_id ? (
+        <Space size={4}>
+          <Tooltip title={r.is_household_owner ? 'Family owner: members use this account\'s meal plan, shopping list and plan' : 'Member: uses the owner\'s meal plan, shopping list and plan'}>
+            <Tag color={r.is_household_owner ? 'gold' : 'geekblue'} icon={r.is_household_owner ? <CrownOutlined /> : <TeamOutlined />}>
+              {r.household_name}
+            </Tag>
+          </Tooltip>
+          <Popconfirm
+            title={r.is_household_owner ? 'Dissolve this family?' : 'Remove from family?'}
+            description={r.is_household_owner ? 'All members go back to their own meal plans.' : 'The user goes back to their own meal plan.'}
+            onConfirm={() => familyAction.mutate(() => usersApi.removeMember(r.household_id!, r.id))}
+          >
+            <Button size="small" type="text" danger icon={<CloseOutlined />} />
+          </Popconfirm>
+        </Space>
+      ) : (
+        <Select
+          size="small"
+          style={{ width: 200 }}
+          placeholder="Add to family…"
+          value={null}
+          onChange={(value: number | 'new') => {
+            if (value === 'new') {
+              familyAction.mutate(() => usersApi.createHousehold({ name: `${r.full_name} family`, owner_id: r.id }))
+            } else {
+              familyAction.mutate(() => usersApi.addMember(value, r.id))
+            }
+          }}
+          options={[
+            { value: 'new', label: <span><PlusOutlined /> New family (owner)</span> },
+            ...(households ?? []).map((h) => ({ value: h.id, label: `${h.name} (${h.members.length})` })),
+          ]}
+        />
+      ),
+    },
+    {
       title: 'Active', key: 'active', width: 90, sorter: true, sortOrder: sortOrder('active'),
       render: (_: unknown, r: User) => (
         <Switch checked={r.is_active} disabled={isMe(r)}
@@ -149,6 +230,9 @@ export function UsersPage() {
       <Space style={{ marginBottom: 16 }} wrap>
         <Input placeholder="Search by name or email..." prefix={<SearchOutlined />} value={search}
           onChange={(e) => { setSearch(e.target.value); setPage(1) }} style={{ width: 300 }} allowClear />
+        <Select placeholder="Plan" allowClear style={{ width: 170 }} value={plan}
+          onChange={(v) => { setPlan(v); setPage(1) }}
+          options={[{ value: 'none', label: 'Free (none)' }, ...(plans ?? []).map((p) => ({ value: p.slug, label: p.name }))]} />
         <Select placeholder="Role" allowClear style={{ width: 170 }} value={role}
           onChange={(v) => { setRole(v); setPage(1) }} options={ROLES.map((x) => ({ value: x.value, label: x.label }))} />
         <Segmented value={active} onChange={(v) => { setActive(v as typeof active); setPage(1) }}

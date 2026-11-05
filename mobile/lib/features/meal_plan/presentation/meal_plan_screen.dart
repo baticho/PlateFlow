@@ -9,6 +9,7 @@ import '../../../core/config/app_config.dart';
 import '../../../core/models/meal_plan.dart';
 import '../../../core/providers/locale_provider.dart';
 import '../../../core/providers/meal_plan_refresh_provider.dart';
+import '../../../core/providers/shopping_list_count_provider.dart';
 import '../../../core/providers/shopping_list_refresh_provider.dart';
 import '../../../core/providers/user_provider.dart';
 import '../../../core/services/meal_plan_service.dart';
@@ -123,9 +124,10 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
 
     try {
       await _service.removeItem(plan.id, item.id);
-      // Removing a recipe does NOT touch the shopping list — the user manages
-      // it via toggle/clear, and the manual "Generate" button does a full rebuild.
+      // The backend also takes the recipe's (unchecked) ingredients out of the shopping list.
       await _loadWindow();
+      await ref.read(shoppingListCountProvider.notifier).refresh();
+      ref.read(shoppingListRefreshProvider.notifier).state++;
     } on DioException catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -245,7 +247,11 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(t.mealPlan.title, style: const TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w700)),
+        title: FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: Text(t.mealPlan.title, maxLines: 1, style: const TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w700)),
+        ),
         actions: [
           if (!isFree)
             IconButton(

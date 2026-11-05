@@ -87,6 +87,18 @@
       "frozen": "Frozen",
       "beverages": "Beverages",
       "other": "Other"
+    },
+    "details": {
+      "quantity": "Quantity",
+      "fromRecipe": "From recipe",
+      "per100g": "Nutrition per 100 g",
+      "calories": "Calories",
+      "protein": "Protein",
+      "carbs": "Carbs",
+      "fat": "Fat",
+      "markBought": "Mark as bought",
+      "unmark": "Back to the list",
+      "openRecipe": "Open recipe"
     }
   },
   "cooking": {
@@ -108,7 +120,14 @@
     "language": "Language",
     "units": "Measurement Units",
     "subscription": "Subscription",
-    "logout": "Sign Out"
+    "logout": "Sign Out",
+    "theme": "Theme",
+    "themeSystem": "System",
+    "themeLight": "Light",
+    "themeDark": "Dark",
+    "family": "Family",
+    "familyNone": "Not in a family",
+    "preferences": "PREFERENCES"
   },
   "units": {
     "metric": "Metric",
@@ -151,5 +170,34 @@
     "search": "Search",
     "noResults": "No results found",
     "pressBackAgainToExit": "Press back again to exit"
+  },
+  "family": {
+    "title": "Family",
+    "intro": "Share one meal plan and shopping list with your family. Everyone in the family uses the owner's plan.",
+    "create": "Create a family",
+    "createPremiumOnly": "Creating a family requires a Premium plan.",
+    "upgrade": "Upgrade to Premium",
+    "namePlaceholder": "Family name",
+    "join": "Join a family",
+    "joinHint": "Enter the invite code you got from the family owner",
+    "code": "Invite code",
+    "joinButton": "Join",
+    "inviteTitle": "Invite members",
+    "inviteText": "Share this code. Whoever enters it in PlateFlow → Profile → Family joins your family.",
+    "copied": "Code copied",
+    "share": "Share",
+    "newCode": "New code",
+    "members": "Members",
+    "slotsLeft": "$count free slots of $max",
+    "owner": "Owner",
+    "you": "you",
+    "remove": "Remove",
+    "removeConfirm": "Remove $name from the family? They go back to their own meal plan.",
+    "leave": "Leave family",
+    "leaveConfirm": "Leave the family? You go back to your own meal plan.",
+    "dissolve": "Dissolve family",
+    "dissolveConfirm": "Dissolve the family? All members go back to their own meal plans.",
+    "cancel": "Cancel",
+    "shareMessage": "Join my family in PlateFlow: open Profile → Family → Join and enter the code $code"
   }
 }

@@ -3,7 +3,9 @@ from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.core.deps import get_current_user
+from app.domains.recipes.models import Recipe
+
+from app.core.deps import get_current_user, get_plan_owner
 from app.database import get_db
 from app.domains.ingredients.models import Ingredient, IngredientTranslation
 from app.domains.shopping_lists.models import ShoppingList, ShoppingListItem
@@ -16,7 +18,7 @@ router = APIRouter()
 
 @router.get("/", response_model=list[ShoppingListResponse])
 async def list_shopping_lists(
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_plan_owner),
     db: AsyncSession = Depends(get_db),
 ):
     lang = current_language.get()
@@ -27,7 +29,10 @@ async def list_shopping_lists(
         .options(
             selectinload(ShoppingList.items)
             .selectinload(ShoppingListItem.ingredient)
-            .selectinload(Ingredient.translations)
+            .selectinload(Ingredient.translations),
+            selectinload(ShoppingList.items)
+            .selectinload(ShoppingListItem.recipe)
+            .selectinload(Recipe.translations),
         )
         .order_by(ShoppingList.created_at.desc())
     )
@@ -53,7 +58,7 @@ async def list_shopping_lists(
 async def toggle_item(
     list_id: int,
     item_id: int,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_plan_owner),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
@@ -82,7 +87,7 @@ async def toggle_item(
 @router.delete("/{list_id}/items/checked", status_code=status.HTTP_204_NO_CONTENT)
 async def clear_checked_items(
     list_id: int,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_plan_owner),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(

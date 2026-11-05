@@ -4,9 +4,9 @@
 /// To regenerate, run: `dart run slang`
 ///
 /// Locales: 2
-/// Strings: 234 (117 per locale)
+/// Strings: 322 (161 per locale)
 ///
-/// Built on 2026-04-24 at 05:36 UTC
+/// Built on 2026-11-05 at 21:35 UTC
 
 // coverage:ignore-file
 // ignore_for_file: type=lint
@@ -162,6 +162,7 @@ class Translations implements BaseTranslations<AppLocale, Translations> {
 	late final _StringsSubscriptionEn subscription = _StringsSubscriptionEn._(_root);
 	late final _StringsAuthEn auth = _StringsAuthEn._(_root);
 	late final _StringsCommonEn common = _StringsCommonEn._(_root);
+	late final _StringsFamilyEn family = _StringsFamilyEn._(_root);
 }
 
 // Path: app
@@ -270,6 +271,7 @@ class _StringsShoppingListEn {
 	String get clearChecked => 'Clear Checked';
 	String itemsCount({required Object checked, required Object total}) => '${checked} / ${total} items';
 	late final _StringsShoppingListCategoriesEn categories = _StringsShoppingListCategoriesEn._(_root);
+	late final _StringsShoppingListDetailsEn details = _StringsShoppingListDetailsEn._(_root);
 }
 
 // Path: cooking
@@ -312,6 +314,13 @@ class _StringsProfileEn {
 	String get units => 'Measurement Units';
 	String get subscription => 'Subscription';
 	String get logout => 'Sign Out';
+	String get theme => 'Theme';
+	String get themeSystem => 'System';
+	String get themeLight => 'Light';
+	String get themeDark => 'Dark';
+	String get family => 'Family';
+	String get familyNone => 'Not in a family';
+	String get preferences => 'PREFERENCES';
 }
 
 // Path: units
@@ -384,6 +393,42 @@ class _StringsCommonEn {
 	String get pressBackAgainToExit => 'Press back again to exit';
 }
 
+// Path: family
+class _StringsFamilyEn {
+	_StringsFamilyEn._(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+	String get title => 'Family';
+	String get intro => 'Share one meal plan and shopping list with your family. Everyone in the family uses the owner\'s plan.';
+	String get create => 'Create a family';
+	String get createPremiumOnly => 'Creating a family requires a Premium plan.';
+	String get upgrade => 'Upgrade to Premium';
+	String get namePlaceholder => 'Family name';
+	String get join => 'Join a family';
+	String get joinHint => 'Enter the invite code you got from the family owner';
+	String get code => 'Invite code';
+	String get joinButton => 'Join';
+	String get inviteTitle => 'Invite members';
+	String get inviteText => 'Share this code. Whoever enters it in PlateFlow → Profile → Family joins your family.';
+	String get copied => 'Code copied';
+	String get share => 'Share';
+	String get newCode => 'New code';
+	String get members => 'Members';
+	String slotsLeft({required Object count, required Object max}) => '${count} free slots of ${max}';
+	String get owner => 'Owner';
+	String get you => 'you';
+	String get remove => 'Remove';
+	String removeConfirm({required Object name}) => 'Remove ${name} from the family? They go back to their own meal plan.';
+	String get leave => 'Leave family';
+	String get leaveConfirm => 'Leave the family? You go back to your own meal plan.';
+	String get dissolve => 'Dissolve family';
+	String get dissolveConfirm => 'Dissolve the family? All members go back to their own meal plans.';
+	String get cancel => 'Cancel';
+	String shareMessage({required Object code}) => 'Join my family in PlateFlow: open Profile → Family → Join and enter the code ${code}';
+}
+
 // Path: recipe.difficulty
 class _StringsRecipeDifficultyEn {
 	_StringsRecipeDifficultyEn._(this._root);
@@ -447,6 +492,25 @@ class _StringsShoppingListCategoriesEn {
 	String get other => 'Other';
 }
 
+// Path: shoppingList.details
+class _StringsShoppingListDetailsEn {
+	_StringsShoppingListDetailsEn._(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+	String get quantity => 'Quantity';
+	String get fromRecipe => 'From recipe';
+	String get per100g => 'Nutrition per 100 g';
+	String get calories => 'Calories';
+	String get protein => 'Protein';
+	String get carbs => 'Carbs';
+	String get fat => 'Fat';
+	String get markBought => 'Mark as bought';
+	String get unmark => 'Back to the list';
+	String get openRecipe => 'Open recipe';
+}
+
 // Path: <root>
 class _StringsBg implements Translations {
 	/// You can call this constructor and build your own translation instance of this locale.
@@ -485,6 +549,7 @@ class _StringsBg implements Translations {
 	@override late final _StringsSubscriptionBg subscription = _StringsSubscriptionBg._(_root);
 	@override late final _StringsAuthBg auth = _StringsAuthBg._(_root);
 	@override late final _StringsCommonBg common = _StringsCommonBg._(_root);
+	@override late final _StringsFamilyBg family = _StringsFamilyBg._(_root);
 }
 
 // Path: app
@@ -593,6 +658,7 @@ class _StringsShoppingListBg implements _StringsShoppingListEn {
 	@override String get clearChecked => 'Изчисти отбелязаните';
 	@override String itemsCount({required Object checked, required Object total}) => '${checked} / ${total} продукта';
 	@override late final _StringsShoppingListCategoriesBg categories = _StringsShoppingListCategoriesBg._(_root);
+	@override late final _StringsShoppingListDetailsBg details = _StringsShoppingListDetailsBg._(_root);
 }
 
 // Path: cooking
@@ -635,6 +701,13 @@ class _StringsProfileBg implements _StringsProfileEn {
 	@override String get units => 'Мерни единици';
 	@override String get subscription => 'Абонамент';
 	@override String get logout => 'Изход';
+	@override String get theme => 'Тема';
+	@override String get themeSystem => 'Системна';
+	@override String get themeLight => 'Светла';
+	@override String get themeDark => 'Тъмна';
+	@override String get family => 'Семейство';
+	@override String get familyNone => 'Не сте в семейство';
+	@override String get preferences => 'НАСТРОЙКИ';
 }
 
 // Path: units
@@ -707,6 +780,42 @@ class _StringsCommonBg implements _StringsCommonEn {
 	@override String get pressBackAgainToExit => 'Натисни назад отново за изход';
 }
 
+// Path: family
+class _StringsFamilyBg implements _StringsFamilyEn {
+	_StringsFamilyBg._(this._root);
+
+	@override final _StringsBg _root; // ignore: unused_field
+
+	// Translations
+	@override String get title => 'Семейство';
+	@override String get intro => 'Споделяйте едно меню и един списък за пазар със семейството си. Всички в семейството ползват плана на собственика.';
+	@override String get create => 'Създай семейство';
+	@override String get createPremiumOnly => 'За да създадете семейство, ви трябва Premium план.';
+	@override String get upgrade => 'Към Premium';
+	@override String get namePlaceholder => 'Име на семейството';
+	@override String get join => 'Присъедини се към семейство';
+	@override String get joinHint => 'Въведете кода за покана, който сте получили от собственика';
+	@override String get code => 'Код за покана';
+	@override String get joinButton => 'Присъедини се';
+	@override String get inviteTitle => 'Покани членове';
+	@override String get inviteText => 'Изпратете този код. Който го въведе в PlateFlow → Профил → Семейство, влиза в семейството ви.';
+	@override String get copied => 'Кодът е копиран';
+	@override String get share => 'Сподели';
+	@override String get newCode => 'Нов код';
+	@override String get members => 'Членове';
+	@override String slotsLeft({required Object count, required Object max}) => '${count} свободни места от ${max}';
+	@override String get owner => 'Собственик';
+	@override String get you => 'вие';
+	@override String get remove => 'Премахни';
+	@override String removeConfirm({required Object name}) => 'Да премахнем ли ${name} от семейството? Връща се към собственото си меню.';
+	@override String get leave => 'Напусни семейството';
+	@override String get leaveConfirm => 'Да напуснете ли семейството? Връщате се към собственото си меню.';
+	@override String get dissolve => 'Разпусни семейството';
+	@override String get dissolveConfirm => 'Да разпуснем ли семейството? Всички членове се връщат към собствените си менюта.';
+	@override String get cancel => 'Отказ';
+	@override String shareMessage({required Object code}) => 'Влез в семейството ми в PlateFlow: Профил → Семейство → Присъедини се и въведи кода ${code}';
+}
+
 // Path: recipe.difficulty
 class _StringsRecipeDifficultyBg implements _StringsRecipeDifficultyEn {
 	_StringsRecipeDifficultyBg._(this._root);
@@ -768,6 +877,25 @@ class _StringsShoppingListCategoriesBg implements _StringsShoppingListCategories
 	@override String get frozen => 'Замразени';
 	@override String get beverages => 'Напитки';
 	@override String get other => 'Друго';
+}
+
+// Path: shoppingList.details
+class _StringsShoppingListDetailsBg implements _StringsShoppingListDetailsEn {
+	_StringsShoppingListDetailsBg._(this._root);
+
+	@override final _StringsBg _root; // ignore: unused_field
+
+	// Translations
+	@override String get quantity => 'Количество';
+	@override String get fromRecipe => 'От рецепта';
+	@override String get per100g => 'Хранителни стойности на 100 г';
+	@override String get calories => 'Калории';
+	@override String get protein => 'Протеин';
+	@override String get carbs => 'Въглехидрати';
+	@override String get fat => 'Мазнини';
+	@override String get markBought => 'Отбележи като купено';
+	@override String get unmark => 'Върни в списъка';
+	@override String get openRecipe => 'Отвори рецептата';
 }
 
 /// Flat map(s) containing all translations.
@@ -844,6 +972,16 @@ extension on Translations {
 			case 'shoppingList.categories.frozen': return 'Frozen';
 			case 'shoppingList.categories.beverages': return 'Beverages';
 			case 'shoppingList.categories.other': return 'Other';
+			case 'shoppingList.details.quantity': return 'Quantity';
+			case 'shoppingList.details.fromRecipe': return 'From recipe';
+			case 'shoppingList.details.per100g': return 'Nutrition per 100 g';
+			case 'shoppingList.details.calories': return 'Calories';
+			case 'shoppingList.details.protein': return 'Protein';
+			case 'shoppingList.details.carbs': return 'Carbs';
+			case 'shoppingList.details.fat': return 'Fat';
+			case 'shoppingList.details.markBought': return 'Mark as bought';
+			case 'shoppingList.details.unmark': return 'Back to the list';
+			case 'shoppingList.details.openRecipe': return 'Open recipe';
 			case 'cooking.stepOf': return ({required Object current, required Object total}) => 'Step ${current} of ${total}';
 			case 'cooking.back': return 'Back';
 			case 'cooking.next': return 'Next';
@@ -859,6 +997,13 @@ extension on Translations {
 			case 'profile.units': return 'Measurement Units';
 			case 'profile.subscription': return 'Subscription';
 			case 'profile.logout': return 'Sign Out';
+			case 'profile.theme': return 'Theme';
+			case 'profile.themeSystem': return 'System';
+			case 'profile.themeLight': return 'Light';
+			case 'profile.themeDark': return 'Dark';
+			case 'profile.family': return 'Family';
+			case 'profile.familyNone': return 'Not in a family';
+			case 'profile.preferences': return 'PREFERENCES';
 			case 'units.metric': return 'Metric';
 			case 'units.imperial': return 'Imperial';
 			case 'units.gram': return 'g';
@@ -893,6 +1038,33 @@ extension on Translations {
 			case 'common.search': return 'Search';
 			case 'common.noResults': return 'No results found';
 			case 'common.pressBackAgainToExit': return 'Press back again to exit';
+			case 'family.title': return 'Family';
+			case 'family.intro': return 'Share one meal plan and shopping list with your family. Everyone in the family uses the owner\'s plan.';
+			case 'family.create': return 'Create a family';
+			case 'family.createPremiumOnly': return 'Creating a family requires a Premium plan.';
+			case 'family.upgrade': return 'Upgrade to Premium';
+			case 'family.namePlaceholder': return 'Family name';
+			case 'family.join': return 'Join a family';
+			case 'family.joinHint': return 'Enter the invite code you got from the family owner';
+			case 'family.code': return 'Invite code';
+			case 'family.joinButton': return 'Join';
+			case 'family.inviteTitle': return 'Invite members';
+			case 'family.inviteText': return 'Share this code. Whoever enters it in PlateFlow → Profile → Family joins your family.';
+			case 'family.copied': return 'Code copied';
+			case 'family.share': return 'Share';
+			case 'family.newCode': return 'New code';
+			case 'family.members': return 'Members';
+			case 'family.slotsLeft': return ({required Object count, required Object max}) => '${count} free slots of ${max}';
+			case 'family.owner': return 'Owner';
+			case 'family.you': return 'you';
+			case 'family.remove': return 'Remove';
+			case 'family.removeConfirm': return ({required Object name}) => 'Remove ${name} from the family? They go back to their own meal plan.';
+			case 'family.leave': return 'Leave family';
+			case 'family.leaveConfirm': return 'Leave the family? You go back to your own meal plan.';
+			case 'family.dissolve': return 'Dissolve family';
+			case 'family.dissolveConfirm': return 'Dissolve the family? All members go back to their own meal plans.';
+			case 'family.cancel': return 'Cancel';
+			case 'family.shareMessage': return ({required Object code}) => 'Join my family in PlateFlow: open Profile → Family → Join and enter the code ${code}';
 			default: return null;
 		}
 	}
@@ -969,6 +1141,16 @@ extension on _StringsBg {
 			case 'shoppingList.categories.frozen': return 'Замразени';
 			case 'shoppingList.categories.beverages': return 'Напитки';
 			case 'shoppingList.categories.other': return 'Друго';
+			case 'shoppingList.details.quantity': return 'Количество';
+			case 'shoppingList.details.fromRecipe': return 'От рецепта';
+			case 'shoppingList.details.per100g': return 'Хранителни стойности на 100 г';
+			case 'shoppingList.details.calories': return 'Калории';
+			case 'shoppingList.details.protein': return 'Протеин';
+			case 'shoppingList.details.carbs': return 'Въглехидрати';
+			case 'shoppingList.details.fat': return 'Мазнини';
+			case 'shoppingList.details.markBought': return 'Отбележи като купено';
+			case 'shoppingList.details.unmark': return 'Върни в списъка';
+			case 'shoppingList.details.openRecipe': return 'Отвори рецептата';
 			case 'cooking.stepOf': return ({required Object current, required Object total}) => 'Стъпка ${current} от ${total}';
 			case 'cooking.back': return 'Назад';
 			case 'cooking.next': return 'Напред';
@@ -984,6 +1166,13 @@ extension on _StringsBg {
 			case 'profile.units': return 'Мерни единици';
 			case 'profile.subscription': return 'Абонамент';
 			case 'profile.logout': return 'Изход';
+			case 'profile.theme': return 'Тема';
+			case 'profile.themeSystem': return 'Системна';
+			case 'profile.themeLight': return 'Светла';
+			case 'profile.themeDark': return 'Тъмна';
+			case 'profile.family': return 'Семейство';
+			case 'profile.familyNone': return 'Не сте в семейство';
+			case 'profile.preferences': return 'НАСТРОЙКИ';
 			case 'units.metric': return 'Метрична';
 			case 'units.imperial': return 'Имперска';
 			case 'units.gram': return 'г';
@@ -1018,6 +1207,33 @@ extension on _StringsBg {
 			case 'common.search': return 'Търси';
 			case 'common.noResults': return 'Няма намерени резултати';
 			case 'common.pressBackAgainToExit': return 'Натисни назад отново за изход';
+			case 'family.title': return 'Семейство';
+			case 'family.intro': return 'Споделяйте едно меню и един списък за пазар със семейството си. Всички в семейството ползват плана на собственика.';
+			case 'family.create': return 'Създай семейство';
+			case 'family.createPremiumOnly': return 'За да създадете семейство, ви трябва Premium план.';
+			case 'family.upgrade': return 'Към Premium';
+			case 'family.namePlaceholder': return 'Име на семейството';
+			case 'family.join': return 'Присъедини се към семейство';
+			case 'family.joinHint': return 'Въведете кода за покана, който сте получили от собственика';
+			case 'family.code': return 'Код за покана';
+			case 'family.joinButton': return 'Присъедини се';
+			case 'family.inviteTitle': return 'Покани членове';
+			case 'family.inviteText': return 'Изпратете този код. Който го въведе в PlateFlow → Профил → Семейство, влиза в семейството ви.';
+			case 'family.copied': return 'Кодът е копиран';
+			case 'family.share': return 'Сподели';
+			case 'family.newCode': return 'Нов код';
+			case 'family.members': return 'Членове';
+			case 'family.slotsLeft': return ({required Object count, required Object max}) => '${count} свободни места от ${max}';
+			case 'family.owner': return 'Собственик';
+			case 'family.you': return 'вие';
+			case 'family.remove': return 'Премахни';
+			case 'family.removeConfirm': return ({required Object name}) => 'Да премахнем ли ${name} от семейството? Връща се към собственото си меню.';
+			case 'family.leave': return 'Напусни семейството';
+			case 'family.leaveConfirm': return 'Да напуснете ли семейството? Връщате се към собственото си меню.';
+			case 'family.dissolve': return 'Разпусни семейството';
+			case 'family.dissolveConfirm': return 'Да разпуснем ли семейството? Всички членове се връщат към собствените си менюта.';
+			case 'family.cancel': return 'Отказ';
+			case 'family.shareMessage': return ({required Object code}) => 'Влез в семейството ми в PlateFlow: Профил → Семейство → Присъедини се и въведи кода ${code}';
 			default: return null;
 		}
 	}

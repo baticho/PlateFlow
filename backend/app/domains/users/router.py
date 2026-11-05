@@ -5,7 +5,7 @@ from sqlalchemy.orm import selectinload
 
 from app.core.deps import get_current_user
 from app.database import get_db
-from app.domains.users.models import User
+from app.domains.users.models import Household, User
 from app.domains.users.schemas import UserResponse, UserUpdateRequest
 
 router = APIRouter()
@@ -18,13 +18,21 @@ async def _load_user_with_plan(db: AsyncSession, user_id) -> User:
     return result.scalar_one()
 
 
+async def _me_response(db: AsyncSession, user: User) -> UserResponse:
+    household = await db.get(Household, user.household_id) if user.household_id else None
+    plan_user = user
+    if household and household.owner_id != user.id:
+        plan_user = await _load_user_with_plan(db, household.owner_id)
+    return UserResponse.from_user(user, plan_user=plan_user, household=household)
+
+
 @router.get("/me", response_model=UserResponse)
 async def get_me(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     user = await _load_user_with_plan(db, current_user.id)
-    return UserResponse.from_user(user)
+    return await _me_response(db, user)
 
 
 @router.put("/me", response_model=UserResponse)
@@ -41,4 +49,4 @@ async def update_me(
         current_user.preferred_unit_system = data.preferred_unit_system
     await db.flush()
     user = await _load_user_with_plan(db, current_user.id)
-    return UserResponse.from_user(user)
+    return await _me_response(db, user)

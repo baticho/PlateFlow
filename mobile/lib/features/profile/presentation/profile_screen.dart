@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/providers/auth_state.dart';
 import '../../../core/providers/locale_provider.dart';
+import '../../../core/providers/theme_provider.dart';
 import '../../../core/providers/user_provider.dart';
 import '../../../i18n/strings.g.dart';
 
@@ -124,7 +125,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           // Settings
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-            child: Text('PREFERENCES',
+            child: Text(t.profile.preferences,
                 style: const TextStyle(fontSize: 11, letterSpacing: 1.5, color: Colors.grey)),
           ),
           ListTile(
@@ -150,6 +151,23 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               },
             ),
           ),
+          ListTile(
+            leading: const Icon(Icons.dark_mode_outlined),
+            title: Text(t.profile.theme),
+            subtitle: Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: SegmentedButton<ThemeMode>(
+                showSelectedIcon: false,
+                segments: [
+                  ButtonSegment(value: ThemeMode.system, icon: const Icon(Icons.brightness_auto, size: 18), label: Text(t.profile.themeSystem)),
+                  ButtonSegment(value: ThemeMode.light, icon: const Icon(Icons.light_mode, size: 18), label: Text(t.profile.themeLight)),
+                  ButtonSegment(value: ThemeMode.dark, icon: const Icon(Icons.dark_mode, size: 18), label: Text(t.profile.themeDark)),
+                ],
+                selected: {ref.watch(themeModeProvider)},
+                onSelectionChanged: (s) => ref.read(themeModeProvider.notifier).setMode(s.first),
+              ),
+            ),
+          ),
           SwitchListTile(
             secondary: const Icon(Icons.straighten),
             title: Text(t.profile.units),
@@ -159,6 +177,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             activeColor: cs.primary,
           ),
           const Divider(),
+          ListTile(
+            leading: const Icon(Icons.family_restroom),
+            title: Text(t.profile.family),
+            subtitle: Text(userAsync.valueOrNull?['household_name'] as String? ?? t.profile.familyNone),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => context.push('/family'),
+          ),
           ListTile(
             leading: const Icon(Icons.favorite_outline),
             title: Text(t.favorites.title),

@@ -9,6 +9,12 @@ class ShoppingItem {
   final double quantity;
   final String unit;
   final String? imageUrl;
+  final double? caloriesPer100g;
+  final double? proteinPer100g;
+  final double? carbsPer100g;
+  final double? fatPer100g;
+  final String? recipeId;
+  final String? recipeTitle;
   bool isChecked;
 
   ShoppingItem({
@@ -20,6 +26,12 @@ class ShoppingItem {
     required this.unit,
     required this.isChecked,
     this.imageUrl,
+    this.caloriesPer100g,
+    this.proteinPer100g,
+    this.carbsPer100g,
+    this.fatPer100g,
+    this.recipeId,
+    this.recipeTitle,
   });
 
   factory ShoppingItem.fromJson(Map<String, dynamic> j) {
@@ -32,6 +44,12 @@ class ShoppingItem {
       unit: j['unit'] ?? '',
       isChecked: j['is_checked'] ?? false,
       imageUrl: j['ingredient_image_url'] as String?,
+      caloriesPer100g: (j['calories_per_100g'] as num?)?.toDouble(),
+      proteinPer100g: (j['protein_per_100g'] as num?)?.toDouble(),
+      carbsPer100g: (j['carbs_per_100g'] as num?)?.toDouble(),
+      fatPer100g: (j['fat_per_100g'] as num?)?.toDouble(),
+      recipeId: j['recipe_id'] as String?,
+      recipeTitle: j['recipe_title'] as String?,
     );
   }
 

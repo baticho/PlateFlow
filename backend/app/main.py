@@ -45,6 +45,7 @@ from app.domains.subscriptions.router import router as subscriptions_router  # n
 from app.domains.users.router import router as users_router  # noqa: E402
 from app.domains.weekly_suggestions.router import router as weekly_suggestions_router  # noqa: E402
 from app.admin.router import router as admin_router  # noqa: E402
+from app.domains.family.router import router as family_router
 
 app.include_router(auth_router, prefix="/api/v1/auth", tags=["Auth"])
 app.include_router(users_router, prefix="/api/v1/users", tags=["Users"])
@@ -57,6 +58,7 @@ app.include_router(shopping_lists_router, prefix="/api/v1/shopping-lists", tags=
 app.include_router(favorites_router, prefix="/api/v1/favorites", tags=["Favorites"])
 app.include_router(subscriptions_router, prefix="/api/v1/subscriptions", tags=["Subscriptions"])
 app.include_router(weekly_suggestions_router, prefix="/api/v1/weekly-suggestions", tags=["Weekly Suggestions"])
+app.include_router(family_router, prefix="/api/v1/family", tags=["Family"])
 app.include_router(admin_router, prefix="/api/v1/admin", tags=["Admin"])
 
 

@@ -51,6 +51,10 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
       final lang = ref.read(localeProvider);
       final data = await _recipeService.getRecipe(widget.recipeId);
       final recipe = RecipeDetail.fromJson(data, lang: lang);
+      try {
+        final favIds = await _recipeService.getFavoriteIds();
+        _isFavorite = favIds.contains(recipe.id);
+      } catch (_) {}
       if (mounted) {
         setState(() {
           _recipe = recipe;

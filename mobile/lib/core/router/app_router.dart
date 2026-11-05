@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../features/family/presentation/family_screen.dart';
 import 'package:go_router/go_router.dart';
 import '../providers/auth_state.dart';
 import '../../features/auth/presentation/login_screen.dart';
@@ -53,6 +54,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             ),
           ),
           GoRoute(path: '/favorites', builder: (_, __) => const FavoritesScreen()),
+          GoRoute(path: '/family', builder: (_, __) => const FamilyScreen()),
           GoRoute(path: '/subscription', builder: (_, __) => const SubscriptionScreen()),
           GoRoute(
             path: '/cooking/:id',

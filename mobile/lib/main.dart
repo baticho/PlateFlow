@@ -5,6 +5,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'core/config/app_config.dart';
 import 'core/providers/auth_state.dart';
+import 'core/providers/theme_provider.dart';
 import 'i18n/strings.g.dart';
 import 'app.dart';
 
@@ -49,7 +50,10 @@ void main() async {
   final savedLocale = prefs.getString('app_locale') ?? 'en';
   LocaleSettings.setLocaleRaw(savedLocale);
 
-  final container = ProviderContainer();
+  final savedTheme = await loadSavedThemeMode();
+  final container = ProviderContainer(overrides: [
+    themeModeProvider.overrideWith((ref) => ThemeModeNotifier(savedTheme)),
+  ]);
   await container.read(authStateProvider).hydrate();
 
   runApp(

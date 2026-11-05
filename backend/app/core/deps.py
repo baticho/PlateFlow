@@ -56,3 +56,18 @@ def require_admin_role(*roles: str):
             )
         return admin
     return check_role
+
+
+async def get_plan_owner(
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> User:
+    """Family members work on the household owner's meal plan and shopping list (and use the owner's plan)."""
+    if user.household_id is None:
+        return user
+    from app.domains.users.models import Household
+    household = await db.get(Household, user.household_id)
+    if household is None or household.owner_id == user.id:
+        return user
+    owner = await db.get(User, household.owner_id)
+    return owner if owner is not None and owner.is_active else user

@@ -392,9 +392,9 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                   const SizedBox(height: 4),
                   Text(
                     _resolveCategoryName(cat, lang),
-                    style: const TextStyle(fontSize: 10),
+                    style: const TextStyle(fontSize: 10, height: 1.15),
                     textAlign: TextAlign.center,
-                    maxLines: 1,
+                    maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ],
@@ -677,7 +677,7 @@ class _RecipeCard extends StatelessWidget {
           child: Row(
             children: [
               Container(
-                width: 60, height: 60,
+                width: 72, height: 72,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(10),
                   color: cs.primary.withAlpha(20),
@@ -697,16 +697,21 @@ class _RecipeCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(recipe.title, style: const TextStyle(fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis),
+                    Text(recipe.title, style: const TextStyle(fontWeight: FontWeight.w600, height: 1.25), maxLines: 3, overflow: TextOverflow.ellipsis),
                     const SizedBox(height: 4),
                     Row(children: [
                       Icon(Icons.schedule, size: 12, color: cs.onSurface.withAlpha(120)),
                       const SizedBox(width: 3),
-                      Text('${recipe.totalTimeMinutes} min', style: TextStyle(fontSize: 12, color: cs.onSurface.withAlpha(120))),
+                      Text(context.t.recipe.totalTime(minutes: recipe.totalTimeMinutes), style: TextStyle(fontSize: 12, color: cs.onSurface.withAlpha(120))),
                       const SizedBox(width: 10),
                       Icon(Icons.bar_chart, size: 12, color: cs.onSurface.withAlpha(120)),
                       const SizedBox(width: 3),
-                      Text(recipe.difficulty, style: TextStyle(fontSize: 12, color: cs.onSurface.withAlpha(120))),
+                      Text(switch (recipe.difficulty.toLowerCase()) {
+                        'easy' => context.t.recipe.difficulty.easy,
+                        'medium' => context.t.recipe.difficulty.medium,
+                        'hard' => context.t.recipe.difficulty.hard,
+                        _ => recipe.difficulty,
+                      }, style: TextStyle(fontSize: 12, color: cs.onSurface.withAlpha(120))),
                     ]),
                   ],
                 ),
