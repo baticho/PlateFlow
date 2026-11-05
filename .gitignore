@@ -91,3 +91,6 @@ desktop.ini
 # Docker
 # ──────────────────────────────────────────────
 docker-compose.override.yml
+
+# Generated/uploaded images (served from /media, not source)
+backend/media/
