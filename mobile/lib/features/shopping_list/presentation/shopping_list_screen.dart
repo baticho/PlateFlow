@@ -1,8 +1,11 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/api/api_client.dart';
+import '../../../core/config/app_config.dart';
+import '../../../core/utils/unit_label.dart';
 import '../../../core/models/shopping_list.dart';
 import '../../../core/providers/locale_provider.dart';
 import '../../../core/providers/shopping_list_count_provider.dart';
@@ -162,20 +165,25 @@ class _ShoppingListScreenState extends ConsumerState<ShoppingListScreen> {
                 style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12, color: cs.primary, letterSpacing: 0.5),
               ),
             ),
-            ...entry.value.map((item) => CheckboxListTile(
-              value: item.isChecked,
-              onChanged: (_) => _toggle(item),
+            ...entry.value.map((item) => ListTile(
+              onTap: () => _toggle(item),
+              dense: true,
+              contentPadding: const EdgeInsets.only(left: 4, right: 16),
+              leading: Row(mainAxisSize: MainAxisSize.min, children: [
+                Checkbox(value: item.isChecked, onChanged: (_) => _toggle(item), activeColor: cs.primary),
+                Opacity(
+                  opacity: item.isChecked ? 0.4 : 1,
+                  child: _ItemThumb(url: resolveImageUrl(item.imageUrl)),
+                ),
+              ]),
               title: Text(
-                item.ingredientName,
+                capFirst(item.ingredientName),
                 style: TextStyle(
                   decoration: item.isChecked ? TextDecoration.lineThrough : null,
                   color: item.isChecked ? Colors.grey : null,
                 ),
               ),
-              secondary: Text(item.quantityDisplay, style: const TextStyle(color: Colors.grey, fontSize: 13)),
-              activeColor: cs.primary,
-              controlAffinity: ListTileControlAffinity.leading,
-              dense: true,
+              trailing: Text(item.quantityDisplay, style: const TextStyle(color: Colors.grey, fontSize: 13)),
             )),
             const Divider(height: 1),
           ],
@@ -184,3 +192,29 @@ class _ShoppingListScreenState extends ConsumerState<ShoppingListScreen> {
     );
   }
 }
+
+class _ItemThumb extends StatelessWidget {
+  final String? url;
+  const _ItemThumb({required this.url});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final placeholder = Container(
+      width: 40, height: 40,
+      color: cs.primary.withAlpha(20),
+      child: Icon(Icons.eco_outlined, size: 20, color: cs.primary),
+    );
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(8),
+      child: url == null
+          ? placeholder
+          : CachedNetworkImage(
+              imageUrl: url!, width: 40, height: 40, fit: BoxFit.cover,
+              placeholder: (_, __) => placeholder,
+              errorWidget: (_, __, ___) => placeholder,
+            ),
+    );
+  }
+}
+

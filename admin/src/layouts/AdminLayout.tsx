@@ -1,5 +1,5 @@
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
-import { Layout, Menu, Avatar, Dropdown, Typography, Space } from 'antd'
+import { Layout, Menu, Avatar, Dropdown, Typography, Space, Segmented } from 'antd'
 import {
   DashboardOutlined,
   UserOutlined,
@@ -22,7 +22,11 @@ export function AdminLayout() {
   const navigate = useNavigate()
   const location = useLocation()
   const { user, logout } = useAuth()
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const changeLang = (lang: string) => {
+    i18n.changeLanguage(lang)
+    try { localStorage.setItem('admin_lang', lang) } catch { /* storage unavailable */ }
+  }
 
   const menuItems = [
     { key: '/dashboard', icon: <DashboardOutlined />, label: t('nav.dashboard') },
@@ -80,7 +84,13 @@ export function AdminLayout() {
           top: 0,
           zIndex: 10,
         }}>
-          <Space>
+          <Space size={16}>
+            <Segmented
+              size="small"
+              value={i18n.language === 'bg' ? 'bg' : 'en'}
+              onChange={(v) => changeLang(String(v))}
+              options={[{ value: 'en', label: 'EN' }, { value: 'bg', label: 'BG' }]}
+            />
             <Dropdown
               menu={{
                 items: userMenuItems,

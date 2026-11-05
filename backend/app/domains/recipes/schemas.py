@@ -42,6 +42,7 @@ class RecipeIngredientSchema(BaseModel):
     unit: str
     is_optional: bool
     ingredient_translations: list[RecipeIngredientTranslationSchema] = []
+    ingredient_image_url: str | None = None
 
     model_config = {"from_attributes": True}
 
@@ -59,6 +60,7 @@ class RecipeIngredientSchema(BaseModel):
                     {'language_code': t.language_code, 'name': t.name}
                     for t in (v.ingredient.translations if v.ingredient else [])
                 ],
+                'ingredient_image_url': v.ingredient.image_url if v.ingredient else None,
             }
         return v
 

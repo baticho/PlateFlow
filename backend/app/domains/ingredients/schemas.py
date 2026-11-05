@@ -16,6 +16,7 @@ class IngredientResponse(BaseModel):
     protein_per_100g: float | None
     carbs_per_100g: float | None
     fat_per_100g: float | None
+    image_url: str | None = None
     translations: list[TranslationSchema]
 
     model_config = {"from_attributes": True}
@@ -28,4 +29,5 @@ class IngredientCreateRequest(BaseModel):
     protein_per_100g: float | None = None
     carbs_per_100g: float | None = None
     fat_per_100g: float | None = None
+    image_url: str | None = None
     translations: list[TranslationSchema]

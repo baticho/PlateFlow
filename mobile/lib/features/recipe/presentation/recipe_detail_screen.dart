@@ -13,6 +13,7 @@ import '../../../core/providers/shopping_list_count_provider.dart';
 import '../../../core/providers/shopping_list_refresh_provider.dart';
 import '../../../core/services/meal_plan_service.dart';
 import '../../../core/services/recipe_service.dart';
+import '../../../core/utils/unit_label.dart';
 import '../../../i18n/strings.g.dart';
 
 class RecipeDetailScreen extends ConsumerStatefulWidget {
@@ -244,12 +245,6 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
             expandedHeight: 260,
             pinned: true,
             flexibleSpace: FlexibleSpaceBar(
-              title: Text(
-                recipe.title,
-                style: const TextStyle(shadows: [Shadow(blurRadius: 4)]),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
               background: resolveImageUrl(recipe.imageUrl) != null
                   ? CachedNetworkImage(
                       imageUrl: resolveImageUrl(recipe.imageUrl)!,
@@ -277,6 +272,12 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  Text(
+                    recipe.title,
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      fontFamily: 'Poppins', fontWeight: FontWeight.w700, height: 1.25),
+                  ),
+                  const SizedBox(height: 12),
                   // Meta row
                   Wrap(spacing: 8, children: [
                     _MetaChip(Icons.schedule, t.recipe.totalTime(minutes: recipe.totalTimeMinutes)),
@@ -570,19 +571,43 @@ class _IngredientsList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ratio = selectedServings / (baseServings == 0 ? 1 : baseServings);
+    final lang = LocaleSettings.currentLocale.languageCode;
     return ListView(
       children: ingredients.map((ing) {
         final qty = ing.quantity * ratio;
-        final qtyStr = qty == qty.roundToDouble()
-            ? '${qty.toInt()} ${ing.unit}'
-            : '${qty.toStringAsFixed(1)} ${ing.unit}';
+        final img = resolveImageUrl(ing.imageUrl);
         return ListTile(
-          leading: const CircleAvatar(radius: 4, backgroundColor: Color(0xFF2E7D32)),
-          title: Text(ing.name),
-          trailing: Text(qtyStr, style: const TextStyle(color: Colors.grey)),
+          leading: _IngredientThumb(url: img),
+          title: Text(capFirst(ing.name)),
+          trailing: Text(formatQuantity(qty, ing.unit, lang), style: const TextStyle(color: Colors.grey)),
           dense: true,
         );
       }).toList(),
+    );
+  }
+}
+
+class _IngredientThumb extends StatelessWidget {
+  final String? url;
+  const _IngredientThumb({required this.url});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final placeholder = Container(
+      width: 40, height: 40,
+      color: cs.primary.withAlpha(20),
+      child: Icon(Icons.eco_outlined, size: 20, color: cs.primary),
+    );
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(8),
+      child: url == null
+          ? placeholder
+          : CachedNetworkImage(
+              imageUrl: url!, width: 40, height: 40, fit: BoxFit.cover,
+              placeholder: (_, __) => placeholder,
+              errorWidget: (_, __, ___) => placeholder,
+            ),
     );
   }
 }

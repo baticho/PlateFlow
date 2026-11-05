@@ -2,12 +2,16 @@ import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
   Form, Input, InputNumber, Select, Button, Card, Row, Col,
-  Tabs, Space, Typography, message, Divider
+  Tabs, Space, Typography, message, Divider, Checkbox
 } from 'antd'
 import { ArrowLeftOutlined, PlusOutlined, MinusCircleOutlined } from '@ant-design/icons'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { recipesApi } from '../../api/endpoints/recipes'
 import { ingredientsApi } from '../../api/endpoints/ingredients'
+import { categoriesApi } from '../../api/endpoints/categories'
+import { cuisinesApi } from '../../api/endpoints/cuisines'
+import { useTranslation } from 'react-i18next'
+import { ImageUpload } from '../../components/ImageUpload'
 
 const { Title } = Typography
 const { TextArea } = Input
@@ -35,6 +39,15 @@ export function RecipeFormPage() {
   const queryClient = useQueryClient()
   const [form] = Form.useForm()
   const isEdit = !!id
+  const { i18n } = useTranslation()
+  const uiLang = i18n.language === 'bg' ? 'bg' : 'en'
+  const nameOf = (translations: { language_code: string; name: string }[] | undefined, fallback: string) =>
+    translations?.find((t) => t.language_code === uiLang)?.name
+    ?? translations?.find((t) => t.language_code === 'en')?.name ?? fallback
+
+  const { data: categories } = useQuery({ queryKey: ['categories'], queryFn: () => categoriesApi.list().then((r) => r.data) })
+  const { data: cuisines } = useQuery({ queryKey: ['cuisines'], queryFn: () => cuisinesApi.list().then((r) => r.data) })
+  const { data: tags } = useQuery({ queryKey: ['admin-tags'], queryFn: () => recipesApi.tags().then((r) => r.data) })
 
   // Active language tab (used for ingredient name labels)
   const [activeLanguage, setActiveLanguage] = useState('en')
@@ -85,23 +98,17 @@ export function RecipeFormPage() {
 
   useEffect(() => {
     if (!recipeData) return
-    const translations: Record<string, { title: string; description?: string }> = {}
-    for (const t of recipeData.translations) {
-      translations[t.language_code] = { title: t.title, description: t.description }
-    }
-    const steps: Record<string, string[]> = {}
-    for (const step of [...recipeData.steps].sort((a: any, b: any) => a.order - b.order)) {
-      for (const t of step.translations) {
-        steps[t.language_code] = [...(steps[t.language_code] ?? []), t.instruction]
-      }
-    }
     form.setFieldsValue({
-      translations,
-      steps,
+      translations: recipeData.translations,
+      steps: recipeData.steps,
+      category_ids: recipeData.category_ids,
+      tag_ids: recipeData.tag_ids,
+      cuisine_id: recipeData.cuisine_id,
       ingredients: recipeData.ingredients.map((i: any) => ({
         ingredient_id: i.ingredient_id,
         quantity: i.quantity,
         unit: i.unit,
+        is_optional: i.is_optional,
       })),
       prep_time_minutes: recipeData.prep_time_minutes,
       cook_time_minutes: recipeData.cook_time_minutes,
@@ -133,13 +140,14 @@ export function RecipeFormPage() {
 
   const saveMutation = useMutation({
     mutationFn: (values: unknown) =>
-      isEdit ? recipesApi.update(id!, values) : recipesApi.create(values),
+      isEdit ? recipesApi.save(id!, values) : recipesApi.create(values),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-recipes'] })
+      queryClient.invalidateQueries({ queryKey: ['recipe', id] })
       message.success(isEdit ? 'Recipe updated' : 'Recipe created')
       navigate('/recipes')
     },
-    onError: () => message.error('Failed to save recipe'),
+    onError: (err: any) => message.error(err?.response?.data?.detail ?? 'Failed to save recipe'),
   })
 
   const onFinish = (values: unknown) => saveMutation.mutate(values)
@@ -207,7 +215,7 @@ export function RecipeFormPage() {
                   <>
                     {fields.map((field) => (
                       <Row key={field.key} gutter={8} align="middle" style={{ marginBottom: 8 }}>
-                        <Col span={8}>
+                        <Col span={10}>
                           <Form.Item {...field} name={[field.name, 'ingredient_id']} noStyle>
                             <Select
                               showSearch
@@ -220,17 +228,22 @@ export function RecipeFormPage() {
                             />
                           </Form.Item>
                         </Col>
-                        <Col span={6}>
+                        <Col span={4}>
                           <Form.Item {...field} name={[field.name, 'quantity']} noStyle>
                             <InputNumber placeholder="Qty" style={{ width: '100%' }} />
                           </Form.Item>
                         </Col>
-                        <Col span={6}>
-                          <Form.Item {...field} name={[field.name, 'unit']} noStyle>
-                            <Input placeholder="Unit (g, ml, ...)" />
+                        <Col span={4}>
+                          <Form.Item {...field} name={[field.name, 'unit']} noStyle initialValue="g">
+                            <Select style={{ width: '100%' }} options={['g', 'kg', 'ml', 'l', 'tsp', 'tbsp', 'piece', 'pinch'].map((u) => ({ value: u, label: u }))} />
                           </Form.Item>
                         </Col>
                         <Col span={4}>
+                          <Form.Item {...field} name={[field.name, 'is_optional']} valuePropName="checked" noStyle>
+                            <Checkbox>optional</Checkbox>
+                          </Form.Item>
+                        </Col>
+                        <Col span={2}>
                           <MinusCircleOutlined onClick={() => remove(field.name)} style={{ color: '#ff4d4f' }} />
                         </Col>
                       </Row>
@@ -244,6 +257,20 @@ export function RecipeFormPage() {
             </Card>
           </Col>
           <Col xs={24} lg={8}>
+            <Card title="Classification" style={{ marginBottom: 16 }}>
+              <Form.Item name="category_ids" label="Categories" initialValue={[]}>
+                <Select mode="multiple" allowClear placeholder="Choose categories" optionFilterProp="label"
+                  options={(categories ?? []).map((c: any) => ({ value: c.id, label: nameOf(c.translations, c.slug) }))} />
+              </Form.Item>
+              <Form.Item name="tag_ids" label="Tags" initialValue={[]}>
+                <Select mode="multiple" allowClear placeholder="Choose tags" optionFilterProp="label"
+                  options={(tags ?? []).map((t: any) => ({ value: t.id, label: nameOf(t.translations, t.slug) }))} />
+              </Form.Item>
+              <Form.Item name="cuisine_id" label="Cuisine">
+                <Select allowClear showSearch placeholder="Choose cuisine" optionFilterProp="label"
+                  options={(cuisines ?? []).map((c: any) => ({ value: c.id, label: `${nameOf(c.translations, c.country_code)} (${c.country_code})` }))} />
+              </Form.Item>
+            </Card>
             <Card title="Details" style={{ marginBottom: 16 }}>
               <Form.Item name="prep_time_minutes" label="Prep Time (min)">
                 <InputNumber min={0} style={{ width: '100%' }} />
@@ -271,8 +298,8 @@ export function RecipeFormPage() {
                   { value: 'published', label: 'Published' },
                 ]} />
               </Form.Item>
-              <Form.Item name="image_url" label="Image URL">
-                <Input placeholder="https://..." />
+              <Form.Item name="image_url" label="Image">
+                <ImageUpload kind="recipes" />
               </Form.Item>
             </Card>
             <Button type="primary" htmlType="submit" loading={saveMutation.isPending} block size="large">

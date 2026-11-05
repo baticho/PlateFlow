@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { mediaUrl } from '../../components/ImageUpload'
 import { Button, Typography, Select, Form, Modal, message, Spin, Tooltip } from 'antd'
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons'
 import { useQueries, useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -166,7 +167,7 @@ export function WeeklySuggestionsPage() {
                     >
                       {suggestion.recipe?.image_url ? (
                         <img
-                          src={suggestion.recipe.image_url}
+                          src={mediaUrl(suggestion.recipe.image_url)}
                           alt={label}
                           style={{ width: '100%', height: 90, objectFit: 'cover' }}
                         />

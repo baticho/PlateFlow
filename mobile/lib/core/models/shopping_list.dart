@@ -1,3 +1,6 @@
+import '../../i18n/strings.g.dart';
+import '../utils/unit_label.dart';
+
 class ShoppingItem {
   final int id;
   final int ingredientId;
@@ -5,6 +8,7 @@ class ShoppingItem {
   final String ingredientCategory;
   final double quantity;
   final String unit;
+  final String? imageUrl;
   bool isChecked;
 
   ShoppingItem({
@@ -15,6 +19,7 @@ class ShoppingItem {
     required this.quantity,
     required this.unit,
     required this.isChecked,
+    this.imageUrl,
   });
 
   factory ShoppingItem.fromJson(Map<String, dynamic> j) {
@@ -26,15 +31,12 @@ class ShoppingItem {
       quantity: (j['quantity'] as num).toDouble(),
       unit: j['unit'] ?? '',
       isChecked: j['is_checked'] ?? false,
+      imageUrl: j['ingredient_image_url'] as String?,
     );
   }
 
-  String get quantityDisplay {
-    final q = quantity == quantity.roundToDouble()
-        ? quantity.toInt().toString()
-        : quantity.toStringAsFixed(1);
-    return '$q $unit';
-  }
+  String get quantityDisplay =>
+      formatQuantity(quantity, unit, LocaleSettings.currentLocale.languageCode);
 }
 
 class ShoppingList {

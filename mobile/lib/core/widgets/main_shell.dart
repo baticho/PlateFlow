@@ -16,6 +16,9 @@ class MainShell extends ConsumerStatefulWidget {
 
 class _MainShellState extends ConsumerState<MainShell> {
   DateTime? _lastBackPress;
+  /// Tabs are switched with context.go (no navigator history), so remember the visited tabs ourselves.
+  final List<String> _tabHistory = [];
+  static const _tabRoutes = ['/home', '/explore', '/meal-plan', '/shopping-list', '/profile'];
 
   int _getSelectedIndex(BuildContext context) {
     final location = GoRouterState.of(context).uri.path;
@@ -59,6 +62,23 @@ class _MainShellState extends ConsumerState<MainShell> {
           router.pop();
           return;
         }
+        final location = GoRouterState.of(context).uri.path;
+        if (!_tabRoutes.contains(location)) {
+          // a detail screen reached without push (deep link / go): back to its tab
+          context.go(_tabRoutes[_getSelectedIndex(context)]);
+          return;
+        }
+        while (_tabHistory.isNotEmpty && _tabHistory.last == location) {
+          _tabHistory.removeLast();
+        }
+        if (_tabHistory.isNotEmpty) {
+          context.go(_tabHistory.removeLast());
+          return;
+        }
+        if (location != '/home') {
+          context.go('/home');
+          return;
+        }
         final now = DateTime.now();
         if (_lastBackPress == null ||
             now.difference(_lastBackPress!) > const Duration(seconds: 2)) {
@@ -81,8 +101,14 @@ class _MainShellState extends ConsumerState<MainShell> {
         bottomNavigationBar: NavigationBar(
           selectedIndex: selectedIndex,
           onDestinationSelected: (idx) {
-            const routes = ['/home', '/explore', '/meal-plan', '/shopping-list', '/profile'];
-            context.go(routes[idx]);
+            final current = GoRouterState.of(context).uri.path;
+            final target = _tabRoutes[idx];
+            if (current == target) return;
+            if (_tabRoutes.contains(current)) {
+              _tabHistory.remove(current);
+              _tabHistory.add(current);
+            }
+            context.go(target);
           },
           destinations: [
             NavigationDestination(icon: Icon(navItems[0].$2), selectedIcon: Icon(navItems[0].$3), label: navItems[0].$1),

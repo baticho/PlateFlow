@@ -1,6 +1,6 @@
 import enum
 
-from sqlalchemy import Enum, ForeignKey, Integer, Numeric, String
+from sqlalchemy import Enum, ForeignKey, Integer, Numeric, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -50,6 +50,7 @@ class Ingredient(Base):
     protein_per_100g: Mapped[float | None] = mapped_column(Numeric(8, 2), nullable=True)
     carbs_per_100g: Mapped[float | None] = mapped_column(Numeric(8, 2), nullable=True)
     fat_per_100g: Mapped[float | None] = mapped_column(Numeric(8, 2), nullable=True)
+    image_url: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     translations = relationship("IngredientTranslation", back_populates="ingredient", cascade="all, delete-orphan")
     recipe_ingredients = relationship("RecipeIngredient", back_populates="ingredient")

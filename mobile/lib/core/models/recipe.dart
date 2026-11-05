@@ -64,6 +64,7 @@ class RecipeIngredient {
   final double quantity;
   final String unit;
   final bool isOptional;
+  final String? imageUrl;
 
   RecipeIngredient({
     required this.id,
@@ -71,6 +72,7 @@ class RecipeIngredient {
     required this.quantity,
     required this.unit,
     required this.isOptional,
+    this.imageUrl,
   });
 
   factory RecipeIngredient.fromJson(Map<String, dynamic> j, {String lang = 'en'}) {
@@ -80,6 +82,7 @@ class RecipeIngredient {
       quantity: (j['quantity'] as num).toDouble(),
       unit: j['unit'] ?? '',
       isOptional: j['is_optional'] ?? false,
+      imageUrl: j['ingredient_image_url'] as String?,
     );
   }
 

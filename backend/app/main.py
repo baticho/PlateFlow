@@ -1,4 +1,7 @@
+from pathlib import Path
+
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
@@ -55,6 +58,12 @@ app.include_router(favorites_router, prefix="/api/v1/favorites", tags=["Favorite
 app.include_router(subscriptions_router, prefix="/api/v1/subscriptions", tags=["Subscriptions"])
 app.include_router(weekly_suggestions_router, prefix="/api/v1/weekly-suggestions", tags=["Weekly Suggestions"])
 app.include_router(admin_router, prefix="/api/v1/admin", tags=["Admin"])
+
+
+# Generated recipe / ingredient images
+MEDIA_DIR = Path(__file__).resolve().parent.parent / "media"
+MEDIA_DIR.mkdir(exist_ok=True)
+app.mount("/media", StaticFiles(directory=MEDIA_DIR), name="media")
 
 
 @app.get("/health")

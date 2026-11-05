@@ -506,7 +506,7 @@ class _StringsNavBg implements _StringsNavEn {
 	// Translations
 	@override String get home => 'Начало';
 	@override String get explore => 'Разгледай';
-	@override String get mealPlan => 'Хранителен план';
+	@override String get mealPlan => 'Меню';
 	@override String get shopping => 'Пазаруване';
 	@override String get profile => 'Профил';
 }
@@ -904,7 +904,7 @@ extension on _StringsBg {
 			case 'app.name': return 'PlateFlow';
 			case 'nav.home': return 'Начало';
 			case 'nav.explore': return 'Разгледай';
-			case 'nav.mealPlan': return 'Хранителен план';
+			case 'nav.mealPlan': return 'Меню';
 			case 'nav.shopping': return 'Пазаруване';
 			case 'nav.profile': return 'Профил';
 			case 'home.weeklyTitle': return 'Предложения за седмицата';

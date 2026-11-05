@@ -15,6 +15,14 @@ subprojects {
     val newSubprojectBuildDir: Directory = newBuildDir.dir(project.name)
     project.layout.buildDirectory.value(newSubprojectBuildDir)
 }
+// isar_flutter_libs 3.x compiles against an old SDK (no android:attr/lStar) -> force a modern compileSdk
+subprojects {
+    afterEvaluate {
+        extensions.findByType(com.android.build.gradle.LibraryExtension::class.java)?.apply {
+            if ((compileSdk ?: 0) < 34) compileSdk = 36
+        }
+    }
+}
 subprojects {
     project.evaluationDependsOn(":app")
 }
