@@ -6,15 +6,31 @@ import '../../i18n/strings.g.dart';
 import '../config/app_config.dart';
 import '../models/recipe.dart';
 
-/// Height of everything under the photo (gap + up to 3 title lines + meta line) at text scale 1.
-const double kRecipeTileTextBlock = 100;
+const _titleStyle = TextStyle(fontFamily: 'Lora', fontSize: 15, fontWeight: FontWeight.w600, height: 1.25);
+const _metaStyle = TextStyle(fontSize: 12);
+const _titleGap = 8.0;
+const _metaGap = 3.0;
+
+/// Exact height of a [RecipeTile] of [width] showing [title] in full, at the device text scale.
+/// Used where the tile height must be known up front (horizontal lists).
+double recipeTileHeight(BuildContext context, String title, double width, {double imageAspectRatio = 4 / 3}) {
+  final scaler = MediaQuery.textScalerOf(context);
+  double measure(String text, TextStyle style) => (TextPainter(
+        text: TextSpan(text: text, style: style),
+        textDirection: TextDirection.ltr,
+        textScaler: scaler,
+      )..layout(maxWidth: width))
+          .height;
+  return width / imageAspectRatio + _titleGap + measure(title, _titleStyle) + _metaGap + measure('99 min', _metaStyle);
+}
 
 /// Editorial recipe tile: photo with soft corners, serif title underneath, quiet meta line.
 /// Width comes from the parent (fixed in horizontal lists, cell width in grids).
 class RecipeTile extends StatelessWidget {
   final RecipeSummary recipe;
   final double imageAspectRatio;
-  final int titleLines;
+  /// null = show the whole title
+  final int? titleLines;
   final VoidCallback? onTap;
   final Widget? badge;
 
@@ -22,7 +38,7 @@ class RecipeTile extends StatelessWidget {
     super.key,
     required this.recipe,
     this.imageAspectRatio = 4 / 3,
-    this.titleLines = 3,
+    this.titleLines,
     this.onTap,
     this.badge,
   });
@@ -60,23 +76,17 @@ class RecipeTile extends StatelessWidget {
               ]),
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: _titleGap),
           Text(
             recipe.title,
             maxLines: titleLines,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontFamily: 'Lora',
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-              height: 1.25,
-              color: cs.onSurface,
-            ),
+            overflow: titleLines == null ? null : TextOverflow.ellipsis,
+            style: _titleStyle.copyWith(color: cs.onSurface),
           ),
-          const SizedBox(height: 3),
+          const SizedBox(height: _metaGap),
           Text(
             t.recipe.totalTime(minutes: recipe.totalTimeMinutes),
-            style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
+            style: _metaStyle.copyWith(color: cs.onSurfaceVariant),
           ),
         ],
       ),
@@ -118,8 +128,8 @@ class SectionHeader extends StatelessWidget {
   }
 }
 
-/// Grid of [RecipeTile]s whose row height follows the cell width (4:3 photo + two title lines + meta),
-/// so tiles never overlap on wide screens.
+/// Grid of [RecipeTile]s laid out row by row; each row is as tall as its tallest tile,
+/// so long titles are always shown in full and nothing overlaps.
 class RecipeGrid extends StatelessWidget {
   final List<RecipeSummary> recipes;
   final EdgeInsets padding;
@@ -140,26 +150,51 @@ class RecipeGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(builder: (context, c) {
       const spacing = 14.0;
+      const rowGap = 20.0;
       final inner = c.maxWidth - padding.horizontal;
       final columns = (inner / 240).ceil().clamp(2, 6);
       final cell = (inner - spacing * (columns - 1)) / columns;
-      final textScale = MediaQuery.textScalerOf(context).scale(1);
-      return GridView.builder(
-        shrinkWrap: shrinkWrap,
-        physics: shrinkWrap ? const NeverScrollableScrollPhysics() : const AlwaysScrollableScrollPhysics(),
+      final rowCount = (recipes.length / columns).ceil();
+
+      Widget row(int r) {
+        final start = r * columns;
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            for (var i = 0; i < columns; i++) ...[
+              if (i > 0) const SizedBox(width: spacing),
+              SizedBox(
+                width: cell,
+                child: start + i < recipes.length
+                    ? RecipeTile(
+                        recipe: recipes[start + i],
+                        onTap: onTap == null ? null : () => onTap!(recipes[start + i]),
+                        badge: badgeBuilder?.call(recipes[start + i]),
+                      )
+                    : null,
+              ),
+            ],
+          ],
+        );
+      }
+
+      if (shrinkWrap) {
+        return Padding(
+          padding: padding,
+          child: Column(children: [
+            for (var r = 0; r < rowCount; r++) ...[
+              if (r > 0) const SizedBox(height: rowGap),
+              row(r),
+            ],
+          ]),
+        );
+      }
+      return ListView.separated(
+        physics: const AlwaysScrollableScrollPhysics(),
         padding: padding,
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: columns,
-          mainAxisSpacing: 20,
-          crossAxisSpacing: spacing,
-          mainAxisExtent: cell * 3 / 4 + kRecipeTileTextBlock * textScale,
-        ),
-        itemCount: recipes.length,
-        itemBuilder: (context, i) => RecipeTile(
-          recipe: recipes[i],
-          onTap: onTap == null ? null : () => onTap!(recipes[i]),
-          badge: badgeBuilder?.call(recipes[i]),
-        ),
+        itemCount: rowCount,
+        separatorBuilder: (_, __) => const SizedBox(height: rowGap),
+        itemBuilder: (context, r) => row(r),
       );
     });
   }

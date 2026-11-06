@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -77,16 +79,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     ref.listen(localeProvider, (_, __) => _loadAll());
     ref.listen(favoritesRefreshProvider, (_, __) => _loadFavorites());
 
-    // tall enough for a 4:3 photo plus three title lines at the phone's text scale
-    final tileHeight = 196 * 3 / 4 + kRecipeTileTextBlock * MediaQuery.textScalerOf(context).scale(1);
+    // horizontal rows need a fixed height: fit the longest title in the row, shown in full
+    const tileWidth = 196.0;
+    double rowHeight(List<RecipeSummary> items) =>
+        items.map((r) => recipeTileHeight(context, r.title, tileWidth)).fold(0.0, math.max) + 2;
     Widget hList(List<RecipeSummary> items) => SizedBox(
-          height: tileHeight,
+          height: rowHeight(items),
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 20),
             itemCount: items.length,
             separatorBuilder: (_, __) => const SizedBox(width: 14),
-            itemBuilder: (context, idx) => SizedBox(width: 196, child: RecipeTile(recipe: items[idx])),
+            itemBuilder: (context, idx) => SizedBox(width: tileWidth, child: RecipeTile(recipe: items[idx])),
           ),
         );
 
