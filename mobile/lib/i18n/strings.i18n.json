@@ -256,6 +256,7 @@
     "upToDate": "You have the latest version",
     "check": "Check for updates",
     "version": "App version",
-    "failed": "The update could not be installed. Please try again."
+    "failed": "The update could not be installed. Please try again.",
+    "browser": "Download in browser"
   }
 }

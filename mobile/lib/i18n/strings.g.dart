@@ -4,9 +4,9 @@
 /// To regenerate, run: `dart run slang`
 ///
 /// Locales: 2
-/// Strings: 430 (215 per locale)
+/// Strings: 432 (216 per locale)
 ///
-/// Built on 2026-11-06 at 07:23 UTC
+/// Built on 2026-11-06 at 07:49 UTC
 
 // coverage:ignore-file
 // ignore_for_file: type=lint
@@ -483,6 +483,7 @@ class _StringsUpdateEn {
 	String get check => 'Check for updates';
 	String get version => 'App version';
 	String get failed => 'The update could not be installed. Please try again.';
+	String get browser => 'Download in browser';
 }
 
 // Path: recipe.difficulty
@@ -944,6 +945,7 @@ class _StringsUpdateBg implements _StringsUpdateEn {
 	@override String get check => 'Провери за обновяване';
 	@override String get version => 'Версия на приложението';
 	@override String get failed => 'Обновяването не можа да се инсталира. Опитай пак.';
+	@override String get browser => 'Изтегли от браузъра';
 }
 
 // Path: recipe.difficulty
@@ -1267,6 +1269,7 @@ extension on Translations {
 			case 'update.check': return 'Check for updates';
 			case 'update.version': return 'App version';
 			case 'update.failed': return 'The update could not be installed. Please try again.';
+			case 'update.browser': return 'Download in browser';
 			default: return null;
 		}
 	}
@@ -1490,6 +1493,7 @@ extension on _StringsBg {
 			case 'update.check': return 'Провери за обновяване';
 			case 'update.version': return 'Версия на приложението';
 			case 'update.failed': return 'Обновяването не можа да се инсталира. Опитай пак.';
+			case 'update.browser': return 'Изтегли от браузъра';
 			default: return null;
 		}
 	}

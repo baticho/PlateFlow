@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:ota_update/ota_update.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../i18n/strings.g.dart';
 
@@ -87,10 +88,26 @@ class _UpdateDialogState extends State<_UpdateDialog> {
   StreamSubscription<OtaEvent>? _sub;
   OtaEvent? _event;
   bool _failed = false;
+  String? _error; // technical reason, shown small under the message
+
+  void _fail(String reason) {
+    debugPrint('PlateFlow update failed: $reason');
+    if (mounted) setState(() {
+      _failed = true;
+      _error = reason;
+    });
+  }
+
+  /// Fallback: let the browser download the APK; the user opens it from the notification.
+  Future<void> _openInBrowser() async {
+    await launchUrl(Uri.parse(widget.update.apkUrl), mode: LaunchMode.externalApplication);
+    if (mounted) Navigator.of(context).pop(false);
+  }
 
   void _start() {
     setState(() {
       _failed = false;
+      _error = null;
       _event = OtaEvent(OtaStatus.DOWNLOADING, '0');
     });
     try {
@@ -103,13 +120,11 @@ class _UpdateDialogState extends State<_UpdateDialog> {
         if (e.status == OtaStatus.INSTALLING || e.status == OtaStatus.INSTALLATION_DONE) {
           Navigator.of(context).pop(true);
         } else if (e.status != OtaStatus.DOWNLOADING) {
-          setState(() => _failed = true);
+          _fail('${e.status.name}: ${e.value ?? ''}');
         }
-      }, onError: (_) {
-        if (mounted) setState(() => _failed = true);
-      });
-    } catch (_) {
-      setState(() => _failed = true);
+      }, onError: (Object err) => _fail('$err'));
+    } catch (err) {
+      _fail('$err');
     }
   }
 
@@ -135,12 +150,17 @@ class _UpdateDialogState extends State<_UpdateDialog> {
           LinearProgressIndicator(value: percent > 0 ? percent / 100 : null),
           const SizedBox(height: 8),
           Text(t.update.downloading(percent: percent), style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant)),
-        ] else if (_failed)
-          Text(t.update.failed, style: TextStyle(fontSize: 13, color: cs.error))
-        else
+        ] else if (_failed) ...[
+          Text(t.update.failed, style: TextStyle(fontSize: 13, color: cs.error)),
+          if (_error != null) ...[
+            const SizedBox(height: 4),
+            Text(_error!, style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant)),
+          ],
+        ] else
           Text(t.update.permissionHint, style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant)),
       ]),
       actions: [
+        if (_failed) TextButton(onPressed: _openInBrowser, child: Text(t.update.browser)),
         if (!downloading)
           TextButton(onPressed: () => Navigator.of(context).pop(false), child: Text(t.update.later)),
         if (!downloading)
