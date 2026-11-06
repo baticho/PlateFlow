@@ -13,6 +13,11 @@ class ShoppingListService {
     await _dio.put('/api/v1/shopping-lists/$listId/items/$itemId/toggle');
   }
 
+  /// Check / uncheck several rows at once (one ingredient over several plan days).
+  Future<void> setChecked(int listId, List<int> itemIds, bool checked) async {
+    await _dio.put('/api/v1/shopping-lists/$listId/items/check', data: {'item_ids': itemIds, 'is_checked': checked});
+  }
+
   Future<void> clearCheckedItems(int listId) async {
     await _dio.delete('/api/v1/shopping-lists/$listId/items/checked');
   }

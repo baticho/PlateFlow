@@ -4,9 +4,9 @@
 /// To regenerate, run: `dart run slang`
 ///
 /// Locales: 2
-/// Strings: 432 (216 per locale)
+/// Strings: 440 (220 per locale)
 ///
-/// Built on 2026-11-06 at 07:49 UTC
+/// Built on 2026-11-06 at 08:50 UTC
 
 // coverage:ignore-file
 // ignore_for_file: type=lint
@@ -283,6 +283,10 @@ class _StringsShoppingListEn {
 	String itemsCount({required Object checked, required Object total}) => '${checked} / ${total} items';
 	late final _StringsShoppingListCategoriesEn categories = _StringsShoppingListCategoriesEn._(_root);
 	late final _StringsShoppingListDetailsEn details = _StringsShoppingListDetailsEn._(_root);
+	String get viewAll => 'All items';
+	String get byDay => 'By day';
+	String get noDay => 'No day';
+	String get today => 'Today';
 }
 
 // Path: cooking
@@ -745,6 +749,10 @@ class _StringsShoppingListBg implements _StringsShoppingListEn {
 	@override String itemsCount({required Object checked, required Object total}) => '${checked} / ${total} продукта';
 	@override late final _StringsShoppingListCategoriesBg categories = _StringsShoppingListCategoriesBg._(_root);
 	@override late final _StringsShoppingListDetailsBg details = _StringsShoppingListDetailsBg._(_root);
+	@override String get viewAll => 'Всичко';
+	@override String get byDay => 'По дни';
+	@override String get noDay => 'Без ден';
+	@override String get today => 'Днес';
 }
 
 // Path: cooking
@@ -1150,6 +1158,10 @@ extension on Translations {
 			case 'shoppingList.details.markBought': return 'Mark as bought';
 			case 'shoppingList.details.unmark': return 'Back to the list';
 			case 'shoppingList.details.openRecipe': return 'Open recipe';
+			case 'shoppingList.viewAll': return 'All items';
+			case 'shoppingList.byDay': return 'By day';
+			case 'shoppingList.noDay': return 'No day';
+			case 'shoppingList.today': return 'Today';
 			case 'cooking.stepOf': return ({required Object current, required Object total}) => 'Step ${current} of ${total}';
 			case 'cooking.back': return 'Back';
 			case 'cooking.next': return 'Next';
@@ -1374,6 +1386,10 @@ extension on _StringsBg {
 			case 'shoppingList.details.markBought': return 'Отбележи като купено';
 			case 'shoppingList.details.unmark': return 'Върни в списъка';
 			case 'shoppingList.details.openRecipe': return 'Отвори рецептата';
+			case 'shoppingList.viewAll': return 'Всичко';
+			case 'shoppingList.byDay': return 'По дни';
+			case 'shoppingList.noDay': return 'Без ден';
+			case 'shoppingList.today': return 'Днес';
 			case 'cooking.stepOf': return ({required Object current, required Object total}) => 'Стъпка ${current} от ${total}';
 			case 'cooking.back': return 'Назад';
 			case 'cooking.next': return 'Напред';

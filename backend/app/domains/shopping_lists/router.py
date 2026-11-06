@@ -9,11 +9,45 @@ from app.core.deps import get_current_user, get_plan_owner
 from app.database import get_db
 from app.domains.ingredients.models import Ingredient, IngredientTranslation
 from app.domains.shopping_lists.models import ShoppingList, ShoppingListItem
-from app.domains.shopping_lists.schemas import ShoppingListItemResponse, ShoppingListResponse
+from app.domains.shopping_lists.schemas import SetCheckedRequest, ShoppingListItemResponse, ShoppingListResponse
 from app.domains.users.models import User
 from app.middleware.i18n import current_language
 
 router = APIRouter()
+
+
+def _week_start(name: str):
+    """Lists generated from a meal plan are named "Week of YYYY-MM-DD"."""
+    from datetime import date
+    try:
+        return date.fromisoformat(name.removeprefix("Week of ").strip())
+    except ValueError:
+        return None
+
+
+@router.put("/{list_id}/items/check")
+async def set_items_checked(
+    list_id: int,
+    data: SetCheckedRequest,
+    current_user: User = Depends(get_plan_owner),
+    db: AsyncSession = Depends(get_db),
+):
+    """Check / uncheck several rows at once (one ingredient spread over several plan days)."""
+    from sqlalchemy import update
+
+    owned = (await db.execute(
+        select(ShoppingList.id).where(ShoppingList.id == list_id, ShoppingList.user_id == current_user.id)
+    )).scalar_one_or_none()
+    if not owned:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Shopping list not found")
+    if data.item_ids:
+        await db.execute(
+            update(ShoppingListItem)
+            .where(ShoppingListItem.shopping_list_id == list_id, ShoppingListItem.id.in_(data.item_ids))
+            .values(is_checked=data.is_checked)
+        )
+    await db.flush()
+    return {"updated": len(data.item_ids), "is_checked": data.is_checked}
 
 
 @router.get("/", response_model=list[ShoppingListResponse])
@@ -50,6 +84,7 @@ async def list_shopping_lists(
             name=sl.name,
             items=items,
             created_at=sl.created_at,
+            week_start=_week_start(sl.name),
         ))
     return response
 

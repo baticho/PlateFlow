@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, Numeric, String, func
+from sqlalchemy import SmallInteger, Boolean, DateTime, ForeignKey, Integer, Numeric, String, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -34,6 +34,8 @@ class ShoppingListItem(Base):
     added_from_recipe_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("recipes.id"), nullable=True
     )
+    # plan day the ingredient is needed for (0 = Monday); None for rows added before per-day tracking
+    day_of_week: Mapped[int | None] = mapped_column(SmallInteger, nullable=True)
 
     shopping_list = relationship("ShoppingList", back_populates="items")
     ingredient = relationship("Ingredient")

@@ -119,7 +119,11 @@
       "markBought": "Отбележи като купено",
       "unmark": "Върни в списъка",
       "openRecipe": "Отвори рецептата"
-    }
+    },
+    "viewAll": "Всичко",
+    "byDay": "По дни",
+    "noDay": "Без ден",
+    "today": "Днес"
   },
   "cooking": {
     "stepOf": "Стъпка $current от $total",

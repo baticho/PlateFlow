@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 
 from pydantic import BaseModel, ValidationInfo, model_validator
 
@@ -28,6 +28,7 @@ class ShoppingListItemResponse(BaseModel):
     quantity: float
     unit: str
     is_checked: bool
+    day_of_week: int | None = None
 
     model_config = {"from_attributes": True}
 
@@ -56,6 +57,7 @@ class ShoppingListItemResponse(BaseModel):
                 'quantity': float(v.quantity),
                 'unit': v.unit,
                 'is_checked': v.is_checked,
+                'day_of_week': v.day_of_week,
             }
         return v
 
@@ -65,5 +67,12 @@ class ShoppingListResponse(BaseModel):
     name: str
     items: list[ShoppingListItemResponse]
     created_at: datetime
+    # Monday of the plan week the list belongs to ("Week of YYYY-MM-DD"), for per-day labels
+    week_start: date | None = None
+
+
+class SetCheckedRequest(BaseModel):
+    item_ids: list[int]
+    is_checked: bool
 
     model_config = {"from_attributes": True}

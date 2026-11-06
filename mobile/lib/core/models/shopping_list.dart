@@ -15,6 +15,8 @@ class ShoppingItem {
   final double? fatPer100g;
   final String? recipeId;
   final String? recipeTitle;
+  /// plan day this row is for (0 = Monday); null for rows added before per-day tracking
+  final int? dayOfWeek;
   bool isChecked;
 
   ShoppingItem({
@@ -32,6 +34,7 @@ class ShoppingItem {
     this.fatPer100g,
     this.recipeId,
     this.recipeTitle,
+    this.dayOfWeek,
   });
 
   factory ShoppingItem.fromJson(Map<String, dynamic> j) {
@@ -50,6 +53,7 @@ class ShoppingItem {
       fatPer100g: (j['fat_per_100g'] as num?)?.toDouble(),
       recipeId: j['recipe_id'] as String?,
       recipeTitle: j['recipe_title'] as String?,
+      dayOfWeek: (j['day_of_week'] as num?)?.toInt(),
     );
   }
 
@@ -57,15 +61,31 @@ class ShoppingItem {
       formatQuantity(quantity, unit, LocaleSettings.currentLocale.languageCode);
 }
 
+/// What the list shows as one row: all stored rows of the same ingredient (and unit) —
+/// across the whole week in the default view, or within one day in the per-day view.
+class ShoppingEntry {
+  final List<ShoppingItem> items;
+  ShoppingEntry(this.items);
+
+  ShoppingItem get first => items.first;
+  double get quantity => items.fold(0.0, (sum, i) => sum + i.quantity);
+  bool get isChecked => items.every((i) => i.isChecked);
+  String get quantityDisplay =>
+      formatQuantity(quantity, first.unit, LocaleSettings.currentLocale.languageCode);
+}
+
 class ShoppingList {
   final int id;
   final String name;
   final List<ShoppingItem> items;
+  /// Monday of the plan week (lists generated from the meal plan)
+  final DateTime? weekStart;
 
   ShoppingList({
     required this.id,
     required this.name,
     required this.items,
+    this.weekStart,
   });
 
   factory ShoppingList.fromJson(Map<String, dynamic> j) {
@@ -75,8 +95,34 @@ class ShoppingList {
       items: (j['items'] as List? ?? [])
           .map((i) => ShoppingItem.fromJson(i as Map<String, dynamic>))
           .toList(),
+      weekStart: DateTime.tryParse(j['week_start'] as String? ?? ''),
     );
   }
+
+  static Map<String, List<ShoppingEntry>> _entriesByCategory(Iterable<ShoppingItem> items) {
+    final byKey = <String, List<ShoppingItem>>{};
+    for (final i in items) {
+      byKey.putIfAbsent('${i.ingredientId}|${i.unit}', () => []).add(i);
+    }
+    final grouped = <String, List<ShoppingEntry>>{};
+    for (final rows in byKey.values) {
+      grouped.putIfAbsent(rows.first.ingredientCategory, () => []).add(ShoppingEntry(rows));
+    }
+    return grouped;
+  }
+
+  /// Default view: one row per ingredient for the whole week, grouped by category.
+  Map<String, List<ShoppingEntry>> get entriesByCategory => _entriesByCategory(items);
+
+  /// Per-day view: day (null = no day) -> category -> rows, days in week order.
+  Map<int?, Map<String, List<ShoppingEntry>>> get entriesByDay {
+    final days = items.map((i) => i.dayOfWeek).toSet().toList()
+      ..sort((a, b) => (a ?? 99).compareTo(b ?? 99));
+    return {for (final d in days) d: _entriesByCategory(items.where((i) => i.dayOfWeek == d))};
+  }
+
+  /// Rows the user still has to buy (badge count) — counted like the default view.
+  int get uncheckedEntryCount => entriesByCategory.values.expand((e) => e).where((e) => !e.isChecked).length;
 
   Map<String, List<ShoppingItem>> get itemsByCategory {
     final Map<String, List<ShoppingItem>> grouped = {};

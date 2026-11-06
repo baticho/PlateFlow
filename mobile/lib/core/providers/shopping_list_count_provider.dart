@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../api/api_client.dart';
+import '../models/shopping_list.dart';
 
 class ShoppingListCountNotifier extends StateNotifier<AsyncValue<int>> {
   final Dio _dio;
@@ -19,9 +20,7 @@ class ShoppingListCountNotifier extends StateNotifier<AsyncValue<int>> {
         state = const AsyncValue.data(0);
         return;
       }
-      final items = (lists.first['items'] as List?) ?? [];
-      final unchecked = items.where((i) => i['is_checked'] != true).length;
-      state = AsyncValue.data(unchecked);
+      state = AsyncValue.data(ShoppingList.fromJson(lists.first).uncheckedEntryCount);
     } catch (e, st) {
       state = AsyncValue.error(e, st);
     }

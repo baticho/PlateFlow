@@ -295,11 +295,13 @@ async def remove_meal_plan_item(
 
     # Take this recipe's ingredients back out of the week's shopping list
     # (only what is still unchecked; rows that drop to zero are removed).
-    await _remove_recipe_from_shopping_list(db, current_user.id, plan.week_start_date, item.recipe_id, item.servings)
+    await _remove_recipe_from_shopping_list(db, current_user.id, plan.week_start_date, item.recipe_id, item.servings,
+                                            item.day_of_week)
     await db.flush()
 
 
-async def _remove_recipe_from_shopping_list(db: AsyncSession, user_id, week_start_date: date, recipe_id, servings: int) -> None:
+async def _remove_recipe_from_shopping_list(db: AsyncSession, user_id, week_start_date: date, recipe_id, servings: int,
+                                            day_of_week: int | None = None) -> None:
     from app.domains.recipes.models import Recipe, RecipeIngredient
     from app.domains.shopping_lists.models import ShoppingList, ShoppingListItem
 
@@ -319,17 +321,20 @@ async def _remove_recipe_from_shopping_list(db: AsyncSession, user_id, week_star
             ShoppingListItem.is_checked == False,  # noqa: E712
         )
     )).scalars().all()
+    # prefer the row for this recipe's day; fall back to rows without a day (added before per-day tracking)
     by_key = {}
     for r in rows:
-        by_key.setdefault((r.ingredient_id, r.unit), r)
+        by_key.setdefault((r.ingredient_id, r.unit, r.day_of_week), r)
     for ing in ings:
-        row = by_key.get((ing.ingredient_id, ing.unit))
-        if row is None:
+        key = next((k for k in ((ing.ingredient_id, ing.unit, day_of_week), (ing.ingredient_id, ing.unit, None))
+                    if k in by_key), None)
+        if key is None:
             continue
+        row = by_key[key]
         left = float(row.quantity) - float(ing.quantity) * ratio
         if left <= 0.01:
             await db.delete(row)
-            by_key.pop((ing.ingredient_id, ing.unit))
+            by_key.pop(key)
         else:
             row.quantity = left
 
@@ -357,7 +362,7 @@ async def _get_or_create_week_shopping_list(
 
 
 async def _apply_recipe_to_shopping_list(
-    db: AsyncSession, shopping_list_id: int, recipe_id, servings: int,
+    db: AsyncSession, shopping_list_id: int, recipe_id, servings: int, day_of_week: int | None = None,
 ) -> None:
     """Aggregate one recipe's ingredients into a shopping list:
     - If an unchecked row exists for (ingredient_id, unit): increase its quantity.
@@ -365,6 +370,8 @@ async def _apply_recipe_to_shopping_list(
       recipe's quantity. The checked row is left untouched — the user already
       bought that amount; the new amount is what they still need.
     Quantities are scaled by `servings / recipe.servings`.
+    Rows are kept per plan day (`day_of_week`) so the list can be split by day;
+    the app merges them back into one row per ingredient in the default view.
     """
     from app.domains.recipes.models import Recipe, RecipeIngredient
     from app.domains.shopping_lists.models import ShoppingListItem
@@ -385,11 +392,11 @@ async def _apply_recipe_to_shopping_list(
     unchecked_by_key: dict[tuple, ShoppingListItem] = {}
     for it in existing_items:
         if not it.is_checked:
-            unchecked_by_key.setdefault((it.ingredient_id, it.unit), it)
+            unchecked_by_key.setdefault((it.ingredient_id, it.unit, it.day_of_week), it)
 
     for ing in ings:
         qty_needed = float(ing.quantity) * ratio
-        key = (ing.ingredient_id, ing.unit)
+        key = (ing.ingredient_id, ing.unit, day_of_week)
         unchecked_row = unchecked_by_key.get(key)
         if unchecked_row is not None:
             unchecked_row.quantity = float(unchecked_row.quantity) + qty_needed
@@ -401,6 +408,7 @@ async def _apply_recipe_to_shopping_list(
             unit=ing.unit,
             is_checked=False,
             added_from_recipe_id=recipe_id,
+            day_of_week=day_of_week,
         )
         db.add(new_row)
         unchecked_by_key[key] = new_row
@@ -440,7 +448,7 @@ async def sync_shopping_list_for_item(
         db, current_user.id, plan.week_start_date
     )
     await _apply_recipe_to_shopping_list(
-        db, shopping_list.id, item.recipe_id, item.servings
+        db, shopping_list.id, item.recipe_id, item.servings, item.day_of_week
     )
     await db.flush()
     return {"shopping_list_id": shopping_list.id}
@@ -479,7 +487,7 @@ async def generate_shopping_list(
 
     for meal_item in plan.items:
         await _apply_recipe_to_shopping_list(
-            db, shopping_list.id, meal_item.recipe_id, meal_item.servings
+            db, shopping_list.id, meal_item.recipe_id, meal_item.servings, meal_item.day_of_week
         )
     await db.flush()
     return {"shopping_list_id": shopping_list.id}

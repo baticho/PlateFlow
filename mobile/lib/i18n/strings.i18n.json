@@ -119,7 +119,11 @@
       "markBought": "Mark as bought",
       "unmark": "Back to the list",
       "openRecipe": "Open recipe"
-    }
+    },
+    "viewAll": "All items",
+    "byDay": "By day",
+    "noDay": "No day",
+    "today": "Today"
   },
   "cooking": {
     "stepOf": "Step $current of $total",
