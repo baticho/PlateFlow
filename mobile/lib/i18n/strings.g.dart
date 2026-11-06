@@ -4,9 +4,9 @@
 /// To regenerate, run: `dart run slang`
 ///
 /// Locales: 2
-/// Strings: 404 (202 per locale)
+/// Strings: 426 (213 per locale)
 ///
-/// Built on 2026-11-06 at 06:38 UTC
+/// Built on 2026-11-06 at 07:06 UTC
 
 // coverage:ignore-file
 // ignore_for_file: type=lint
@@ -163,6 +163,7 @@ class Translations implements BaseTranslations<AppLocale, Translations> {
 	late final _StringsAuthEn auth = _StringsAuthEn._(_root);
 	late final _StringsCommonEn common = _StringsCommonEn._(_root);
 	late final _StringsFamilyEn family = _StringsFamilyEn._(_root);
+	late final _StringsUpdateEn update = _StringsUpdateEn._(_root);
 }
 
 // Path: app
@@ -462,6 +463,26 @@ class _StringsFamilyEn {
 	String shareMessage({required Object code}) => 'Join my family in PlateFlow: open Profile → Family → Join and enter the code ${code}';
 }
 
+// Path: update
+class _StringsUpdateEn {
+	_StringsUpdateEn._(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+	String get title => 'Update available';
+	String body({required Object version}) => 'PlateFlow ${version} is ready. Your recipes, plans and settings stay as they are.';
+	String get later => 'Later';
+	String get install => 'Update now';
+	String downloading({required Object percent}) => 'Downloading… ${percent}%';
+	String get installing => 'Opening the installer…';
+	String get permissionHint => 'If Android asks, allow PlateFlow to install apps.';
+	String get upToDate => 'You have the latest version';
+	String get check => 'Check for updates';
+	String get version => 'App version';
+	String get failed => 'The update could not be installed. Please try again.';
+}
+
 // Path: recipe.difficulty
 class _StringsRecipeDifficultyEn {
 	_StringsRecipeDifficultyEn._(this._root);
@@ -601,6 +622,7 @@ class _StringsBg implements Translations {
 	@override late final _StringsAuthBg auth = _StringsAuthBg._(_root);
 	@override late final _StringsCommonBg common = _StringsCommonBg._(_root);
 	@override late final _StringsFamilyBg family = _StringsFamilyBg._(_root);
+	@override late final _StringsUpdateBg update = _StringsUpdateBg._(_root);
 }
 
 // Path: app
@@ -898,6 +920,26 @@ class _StringsFamilyBg implements _StringsFamilyEn {
 	@override String get dissolveConfirm => 'Да разпуснем ли семейството? Всички членове се връщат към собствените си менюта.';
 	@override String get cancel => 'Отказ';
 	@override String shareMessage({required Object code}) => 'Влез в семейството ми в PlateFlow: Профил → Семейство → Присъедини се и въведи кода ${code}';
+}
+
+// Path: update
+class _StringsUpdateBg implements _StringsUpdateEn {
+	_StringsUpdateBg._(this._root);
+
+	@override final _StringsBg _root; // ignore: unused_field
+
+	// Translations
+	@override String get title => 'Има обновление';
+	@override String body({required Object version}) => 'PlateFlow ${version} е готова. Рецептите, плановете и настройките ти остават непроменени.';
+	@override String get later => 'По-късно';
+	@override String get install => 'Обнови сега';
+	@override String downloading({required Object percent}) => 'Изтегляне… ${percent}%';
+	@override String get installing => 'Отваряне на инсталатора…';
+	@override String get permissionHint => 'Ако Android попита, разреши на PlateFlow да инсталира приложения.';
+	@override String get upToDate => 'Имаш последната версия';
+	@override String get check => 'Провери за обновяване';
+	@override String get version => 'Версия на приложението';
+	@override String get failed => 'Обновяването не можа да се инсталира. Опитай пак.';
 }
 
 // Path: recipe.difficulty
@@ -1208,6 +1250,17 @@ extension on Translations {
 			case 'family.dissolveConfirm': return 'Dissolve the family? All members go back to their own meal plans.';
 			case 'family.cancel': return 'Cancel';
 			case 'family.shareMessage': return ({required Object code}) => 'Join my family in PlateFlow: open Profile → Family → Join and enter the code ${code}';
+			case 'update.title': return 'Update available';
+			case 'update.body': return ({required Object version}) => 'PlateFlow ${version} is ready. Your recipes, plans and settings stay as they are.';
+			case 'update.later': return 'Later';
+			case 'update.install': return 'Update now';
+			case 'update.downloading': return ({required Object percent}) => 'Downloading… ${percent}%';
+			case 'update.installing': return 'Opening the installer…';
+			case 'update.permissionHint': return 'If Android asks, allow PlateFlow to install apps.';
+			case 'update.upToDate': return 'You have the latest version';
+			case 'update.check': return 'Check for updates';
+			case 'update.version': return 'App version';
+			case 'update.failed': return 'The update could not be installed. Please try again.';
 			default: return null;
 		}
 	}
@@ -1418,6 +1471,17 @@ extension on _StringsBg {
 			case 'family.dissolveConfirm': return 'Да разпуснем ли семейството? Всички членове се връщат към собствените си менюта.';
 			case 'family.cancel': return 'Отказ';
 			case 'family.shareMessage': return ({required Object code}) => 'Влез в семейството ми в PlateFlow: Профил → Семейство → Присъедини се и въведи кода ${code}';
+			case 'update.title': return 'Има обновление';
+			case 'update.body': return ({required Object version}) => 'PlateFlow ${version} е готова. Рецептите, плановете и настройките ти остават непроменени.';
+			case 'update.later': return 'По-късно';
+			case 'update.install': return 'Обнови сега';
+			case 'update.downloading': return ({required Object percent}) => 'Изтегляне… ${percent}%';
+			case 'update.installing': return 'Отваряне на инсталатора…';
+			case 'update.permissionHint': return 'Ако Android попита, разреши на PlateFlow да инсталира приложения.';
+			case 'update.upToDate': return 'Имаш последната версия';
+			case 'update.check': return 'Провери за обновяване';
+			case 'update.version': return 'Версия на приложението';
+			case 'update.failed': return 'Обновяването не можа да се инсталира. Опитай пак.';
 			default: return null;
 		}
 	}

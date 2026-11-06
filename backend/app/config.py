@@ -21,6 +21,12 @@ class Settings(BaseSettings):
     # Google OAuth
     GOOGLE_CLIENT_ID: str = ""
 
+    # Public share links (recipe landing pages, APK download, Android App Links)
+    PUBLIC_BASE_URL: str = "https://plate-api.t800.space"
+    ANDROID_PACKAGE: str = "com.plate.flow"
+    # SHA-256 of the release signing certificate (apksigner verify --print-certs)
+    ANDROID_CERT_SHA256: str = "7D:53:3A:4C:4A:74:E9:6A:C4:87:34:4E:12:8E:93:8A:46:9B:99:4A:C9:37:36:13:99:27:A9:0E:84:EF:35:3D"
+
     # CORS
     BACKEND_CORS_ORIGINS: list[str] = ["http://localhost:3000", "http://localhost:8080"]
 

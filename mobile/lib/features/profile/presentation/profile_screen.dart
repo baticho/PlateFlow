@@ -7,6 +7,7 @@ import '../../../core/providers/auth_state.dart';
 import '../../../core/providers/locale_provider.dart';
 import '../../../core/providers/theme_provider.dart';
 import '../../../core/providers/user_provider.dart';
+import '../../../core/services/app_update_service.dart';
 import '../../../i18n/strings.g.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
@@ -18,6 +19,31 @@ class ProfileScreen extends ConsumerStatefulWidget {
 
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   bool _metricUnits = true;
+  String? _versionLabel;
+  bool _checking = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (AppUpdateService.supported) {
+      AppUpdateService.currentVersionLabel().then((v) {
+        if (mounted) setState(() => _versionLabel = v);
+      });
+    }
+  }
+
+  Future<void> _checkForUpdate() async {
+    if (_checking) return;
+    setState(() => _checking = true);
+    final update = await AppUpdateService(ref.read(dioProvider)).check();
+    if (!mounted) return;
+    setState(() => _checking = false);
+    if (update == null) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.t.update.upToDate)));
+    } else {
+      await showUpdateDialog(context, update);
+    }
+  }
 
   static String _initials(String name) {
     final parts = name.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
@@ -163,6 +189,22 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               onTap: () => context.push('/favorites'),
             ),
           ]),
+
+          // App version + manual update check (Android side-loaded builds)
+          if (AppUpdateService.supported) ...[
+            const SizedBox(height: 24),
+            _Group(children: [
+              _Row(
+                icon: Icons.system_update_outlined,
+                label: t.update.check,
+                subtitle: _versionLabel == null ? null : '${t.update.version} $_versionLabel',
+                trailing: _checking
+                    ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                    : Icon(Icons.chevron_right, color: cs.onSurfaceVariant),
+                onTap: _checkForUpdate,
+              ),
+            ]),
+          ],
 
           const SizedBox(height: 24),
           _Group(children: [

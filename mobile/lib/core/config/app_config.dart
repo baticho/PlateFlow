@@ -29,3 +29,12 @@ String? resolveImageUrl(String? url) {
   if (url.startsWith('http')) return url;
   return '$kApiBaseUrl$url';
 }
+
+/// Public host for share links (recipe landing pages) — must match the App Links host in AndroidManifest.xml.
+const String kShareBaseUrl = String.fromEnvironment(
+  'SHARE_BASE_URL',
+  defaultValue: 'https://plate-api.t800.space',
+);
+
+/// Public link to a recipe; opens the app when installed, otherwise a preview page with a download button.
+String recipeShareUrl(String recipeId) => '$kShareBaseUrl/r/$recipeId';

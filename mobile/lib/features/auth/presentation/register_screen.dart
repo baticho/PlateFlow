@@ -18,6 +18,18 @@ class RegisterScreen extends ConsumerStatefulWidget {
 }
 
 class _RegisterScreenState extends ConsumerState<RegisterScreen> {
+
+  /// Where to go after signing in: the page that sent us here (e.g. a shared recipe) or Home.
+  String _afterAuth() {
+    final f = GoRouterState.of(context).uri.queryParameters['from'];
+    return (f != null && f.startsWith('/') && !f.startsWith('/login') && !f.startsWith('/register')) ? f : '/home';
+  }
+
+  /// Keeps the ?from= target when switching between login and register.
+  String _withFrom(String path) {
+    final f = GoRouterState.of(context).uri.queryParameters['from'];
+    return f == null ? path : '$path?from=${Uri.encodeComponent(f)}';
+  }
   final _formKey = GlobalKey<FormState>();
   final _nameCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
@@ -83,7 +95,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       await _storage.write(
           key: 'refresh_token', value: res.data['refresh_token'] as String);
       ref.read(authStateProvider).markLoggedIn();
-      if (mounted) context.go('/home');
+      if (mounted) context.go(_afterAuth());
     } on DioException catch (e) {
       final detail = e.response?.data?['detail'];
       setState(() {
@@ -114,7 +126,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       await _storage.write(key: 'access_token', value: res.data['access_token'] as String);
       await _storage.write(key: 'refresh_token', value: res.data['refresh_token'] as String);
       ref.read(authStateProvider).markLoggedIn();
-      if (mounted) context.go('/home');
+      if (mounted) context.go(_afterAuth());
     } on DioException catch (e) {
       final detail = e.response?.data?['detail'];
       setState(() {
@@ -309,7 +321,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     ),
                     const SizedBox(height: 16),
                     TextButton(
-                      onPressed: () => context.go('/login'),
+                      onPressed: () => context.go(_withFrom('/login')),
                       child: const Text('Already have an account? Sign In'),
                     ),
                   ],

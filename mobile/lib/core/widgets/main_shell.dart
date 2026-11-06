@@ -4,7 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../i18n/strings.g.dart';
+import '../api/api_client.dart';
 import '../providers/shopping_list_count_provider.dart';
+import '../services/app_update_service.dart';
 
 class MainShell extends ConsumerStatefulWidget {
   final Widget child;
@@ -19,6 +21,15 @@ class _MainShellState extends ConsumerState<MainShell> {
   /// Tabs are switched with context.go (no navigator history), so remember the visited tabs ourselves.
   final List<String> _tabHistory = [];
   static const _tabRoutes = ['/home', '/explore', '/meal-plan', '/shopping-list', '/profile'];
+
+  @override
+  void initState() {
+    super.initState();
+    // look for a newer APK once per app start (Android side-loaded builds only)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) AppUpdateService(ref.read(dioProvider)).checkOnStartup(context);
+    });
+  }
 
   int _getSelectedIndex(BuildContext context) {
     final location = GoRouterState.of(context).uri.path;

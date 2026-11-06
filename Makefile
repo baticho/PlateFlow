@@ -8,6 +8,10 @@ run-mobile:
 build-mobile-apk:
 	cd mobile && flutter build apk --dart-define=API_BASE_URL=$(MOBILE_API_BASE_URL)
 
+# Build + publish the APK for in-app updates and share links (bumps the build number)
+publish-mobile-apk:
+	scripts/publish_apk.sh --bump
+
 build-mobile-appbundle:
 	cd mobile && flutter build appbundle --dart-define=API_BASE_URL=$(MOBILE_API_BASE_URL)
 

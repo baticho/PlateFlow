@@ -242,5 +242,18 @@
     "dissolveConfirm": "Dissolve the family? All members go back to their own meal plans.",
     "cancel": "Cancel",
     "shareMessage": "Join my family in PlateFlow: open Profile → Family → Join and enter the code $code"
+  },
+  "update": {
+    "title": "Update available",
+    "body": "PlateFlow $version is ready. Your recipes, plans and settings stay as they are.",
+    "later": "Later",
+    "install": "Update now",
+    "downloading": "Downloading… $percent%",
+    "installing": "Opening the installer…",
+    "permissionHint": "If Android asks, allow PlateFlow to install apps.",
+    "upToDate": "You have the latest version",
+    "check": "Check for updates",
+    "version": "App version",
+    "failed": "The update could not be installed. Please try again."
   }
 }

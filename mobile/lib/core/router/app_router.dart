@@ -24,13 +24,23 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       if (!authState.initialized) return null;
       final onAuthPage = state.matchedLocation == '/login' ||
           state.matchedLocation == '/register';
-      if (!authState.isLoggedIn && !onAuthPage) return '/login';
-      if (authState.isLoggedIn && onAuthPage) return '/home';
+      // Not signed in: go to login but remember where we were heading (e.g. a shared recipe link)
+      if (!authState.isLoggedIn && !onAuthPage) {
+        final target = state.uri.toString();
+        return target == '/' || target == '/home' ? '/login' : '/login?from=${Uri.encodeComponent(target)}';
+      }
+      // Just signed in / registered: continue to the remembered page
+      if (authState.isLoggedIn && onAuthPage) {
+        final from = state.uri.queryParameters['from'];
+        return (from != null && from.startsWith('/') && !from.startsWith('/login')) ? from : '/home';
+      }
       return null;
     },
     routes: [
       GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
       GoRoute(path: '/register', builder: (_, __) => const RegisterScreen()),
+      // Shared links: https://plate-api.t800.space/r/<recipeId> (Android App Links)
+      GoRoute(path: '/r/:id', redirect: (_, state) => '/recipe/${state.pathParameters['id']}'),
       ShellRoute(
         builder: (context, state, child) => MainShell(child: child),
         routes: [

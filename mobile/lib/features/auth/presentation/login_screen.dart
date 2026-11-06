@@ -18,6 +18,18 @@ class LoginScreen extends ConsumerStatefulWidget {
 }
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
+
+  /// Where to go after signing in: the page that sent us here (e.g. a shared recipe) or Home.
+  String _afterAuth() {
+    final f = GoRouterState.of(context).uri.queryParameters['from'];
+    return (f != null && f.startsWith('/') && !f.startsWith('/login') && !f.startsWith('/register')) ? f : '/home';
+  }
+
+  /// Keeps the ?from= target when switching between login and register.
+  String _withFrom(String path) {
+    final f = GoRouterState.of(context).uri.queryParameters['from'];
+    return f == null ? path : '$path?from=${Uri.encodeComponent(f)}';
+  }
   final _formKey = GlobalKey<FormState>();
   final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
@@ -177,7 +189,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                   const SizedBox(height: 16),
                   TextButton(
-                    onPressed: () => context.go('/register'),
+                    onPressed: () => context.go(_withFrom('/register')),
                     child: Text(t.auth.noAccount),
                   ),
                 ],
@@ -207,7 +219,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           key: 'refresh_token', value: res.data['refresh_token'] as String);
       ref.read(authStateProvider).markLoggedIn();
       ref.invalidate(userProvider);
-      if (mounted) context.go('/home');
+      if (mounted) context.go(_afterAuth());
     } on DioException catch (e) {
       final detail = e.response?.data?['detail'];
       setState(() {
@@ -251,7 +263,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           key: 'refresh_token', value: res.data['refresh_token'] as String);
       ref.read(authStateProvider).markLoggedIn();
       ref.invalidate(userProvider);
-      if (mounted) context.go('/home');
+      if (mounted) context.go(_afterAuth());
     } on DioException catch (e) {
       final detail = e.response?.data?['detail'];
       setState(() {

@@ -1,12 +1,8 @@
-import 'dart:io';
-
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../core/api/api_client.dart';
@@ -221,37 +217,13 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
 
   bool _sharing = false;
 
-  /// Plain-text version of the recipe (for the selected portions) that reads well in any messenger.
+  /// Short message with the public link; messengers render the link as a card with the photo.
   String _shareText(RecipeDetail r, Translations t) {
-    final lang = LocaleSettings.currentLocale.languageCode;
-    final ratio = _selectedServings / (r.servings == 0 ? 1 : r.servings);
-    final b = StringBuffer()
-      ..writeln(r.title)
-      ..writeln('${t.recipe.totalTime(minutes: r.totalTimeMinutes)} · ${t.recipe.servings(count: _selectedServings)}');
-    if (r.nutrition != null) {
-      final n = r.nutrition!;
-      b.writeln('${n.calories.round()} kcal / ${t.recipe.nutrition.title.toLowerCase()}');
-    }
-    if (r.ingredients.isNotEmpty) {
-      b
-        ..writeln()
-        ..writeln('${t.recipe.ingredients}:');
-      for (final ing in r.ingredients) {
-        b.writeln('• ${capFirst(ing.name)} — ${formatQuantity(ing.quantity * ratio, ing.unit, lang)}');
-      }
-    }
-    if (r.steps.isNotEmpty) {
-      b
-        ..writeln()
-        ..writeln('${t.recipe.steps}:');
-      for (final s in r.steps) {
-        b.writeln('${s.order}. ${s.instruction}');
-      }
-    }
-    b
-      ..writeln()
-      ..write(t.recipe.sharedFrom);
-    return b.toString();
+    final meta = [
+      t.recipe.totalTime(minutes: r.totalTimeMinutes),
+      if (r.nutrition != null) '${r.nutrition!.calories.round()} kcal',
+    ].join(' · ');
+    return '${r.title}\n$meta\n\n${recipeShareUrl(r.id)}';
   }
 
   Future<void> _shareRecipe() async {
@@ -261,23 +233,9 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
     final box = context.findRenderObject() as RenderBox?;
     setState(() => _sharing = true);
     try {
-      // attach the photo when we can (not on web); sharing still works without it
-      final files = <XFile>[];
-      final url = resolveImageUrl(recipe.imageUrl);
-      if (url != null && !kIsWeb) {
-        try {
-          final bytes = await ref.read(dioProvider).get<List<int>>(url,
-              options: Options(responseType: ResponseType.bytes, receiveTimeout: const Duration(seconds: 10)));
-          final dir = await getTemporaryDirectory();
-          final file = File('${dir.path}/plateflow_${recipe.id}.jpg');
-          await file.writeAsBytes(bytes.data!, flush: true);
-          files.add(XFile(file.path, mimeType: 'image/jpeg'));
-        } catch (_) {}
-      }
       await SharePlus.instance.share(ShareParams(
         text: _shareText(recipe, t),
         subject: recipe.title,
-        files: files.isEmpty ? null : files,
         sharePositionOrigin: box == null ? null : box.localToGlobal(Offset.zero) & box.size,
       ));
     } catch (_) {

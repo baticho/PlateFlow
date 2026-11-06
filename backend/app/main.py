@@ -46,6 +46,10 @@ from app.domains.users.router import router as users_router  # noqa: E402
 from app.domains.weekly_suggestions.router import router as weekly_suggestions_router  # noqa: E402
 from app.admin.router import router as admin_router  # noqa: E402
 from app.domains.family.router import router as family_router
+from app.domains.public.router import router as public_router  # noqa: E402
+
+# share pages, APK download, assetlinks.json, app version (no prefix: paths are absolute)
+app.include_router(public_router)
 
 app.include_router(auth_router, prefix="/api/v1/auth", tags=["Auth"])
 app.include_router(users_router, prefix="/api/v1/users", tags=["Users"])
