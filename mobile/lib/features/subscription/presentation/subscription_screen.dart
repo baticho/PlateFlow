@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/providers/user_provider.dart';
+import '../../../i18n/strings.g.dart';
 import '../application/subscription_service.dart';
 
 class SubscriptionScreen extends ConsumerStatefulWidget {
@@ -20,42 +21,39 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final userAsync = ref.watch(userProvider);
+    final t = context.t;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Choose Plan',
-            style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w700)),
+        title: Text(t.subscription.title),
       ),
       body: userAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Error: $e')),
+        error: (e, _) => Center(child: Text(t.common.error)),
         data: (user) {
           final currentSlug = user['subscription_plan_slug'] as String?;
           final trialEndsAt = user['trial_ends_at'] as String?;
           final trialUsed = trialEndsAt != null;
 
           return ListView(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
             children: [
               Text(
-                'Upgrade PlateFlow',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontFamily: 'Poppins',
-                      fontWeight: FontWeight.w700,
-                    ),
+                t.subscription.heading,
+                style: Theme.of(context).textTheme.headlineSmall,
               ),
               const SizedBox(height: 4),
-              const Text('Choose the plan that works for you',
-                  style: TextStyle(color: Colors.grey)),
+              Text(t.subscription.subtitle,
+                  style: TextStyle(color: cs.onSurfaceVariant)),
               const SizedBox(height: 24),
               _PlanCard(
-                name: 'Free',
+                name: t.subscription.free,
                 price: '0',
-                period: 'Forever',
-                features: const [
-                  '5 recipes for the next 7 days',
-                  'Plan ahead only — no history',
-                  'Basic search',
+                period: t.subscription.forever,
+                features: [
+                  t.subscription.freeFeature1,
+                  t.subscription.freeFeature2,
+                  t.subscription.freeFeature3,
                 ],
                 highlighted: false,
                 isCurrent: currentSlug == null || currentSlug == 'free',
@@ -63,19 +61,19 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
                 button: OutlinedButton(
                   onPressed: null,
                   child: Text(currentSlug == null || currentSlug == 'free'
-                      ? 'Current Plan'
-                      : 'Free'),
+                      ? t.subscription.currentPlan
+                      : t.subscription.free),
                 ),
               ),
               _PlanCard(
-                name: 'Trial',
+                name: t.subscription.trial,
                 price: '0',
-                period: '14 days',
-                features: const [
-                  'Unlimited recipes',
-                  'Unlimited meal plans',
-                  'Shopping list export',
-                  'Delivery integration',
+                period: t.subscription.trialPeriod,
+                features: [
+                  t.subscription.unlimitedRecipes,
+                  t.subscription.unlimitedPlans,
+                  t.subscription.shoppingExport,
+                  t.subscription.delivery,
                 ],
                 highlighted: false,
                 isCurrent: currentSlug == 'trial',
@@ -95,22 +93,22 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
                       : Text(currentSlug == 'trial'
-                          ? 'Current Plan'
+                          ? t.subscription.currentPlan
                           : trialUsed
-                              ? 'Trial Used'
-                              : 'Start Trial'),
+                              ? t.subscription.trialUsed
+                              : t.subscription.startTrial),
                 ),
               ),
               _PlanCard(
-                name: 'Premium',
+                name: t.subscription.premium,
                 price: '4.99',
-                period: 'per month',
-                features: const [
-                  'Unlimited recipes',
-                  'Unlimited meal plans',
-                  'Shopping list export',
-                  'Delivery integration',
-                  'Priority support',
+                period: t.subscription.perMonth,
+                features: [
+                  t.subscription.unlimitedRecipes,
+                  t.subscription.unlimitedPlans,
+                  t.subscription.shoppingExport,
+                  t.subscription.delivery,
+                  t.subscription.prioritySupport,
                 ],
                 highlighted: true,
                 isCurrent: currentSlug == 'premium_monthly' || currentSlug == 'premium_yearly',
@@ -128,8 +126,8 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
                           child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                         )
                       : Text(currentSlug == 'premium_monthly' || currentSlug == 'premium_yearly'
-                          ? 'Current Plan'
-                          : 'Get Premium'),
+                          ? t.subscription.currentPlan
+                          : t.subscription.getPremium),
                 ),
               ),
             ],
@@ -146,13 +144,13 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
       ref.invalidate(userProvider);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Premium activated!'), duration: Duration(seconds: 2)),
+          SnackBar(content: Text(LocaleSettings.instance.currentTranslations.subscription.premiumActivated), duration: const Duration(seconds: 2)),
         );
         Navigator.of(context).pop();
       }
     } on DioException catch (e) {
       if (mounted) {
-        final msg = e.response?.data?['detail'] ?? 'Something went wrong';
+        final msg = e.response?.data?['detail'] ?? LocaleSettings.instance.currentTranslations.common.error;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(msg.toString()), duration: const Duration(seconds: 3)),
         );
@@ -169,14 +167,14 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
       ref.invalidate(userProvider);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('14-day trial started!'), duration: Duration(seconds: 2)),
+          SnackBar(
+              content: Text(LocaleSettings.instance.currentTranslations.subscription.trialStarted), duration: Duration(seconds: 2)),
         );
         Navigator.of(context).pop();
       }
     } on DioException catch (e) {
       if (mounted) {
-        final msg = e.response?.data?['detail'] ?? 'Something went wrong';
+        final msg = e.response?.data?['detail'] ?? LocaleSettings.instance.currentTranslations.common.error;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(msg.toString()), duration: const Duration(seconds: 3)),
         );
@@ -211,16 +209,12 @@ class _PlanCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: isCurrent
-              ? cs.primary
-              : highlighted
-                  ? cs.primary
-                  : Colors.grey.shade200,
-          width: highlighted || isCurrent ? 2 : 1,
+          color: highlighted || isCurrent ? cs.primary : cs.outlineVariant,
+          width: highlighted || isCurrent ? 1.5 : 1,
         ),
-        color: highlighted ? cs.primary.withAlpha(8) : null,
+        color: cs.surfaceContainerLowest,
       ),
       child: Padding(
         padding: const EdgeInsets.all(20),
@@ -232,30 +226,12 @@ class _PlanCard extends StatelessWidget {
               children: [
                 Text(
                   name,
-                  style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontWeight: FontWeight.w700,
-                    fontSize: 20,
-                    color: highlighted ? cs.primary : null,
-                  ),
+                  style: TextStyle(fontFamily: 'Lora', fontWeight: FontWeight.w600, fontSize: 21, color: cs.onSurface),
                 ),
-                if (highlighted && !isCurrent)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration:
-                        BoxDecoration(color: cs.primary, borderRadius: BorderRadius.circular(20)),
-                    child: const Text('POPULAR',
-                        style: TextStyle(
-                            color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700)),
-                  ),
-                if (isCurrent)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                        color: cs.primary, borderRadius: BorderRadius.circular(20)),
-                    child: const Text('ACTIVE',
-                        style: TextStyle(
-                            color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700)),
+                if (isCurrent || highlighted)
+                  Text(
+                    (isCurrent ? context.t.subscription.active : context.t.subscription.popular).toUpperCase(),
+                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1.2, color: cs.primary),
                   ),
               ],
             ),
@@ -266,10 +242,10 @@ class _PlanCard extends StatelessWidget {
                   TextSpan(
                       text: '\$$price',
                       style: TextStyle(
-                          fontSize: 28, fontWeight: FontWeight.w700, color: cs.onSurface)),
+                          fontFamily: 'Lora', fontSize: 30, fontWeight: FontWeight.w600, color: cs.onSurface)),
                   TextSpan(
                       text: ' / $period',
-                      style: const TextStyle(color: Colors.grey, fontSize: 14)),
+                      style: TextStyle(color: cs.onSurfaceVariant, fontSize: 14)),
                 ],
               ),
             ),
@@ -277,9 +253,9 @@ class _PlanCard extends StatelessWidget {
             ...features.map((f) => Padding(
                   padding: const EdgeInsets.symmetric(vertical: 4),
                   child: Row(children: [
-                    Icon(Icons.check_circle, size: 18, color: cs.primary),
+                    Icon(Icons.check, size: 18, color: cs.secondary),
                     const SizedBox(width: 8),
-                    Text(f),
+                    Expanded(child: Text(f, style: const TextStyle(fontSize: 14))),
                   ]),
                 )),
             const SizedBox(height: 16),

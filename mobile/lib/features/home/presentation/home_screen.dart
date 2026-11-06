@@ -1,13 +1,13 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/api/api_client.dart';
-import '../../../core/config/app_config.dart';
 import '../../../core/models/recipe.dart';
+import '../../../core/providers/favorites_refresh_provider.dart';
 import '../../../core/providers/locale_provider.dart';
 import '../../../core/services/recipe_service.dart';
+import '../../../core/widgets/recipe_tile.dart';
 import '../../../i18n/strings.g.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -21,6 +21,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   late final RecipeService _service;
   List<RecipeSummary> _suggestions = [];
   List<RecipeSummary> _quickMeals = [];
+  List<RecipeSummary> _favorites = [];
   bool _loading = true;
 
   @override
@@ -31,8 +32,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   Future<void> _loadAll() async {
-    await Future.wait([_loadSuggestions(), _loadQuickMeals()]);
+    await Future.wait([_loadSuggestions(), _loadQuickMeals(), _loadFavorites()]);
     if (mounted) setState(() => _loading = false);
+  }
+
+  Future<void> _loadFavorites() async {
+    try {
+      final lang = ref.read(localeProvider);
+      final items = await _service.getFavorites();
+      if (mounted) setState(() {
+        _favorites = items.map((j) => RecipeSummary.fromJson(j, lang: lang)).toList();
+      });
+    } catch (_) {}
   }
 
   Future<void> _loadSuggestions() async {
@@ -48,7 +59,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Future<void> _loadQuickMeals() async {
     try {
       final lang = ref.read(localeProvider);
-      final items = await _service.getQuickMeals();
+      final items = await _service.getQuickMeals(count: 6);
       if (mounted) setState(() {
         _quickMeals = items.map((j) => RecipeSummary.fromJson(j, lang: lang)).toList();
       });
@@ -64,187 +75,57 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final quickMeals = _quickMeals;
 
     ref.listen(localeProvider, (_, __) => _loadAll());
+    ref.listen(favoritesRefreshProvider, (_, __) => _loadFavorites());
+
+    Widget hList(List<RecipeSummary> items) => SizedBox(
+          height: 228,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            itemCount: items.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 14),
+            itemBuilder: (context, idx) => SizedBox(width: 196, child: RecipeTile(recipe: items[idx])),
+          ),
+        );
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('PlateFlow', style: TextStyle(
-          fontFamily: 'Poppins', fontWeight: FontWeight.w700, color: cs.primary,
-        )),
-        actions: [
-          IconButton(icon: const Icon(Icons.notifications_outlined), onPressed: () {}),
-        ],
+        titleSpacing: 20,
+        title: Text.rich(TextSpan(children: [
+          TextSpan(text: 'PlateFlow', style: TextStyle(fontFamily: 'Lora', fontSize: 26, fontWeight: FontWeight.w700, color: cs.onSurface)),
+          TextSpan(text: '.', style: TextStyle(fontFamily: 'Lora', fontSize: 26, fontWeight: FontWeight.w700, color: cs.primary)),
+        ])),
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : ListView(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.only(top: 8, bottom: 24),
               children: [
-                Text(t.home.weeklyTitle,
-                    style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600)),
-                const SizedBox(height: 12),
-                SizedBox(
-                  height: 200,
-                  child: weeklyPicks.isEmpty
-                      ? Center(child: Text(t.common.noResults))
-                      : ListView.separated(
-                          scrollDirection: Axis.horizontal,
-                          itemCount: weeklyPicks.length,
-                          separatorBuilder: (_, __) => const SizedBox(width: 12),
-                          itemBuilder: (context, idx) => _RecipeCard(recipe: weeklyPicks[idx]),
-                        ),
+                if (weeklyPicks.isNotEmpty) ...[
+                  Padding(padding: const EdgeInsets.symmetric(horizontal: 20), child: SectionHeader(t.home.weeklyTitle)),
+                  const SizedBox(height: 14),
+                  hList(weeklyPicks),
+                  const SizedBox(height: 28),
+                ],
+                if (_favorites.isNotEmpty) ...[
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: SectionHeader(t.home.favorites, actionLabel: t.home.seeAll, onAction: () => context.push('/favorites')),
+                  ),
+                  const SizedBox(height: 14),
+                  hList(_favorites),
+                  const SizedBox(height: 28),
+                ],
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: SectionHeader(t.home.quickMeals, actionLabel: t.home.seeAll, onAction: () => context.go('/explore')),
                 ),
-                const SizedBox(height: 24),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(t.home.quickMeals,
-                        style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600)),
-                    TextButton(onPressed: () => context.go('/explore'), child: const Text('See all')),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                quickMeals.isEmpty
-                    ? const SizedBox.shrink()
-                    : GridView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          mainAxisSpacing: 12,
-                          crossAxisSpacing: 12,
-                          childAspectRatio: 0.85,
-                        ),
-                        itemCount: quickMeals.length,
-                        itemBuilder: (context, idx) => _RecipeGridCard(recipe: quickMeals[idx]),
-                      ),
+                const SizedBox(height: 14),
+                if (quickMeals.isNotEmpty)
+                  RecipeGrid(recipes: quickMeals, shrinkWrap: true),
               ],
             ),
     );
   }
 }
 
-class _RecipeCard extends StatelessWidget {
-  final RecipeSummary recipe;
-  const _RecipeCard({required this.recipe});
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final imageUrl = resolveImageUrl(recipe.imageUrl);
-    return GestureDetector(
-      onTap: () => context.push('/recipe/${recipe.id}'),
-      child: Container(
-        width: 160,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          color: cs.primary.withAlpha(20),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-              child: SizedBox(
-                height: 120,
-                width: double.infinity,
-                child: imageUrl != null
-                    ? CachedNetworkImage(
-                        imageUrl: imageUrl,
-                        fit: BoxFit.cover,
-                        errorWidget: (_, __, ___) => Container(
-                          color: cs.primary.withAlpha(40),
-                          child: Icon(Icons.restaurant, size: 48, color: cs.primary),
-                        ),
-                      )
-                    : Container(
-                        color: cs.primary.withAlpha(40),
-                        child: Icon(Icons.restaurant, size: 48, color: cs.primary),
-                      ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(10),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(recipe.title,
-                      style: const TextStyle(fontWeight: FontWeight.w600),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis),
-                  const SizedBox(height: 4),
-                  Row(children: [
-                    Icon(Icons.schedule, size: 14, color: Colors.grey[600]),
-                    const SizedBox(width: 4),
-                    Text('${recipe.totalTimeMinutes} min',
-                        style: TextStyle(fontSize: 12, color: Colors.grey[600])),
-                  ]),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _RecipeGridCard extends StatelessWidget {
-  final RecipeSummary recipe;
-  const _RecipeGridCard({required this.recipe});
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final imageUrl = resolveImageUrl(recipe.imageUrl);
-    return GestureDetector(
-      onTap: () => context.push('/recipe/${recipe.id}'),
-      child: Card(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: ClipRRect(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-                child: SizedBox(
-                  width: double.infinity,
-                  child: imageUrl != null
-                      ? CachedNetworkImage(
-                          imageUrl: imageUrl,
-                          fit: BoxFit.cover,
-                          errorWidget: (_, __, ___) => Container(
-                            color: cs.primary.withAlpha(20),
-                            child: Center(
-                              child: Icon(Icons.restaurant_menu, size: 40, color: cs.primary),
-                            ),
-                          ),
-                        )
-                      : Container(
-                          color: cs.primary.withAlpha(20),
-                          child: Center(
-                            child: Icon(Icons.restaurant_menu, size: 40, color: cs.primary),
-                          ),
-                        ),
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(10),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(recipe.title,
-                      style: const TextStyle(fontWeight: FontWeight.w600),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis),
-                  const SizedBox(height: 4),
-                  Text('${recipe.totalTimeMinutes} min',
-                      style: TextStyle(fontSize: 12, color: Colors.grey[600])),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}

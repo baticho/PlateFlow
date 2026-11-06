@@ -52,7 +52,7 @@ class _CookingScreenState extends ConsumerState<CookingScreen> {
       });
     } on DioException catch (e) {
       if (mounted) setState(() {
-        _error = e.response?.data?['detail'] ?? 'Failed to load recipe';
+        _error = e.response?.data?['detail'] ?? LocaleSettings.instance.currentTranslations.common.error;
         _loading = false;
       });
     }
@@ -91,7 +91,7 @@ class _CookingScreenState extends ConsumerState<CookingScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.error_outline, size: 48, color: Colors.red),
+              Icon(Icons.error_outline, size: 48, color: Theme.of(context).colorScheme.error),
               const SizedBox(height: 8),
               Text(_error!),
               const SizedBox(height: 16),
@@ -152,7 +152,7 @@ class _CookingView extends StatelessWidget {
           preferredSize: const Size.fromHeight(4),
           child: LinearProgressIndicator(
             value: (currentStep + 1) / total,
-            backgroundColor: cs.primary.withAlpha(30),
+            backgroundColor: cs.surfaceContainerHigh,
             valueColor: AlwaysStoppedAnimation(cs.primary),
             minHeight: 4,
           ),
@@ -163,23 +163,19 @@ class _CookingView extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // Step counter
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(20),
-                color: cs.primary,
-              ),
-              child: Text(
-                context.t.cooking.stepOf(current: currentStep + 1, total: total),
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13),
-              ),
+            // Step counter: big serif number + quiet "step x of n"
+            Text('${currentStep + 1}',
+                style: TextStyle(fontFamily: 'Lora', fontSize: 56, fontWeight: FontWeight.w600, color: cs.primary, height: 1)),
+            const SizedBox(height: 6),
+            Text(
+              context.t.cooking.stepOf(current: currentStep + 1, total: total).toUpperCase(),
+              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 1.2, color: cs.onSurfaceVariant),
             ),
             const SizedBox(height: 24),
             // Step image if available
             if (step.imageUrl != null)
               ClipRRect(
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(12),
                 child: CachedNetworkImage(
                   imageUrl: resolveImageUrl(step.imageUrl!)!,
                   height: 180,
@@ -195,7 +191,7 @@ class _CookingView extends StatelessWidget {
                 child: SingleChildScrollView(
                   child: Text(
                     step.instruction,
-                    style: const TextStyle(fontSize: 20, height: 1.6),
+                    style: TextStyle(fontFamily: 'Lora', fontSize: 22, height: 1.55, color: cs.onSurface),
                     textAlign: TextAlign.center,
                   ),
                 ),
@@ -242,11 +238,11 @@ class _DoneView extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.check_circle, size: 100, color: cs.primary),
+              Icon(Icons.check_circle_outline, size: 72, color: cs.secondary),
               const SizedBox(height: 24),
-              Text(context.t.cooking.complete, style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w700)),
+              Text(context.t.cooking.complete, textAlign: TextAlign.center, style: TextStyle(fontFamily: 'Lora', fontSize: 30, fontWeight: FontWeight.w600, color: cs.onSurface)),
               const SizedBox(height: 12),
-              Text(recipe.title, style: const TextStyle(fontSize: 16, color: Colors.grey), textAlign: TextAlign.center),
+              Text(recipe.title, style: TextStyle(fontSize: 16, color: cs.onSurfaceVariant), textAlign: TextAlign.center),
               const SizedBox(height: 48),
               SizedBox(
                 width: double.infinity,

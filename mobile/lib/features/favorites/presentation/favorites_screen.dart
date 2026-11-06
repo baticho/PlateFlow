@@ -1,13 +1,13 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/api/api_client.dart';
-import '../../../core/config/app_config.dart';
 import '../../../core/models/recipe.dart';
+import '../../../core/providers/favorites_refresh_provider.dart';
 import '../../../core/providers/locale_provider.dart';
 import '../../../core/services/recipe_service.dart';
+import '../../../core/widgets/recipe_tile.dart';
 import '../../../i18n/strings.g.dart';
 
 class FavoritesScreen extends ConsumerStatefulWidget {
@@ -48,6 +48,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
     setState(() => _items!.removeWhere((x) => x.id == r.id));
     try {
       await _service.toggleFavorite(r.id, isFavorite: true);
+      ref.read(favoritesRefreshProvider.notifier).state++;
     } catch (_) {
       _load();
     }
@@ -71,73 +72,40 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
     } else if (_items!.isEmpty) {
       body = Center(
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Icon(Icons.favorite_border, size: 64, color: cs.onSurface.withAlpha(80)),
+          Icon(Icons.favorite_border, size: 56, color: cs.outline),
           const SizedBox(height: 12),
-          Text(t.favorites.title, style: TextStyle(color: cs.onSurface.withAlpha(140))),
+          Text(t.favorites.empty, style: TextStyle(fontFamily: 'Lora', fontSize: 18, color: cs.onSurfaceVariant)),
         ]),
       );
     } else {
       body = RefreshIndicator(
         onRefresh: _load,
-        child: GridView.builder(
-          padding: const EdgeInsets.all(16),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2, mainAxisSpacing: 12, crossAxisSpacing: 12, childAspectRatio: 0.72,
-          ),
-          itemCount: _items!.length,
-          itemBuilder: (context, idx) {
-            final r = _items![idx];
-            final img = resolveImageUrl(r.imageUrl);
-            return GestureDetector(
-              onTap: () async {
-                await context.push('/recipe/${r.id}');
-                _load();   // the heart may have been toggled on the detail screen
-              },
-              child: Card(
-                clipBehavior: Clip.antiAlias,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Stack(fit: StackFit.expand, children: [
-                        img == null
-                            ? Container(color: cs.primary.withAlpha(20), child: Icon(Icons.restaurant_menu, size: 40, color: cs.primary))
-                            : CachedNetworkImage(
-                                imageUrl: img, fit: BoxFit.cover,
-                                errorWidget: (_, __, ___) => Container(
-                                    color: cs.primary.withAlpha(20), child: Icon(Icons.restaurant_menu, size: 40, color: cs.primary)),
-                              ),
-                        Positioned(
-                          top: 8, right: 8,
-                          child: GestureDetector(
-                            onTap: () => _remove(r),
-                            child: const CircleAvatar(
-                              radius: 16,
-                              backgroundColor: Colors.white,
-                              child: Icon(Icons.favorite, color: Colors.red, size: 18),
-                            ),
-                          ),
-                        ),
-                      ]),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.all(10),
-                      child: Text(r.title,
-                          style: const TextStyle(fontWeight: FontWeight.w600, height: 1.2),
-                          maxLines: 3, overflow: TextOverflow.ellipsis),
-                    ),
-                  ],
-                ),
-              ),
-            );
+        child: RecipeGrid(
+          recipes: _items!,
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+          onTap: (r) async {
+            await context.push('/recipe/${r.id}');
+            _load(); // the heart may have been toggled on the detail screen
           },
+          badgeBuilder: (r) => Material(
+            color: cs.surface.withAlpha(230),
+            shape: const CircleBorder(),
+            child: InkWell(
+              customBorder: const CircleBorder(),
+              onTap: () => _remove(r),
+              child: Padding(
+                padding: const EdgeInsets.all(7),
+                child: Icon(Icons.favorite, color: cs.primary, size: 18),
+              ),
+            ),
+          ),
         ),
       );
     }
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(t.favorites.title, style: const TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w700)),
+        title: Text(t.favorites.title),
       ),
       body: body,
     );

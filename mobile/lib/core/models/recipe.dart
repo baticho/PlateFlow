@@ -65,6 +65,11 @@ class RecipeIngredient {
   final String unit;
   final bool isOptional;
   final String? imageUrl;
+  final String? category;
+  final double? caloriesPer100g;
+  final double? proteinPer100g;
+  final double? carbsPer100g;
+  final double? fatPer100g;
 
   RecipeIngredient({
     required this.id,
@@ -73,6 +78,11 @@ class RecipeIngredient {
     required this.unit,
     required this.isOptional,
     this.imageUrl,
+    this.category,
+    this.caloriesPer100g,
+    this.proteinPer100g,
+    this.carbsPer100g,
+    this.fatPer100g,
   });
 
   factory RecipeIngredient.fromJson(Map<String, dynamic> j, {String lang = 'en'}) {
@@ -82,6 +92,11 @@ class RecipeIngredient {
       quantity: (j['quantity'] as num).toDouble(),
       unit: j['unit'] ?? '',
       isOptional: j['is_optional'] ?? false,
+      category: j['ingredient_category'] as String?,
+      caloriesPer100g: (j['calories_per_100g'] as num?)?.toDouble(),
+      proteinPer100g: (j['protein_per_100g'] as num?)?.toDouble(),
+      carbsPer100g: (j['carbs_per_100g'] as num?)?.toDouble(),
+      fatPer100g: (j['fat_per_100g'] as num?)?.toDouble(),
       imageUrl: j['ingredient_image_url'] as String?,
     );
   }
@@ -143,6 +158,7 @@ class RecipeDetail {
   final String difficulty;
   final List<RecipeIngredient> ingredients;
   final List<RecipeStep> steps;
+  final RecipeNutrition? nutrition;
 
   RecipeDetail({
     required this.id,
@@ -156,6 +172,7 @@ class RecipeDetail {
     required this.difficulty,
     required this.ingredients,
     required this.steps,
+    this.nutrition,
   });
 
   factory RecipeDetail.fromJson(Map<String, dynamic> j, {String lang = 'en'}) {
@@ -190,6 +207,47 @@ class RecipeDetail {
           .map((i) => RecipeIngredient.fromJson(i as Map<String, dynamic>, lang: lang))
           .toList(),
       steps: sortedSteps,
+      nutrition: RecipeNutrition.fromJson(j),
+    );
+  }
+}
+
+/// Nutrition for one serving of a recipe.
+class RecipeNutrition {
+  final double calories;
+  final double? protein;
+  final double? carbs;
+  final double? fat;
+  final double? fiber;
+  final double? sugar;
+  final double? saturatedFat;
+  final double? sodiumMg;
+
+  const RecipeNutrition({
+    required this.calories,
+    this.protein,
+    this.carbs,
+    this.fat,
+    this.fiber,
+    this.sugar,
+    this.saturatedFat,
+    this.sodiumMg,
+  });
+
+  /// null when the recipe has no nutrition data
+  static RecipeNutrition? fromJson(Map<String, dynamic> j) {
+    double? d(String k) => (j[k] as num?)?.toDouble();
+    final calories = d('calories');
+    if (calories == null) return null;
+    return RecipeNutrition(
+      calories: calories,
+      protein: d('protein_g'),
+      carbs: d('carbs_g'),
+      fat: d('fat_g'),
+      fiber: d('fiber_g'),
+      sugar: d('sugar_g'),
+      saturatedFat: d('saturated_fat_g'),
+      sodiumMg: d('sodium_mg'),
     );
   }
 }

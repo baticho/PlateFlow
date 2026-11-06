@@ -12,6 +12,7 @@ import '../../../core/providers/locale_provider.dart';
 import '../../../core/providers/shopping_list_count_provider.dart';
 import '../../../core/providers/shopping_list_refresh_provider.dart';
 import '../../../core/services/shopping_list_service.dart';
+import '../../../core/widgets/ingredient_details_sheet.dart';
 import '../../../i18n/strings.g.dart';
 
 class ShoppingListScreen extends ConsumerStatefulWidget {
@@ -46,7 +47,7 @@ class _ShoppingListScreenState extends ConsumerState<ShoppingListScreen> {
       _syncBadgeCount();
     } on DioException catch (e) {
       if (mounted) setState(() {
-        _error = e.response?.data?['detail'] ?? 'Failed to load';
+        _error = e.response?.data?['detail'] ?? LocaleSettings.instance.currentTranslations.common.error;
         _loading = false;
       });
     }
@@ -81,96 +82,41 @@ class _ShoppingListScreenState extends ConsumerState<ShoppingListScreen> {
 
   void _showDetails(ShoppingItem item) {
     final t = context.t;
-    final cs = Theme.of(context).colorScheme;
-    final img = resolveImageUrl(item.imageUrl);
-    String fmt(double v) => v == v.roundToDouble() ? v.toInt().toString() : v.toStringAsFixed(1);
-    final nutrition = [
-      if (item.caloriesPer100g != null) (t.shoppingList.details.calories, '${fmt(item.caloriesPer100g!)} kcal'),
-      if (item.proteinPer100g != null) (t.shoppingList.details.protein, '${fmt(item.proteinPer100g!)} g'),
-      if (item.carbsPer100g != null) (t.shoppingList.details.carbs, '${fmt(item.carbsPer100g!)} g'),
-      if (item.fatPer100g != null) (t.shoppingList.details.fat, '${fmt(item.fatPer100g!)} g'),
-    ];
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (ctx) => SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-          child: StatefulBuilder(
-            builder: (ctx, setSheet) => Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  child: AspectRatio(
-                    aspectRatio: 1.4,
-                    child: img == null
-                        ? Container(color: cs.primary.withAlpha(20), child: Icon(Icons.eco_outlined, size: 72, color: cs.primary))
-                        : CachedNetworkImage(
-                            imageUrl: img, fit: BoxFit.cover,
-                            placeholder: (_, __) => Container(color: cs.primary.withAlpha(20)),
-                            errorWidget: (_, __, ___) => Container(
-                                color: cs.primary.withAlpha(20), child: Icon(Icons.eco_outlined, size: 72, color: cs.primary)),
-                          ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text(capFirst(item.ingredientName),
-                    style: const TextStyle(fontFamily: 'Poppins', fontSize: 22, fontWeight: FontWeight.w700)),
-                const SizedBox(height: 4),
-                Text(t['shoppingList.categories.${item.ingredientCategory}'] as String? ?? item.ingredientCategory,
-                    style: TextStyle(color: cs.primary, fontWeight: FontWeight.w600)),
-                const SizedBox(height: 16),
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.scale_outlined),
-                  title: Text(t.shoppingList.details.quantity),
-                  trailing: Text(item.quantityDisplay, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-                ),
-                if (item.recipeTitle != null)
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: const Icon(Icons.restaurant_menu),
-                    title: Text(t.shoppingList.details.fromRecipe),
-                    subtitle: Text(item.recipeTitle!),
-                    trailing: item.recipeId != null ? const Icon(Icons.chevron_right) : null,
-                    onTap: item.recipeId == null
-                        ? null
-                        : () {
-                            Navigator.pop(ctx);
-                            context.push('/recipe/${item.recipeId}');
-                          },
-                  ),
-                if (nutrition.isNotEmpty) ...[
-                  const SizedBox(height: 8),
-                  Text(t.shoppingList.details.per100g, style: const TextStyle(fontWeight: FontWeight.w700)),
-                  const SizedBox(height: 8),
-                  Row(children: [
-                    for (final n in nutrition)
-                      Expanded(
-                        child: Column(children: [
-                          Text(n.$2, style: const TextStyle(fontWeight: FontWeight.w700)),
-                          Text(n.$1, style: TextStyle(fontSize: 12, color: cs.onSurface.withAlpha(150))),
-                        ]),
-                      ),
-                  ]),
-                ],
-                const SizedBox(height: 20),
-                FilledButton.icon(
-                  icon: Icon(item.isChecked ? Icons.undo : Icons.check),
-                  label: Text(item.isChecked ? t.shoppingList.details.unmark : t.shoppingList.details.markBought),
-                  onPressed: () {
+    showIngredientDetails(
+      context,
+      name: item.ingredientName,
+      imageUrl: resolveImageUrl(item.imageUrl),
+      category: item.ingredientCategory,
+      quantity: item.quantityDisplay,
+      caloriesPer100g: item.caloriesPer100g,
+      proteinPer100g: item.proteinPer100g,
+      carbsPer100g: item.carbsPer100g,
+      fatPer100g: item.fatPer100g,
+      actions: (ctx) => [
+        if (item.recipeTitle != null)
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.restaurant_menu),
+            title: Text(t.shoppingList.details.fromRecipe),
+            subtitle: Text(item.recipeTitle!),
+            trailing: item.recipeId != null ? const Icon(Icons.chevron_right) : null,
+            onTap: item.recipeId == null
+                ? null
+                : () {
                     Navigator.pop(ctx);
-                    _toggle(item);
+                    context.push('/recipe/${item.recipeId}');
                   },
-                ),
-              ],
-            ),
           ),
+        const SizedBox(height: 20),
+        FilledButton.icon(
+          icon: Icon(item.isChecked ? Icons.undo : Icons.check),
+          label: Text(item.isChecked ? t.shoppingList.details.unmark : t.shoppingList.details.markBought),
+          onPressed: () {
+            Navigator.pop(ctx);
+            _toggle(item);
+          },
         ),
-      ),
+      ],
     );
   }
 
@@ -200,12 +146,12 @@ class _ShoppingListScreenState extends ConsumerState<ShoppingListScreen> {
 
     if (_error != null) {
       return Scaffold(
-        appBar: AppBar(title: Text(t.shoppingList.title, style: const TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w700))),
+        appBar: AppBar(title: Text(t.shoppingList.title)),
         body: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.error_outline, size: 48, color: Colors.red),
+              Icon(Icons.error_outline, size: 48, color: Theme.of(context).colorScheme.error),
               const SizedBox(height: 8),
               Text(_error!),
               const SizedBox(height: 16),
@@ -218,7 +164,7 @@ class _ShoppingListScreenState extends ConsumerState<ShoppingListScreen> {
 
     if (_list == null || _list!.items.isEmpty) {
       return Scaffold(
-        appBar: AppBar(title: Text(t.shoppingList.title, style: const TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w700))),
+        appBar: AppBar(title: Text(t.shoppingList.title)),
         body: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -241,8 +187,8 @@ class _ShoppingListScreenState extends ConsumerState<ShoppingListScreen> {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(t.shoppingList.title, style: const TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w700)),
-            Text(t.shoppingList.itemsCount(checked: checked, total: total), style: TextStyle(fontSize: 12, color: cs.onSurface.withAlpha(160))),
+            Text(t.shoppingList.title),
+            Text(t.shoppingList.itemsCount(checked: checked, total: total), style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
           ],
         ),
         actions: [
@@ -261,25 +207,48 @@ class _ShoppingListScreenState extends ConsumerState<ShoppingListScreen> {
                 style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12, color: cs.primary, letterSpacing: 0.5),
               ),
             ),
-            ...entry.value.map((item) => ListTile(
-              onTap: () => _showDetails(item),
-              dense: true,
-              contentPadding: const EdgeInsets.only(left: 4, right: 16),
-              leading: Row(mainAxisSize: MainAxisSize.min, children: [
-                Checkbox(value: item.isChecked, onChanged: (_) => _toggle(item), activeColor: cs.primary),
-                Opacity(
-                  opacity: item.isChecked ? 0.4 : 1,
-                  child: _ItemThumb(url: resolveImageUrl(item.imageUrl)),
-                ),
-              ]),
-              title: Text(
-                capFirst(item.ingredientName),
-                style: TextStyle(
-                  decoration: item.isChecked ? TextDecoration.lineThrough : null,
-                  color: item.isChecked ? Colors.grey : null,
-                ),
+            ...entry.value.map((item) => InkWell(
+              // tap anywhere on the row to mark / unmark it
+              onTap: () => _toggle(item),
+              child: Padding(
+                padding: const EdgeInsets.only(left: 4),
+                child: Row(children: [
+                  Checkbox(value: item.isChecked, onChanged: (_) => _toggle(item), activeColor: cs.primary),
+                  Expanded(
+                    child: Text(
+                      capFirst(item.ingredientName),
+                      style: TextStyle(
+                        fontSize: 15,
+                        decoration: item.isChecked ? TextDecoration.lineThrough : null,
+                        color: item.isChecked ? Colors.grey : null,
+                      ),
+                    ),
+                  ),
+                  Text(item.quantityDisplay, style: const TextStyle(color: Colors.grey, fontSize: 13)),
+                  const SizedBox(width: 8),
+                  // dedicated zone for the ingredient details: photo + info icon
+                  Material(
+                    color: item.isChecked ? cs.surfaceContainerLow : cs.surfaceContainer,
+                    borderRadius: BorderRadius.circular(12),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(12),
+                      onTap: () => _showDetails(item),
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(4, 4, 6, 4),
+                        child: Row(mainAxisSize: MainAxisSize.min, children: [
+                          Opacity(
+                            opacity: item.isChecked ? 0.4 : 1,
+                            child: _ItemThumb(url: resolveImageUrl(item.imageUrl)),
+                          ),
+                          const SizedBox(width: 4),
+                          Icon(Icons.info_outline, size: 18, color: cs.primary),
+                        ]),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                ]),
               ),
-              trailing: Text(item.quantityDisplay, style: const TextStyle(color: Colors.grey, fontSize: 13)),
             )),
             const Divider(height: 1),
           ],
@@ -298,7 +267,7 @@ class _ItemThumb extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
     final placeholder = Container(
       width: 40, height: 40,
-      color: cs.primary.withAlpha(20),
+      color: cs.surfaceContainerHigh,
       child: Icon(Icons.eco_outlined, size: 20, color: cs.primary),
     );
     return ClipRRect(

@@ -144,16 +144,13 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Icon(Icons.eco, size: 48, color: cs.primary),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Join PlateFlow',
-                      style: theme.textTheme.headlineSmall?.copyWith(
-                        fontFamily: 'Poppins',
-                        fontWeight: FontWeight.w700,
-                        color: cs.primary,
-                      ),
+                    Text.rich(
+                      TextSpan(children: [
+                        TextSpan(text: 'PlateFlow', style: TextStyle(color: cs.onSurface)),
+                        TextSpan(text: '.', style: TextStyle(color: cs.primary)),
+                      ]),
                       textAlign: TextAlign.center,
+                      style: const TextStyle(fontFamily: 'Lora', fontSize: 34, fontWeight: FontWeight.w700, letterSpacing: -0.5),
                     ),
                     const SizedBox(height: 32),
                     TextFormField(
@@ -288,7 +285,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                           padding: const EdgeInsets.symmetric(horizontal: 12),
                           child: Text('or',
                               style: theme.textTheme.bodySmall?.copyWith(
-                                  color: cs.onSurface.withAlpha(130))),
+                                  color: cs.onSurfaceVariant)),
                         ),
                         const Expanded(child: Divider()),
                       ],
@@ -306,7 +303,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                                 child: CircularProgressIndicator(strokeWidth: 2),
                               )
                             : const GoogleLogo(),
-                        label: const Text('Continue with Google',
+                        label: Text(LocaleSettings.instance.currentTranslations.auth.continueWithGoogle,
                             style: TextStyle(fontSize: 15)),
                       ),
                     ),

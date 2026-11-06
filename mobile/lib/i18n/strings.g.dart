@@ -4,9 +4,9 @@
 /// To regenerate, run: `dart run slang`
 ///
 /// Locales: 2
-/// Strings: 322 (161 per locale)
+/// Strings: 400 (200 per locale)
 ///
-/// Built on 2026-11-05 at 21:35 UTC
+/// Built on 2026-11-06 at 05:58 UTC
 
 // coverage:ignore-file
 // ignore_for_file: type=lint
@@ -199,6 +199,8 @@ class _StringsHomeEn {
 	String get weeklyTitle => 'This Week\'s Picks';
 	String get trending => 'Trending Now';
 	String get quickMeals => 'Quick Meals';
+	String get favorites => 'Your favourites';
+	String get seeAll => 'See all';
 }
 
 // Path: recipe
@@ -221,6 +223,7 @@ class _StringsRecipeEn {
 	String get addToMealPlan => 'Add to Meal Plan';
 	String get addToShoppingList => 'Add to Shopping List';
 	String get startCooking => 'Start Cooking';
+	late final _StringsRecipeNutritionEn nutrition = _StringsRecipeNutritionEn._(_root);
 }
 
 // Path: explore
@@ -242,6 +245,7 @@ class _StringsExploreEn {
 	String get findRecipes => 'Find Recipes';
 	String get premiumOnly => 'Premium Feature';
 	String get premiumOnlyDesc => 'Upgrade to Premium to search recipes by ingredients';
+	String get randomMeal => 'Random meal';
 }
 
 // Path: mealPlan
@@ -257,6 +261,8 @@ class _StringsMealPlanEn {
 	late final _StringsMealPlanDaysEn days = _StringsMealPlanDaysEn._(_root);
 	late final _StringsMealPlanMealTypesEn mealTypes = _StringsMealPlanMealTypesEn._(_root);
 	String get viewPlan => 'View Plan';
+	String get removeTitle => 'Remove recipe';
+	String removeConfirm({required Object title}) => 'Remove "${title}" from your meal plan?';
 }
 
 // Path: shoppingList
@@ -355,6 +361,29 @@ class _StringsSubscriptionEn {
 	String get premium => 'Premium';
 	String get upgrade => 'Upgrade to Premium';
 	String get comingSoon => 'Payment coming soon!';
+	String get title => 'Choose a plan';
+	String get heading => 'Upgrade PlateFlow';
+	String get subtitle => 'Choose the plan that works for you';
+	String get forever => 'Forever';
+	String get trialPeriod => '14 days';
+	String get perMonth => 'per month';
+	String get freeFeature1 => '5 recipes for the next 7 days';
+	String get freeFeature2 => 'Plan ahead only — no history';
+	String get freeFeature3 => 'Basic search';
+	String get unlimitedRecipes => 'Unlimited recipes';
+	String get unlimitedPlans => 'Unlimited meal plans';
+	String get shoppingExport => 'Shopping list export';
+	String get delivery => 'Delivery integration';
+	String get prioritySupport => 'Priority support';
+	String get currentPlan => 'Current plan';
+	String get trialUsed => 'Trial used';
+	String get startTrial => 'Start trial';
+	String get getPremium => 'Get Premium';
+	String get premiumActivated => 'Premium activated!';
+	String get trialStarted => '14-day trial started!';
+	String get active => 'Active';
+	String get popular => 'Popular';
+	String get upgradeShort => 'Upgrade';
 }
 
 // Path: auth
@@ -372,6 +401,8 @@ class _StringsAuthEn {
 	String get forgotPassword => 'Forgot password?';
 	String get noAccount => 'Don\'t have an account?';
 	String get haveAccount => 'Already have an account?';
+	String get continueWithGoogle => 'Continue with Google';
+	String get or => 'or';
 }
 
 // Path: common
@@ -439,6 +470,24 @@ class _StringsRecipeDifficultyEn {
 	String get easy => 'Easy';
 	String get medium => 'Medium';
 	String get hard => 'Hard';
+}
+
+// Path: recipe.nutrition
+class _StringsRecipeNutritionEn {
+	_StringsRecipeNutritionEn._(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+	String get title => 'Nutrition per serving';
+	String get calories => 'Calories';
+	String get protein => 'Protein';
+	String get carbs => 'Carbs';
+	String get fat => 'Fat';
+	String get fiber => 'Fiber';
+	String get sugar => 'Sugar';
+	String get saturatedFat => 'Saturated fat';
+	String get sodium => 'Sodium';
 }
 
 // Path: mealPlan.days
@@ -586,6 +635,8 @@ class _StringsHomeBg implements _StringsHomeEn {
 	@override String get weeklyTitle => 'Предложения за седмицата';
 	@override String get trending => 'Популярни';
 	@override String get quickMeals => 'Бързи ястия';
+	@override String get favorites => 'Любими рецепти';
+	@override String get seeAll => 'Виж всички';
 }
 
 // Path: recipe
@@ -608,6 +659,7 @@ class _StringsRecipeBg implements _StringsRecipeEn {
 	@override String get addToMealPlan => 'Добави към план';
 	@override String get addToShoppingList => 'Добави към списъка';
 	@override String get startCooking => 'Започни готвене';
+	@override late final _StringsRecipeNutritionBg nutrition = _StringsRecipeNutritionBg._(_root);
 }
 
 // Path: explore
@@ -629,6 +681,7 @@ class _StringsExploreBg implements _StringsExploreEn {
 	@override String get findRecipes => 'Намери рецепти';
 	@override String get premiumOnly => 'Премиум функция';
 	@override String get premiumOnlyDesc => 'Надгради до Премиум, за да търсиш по съставки';
+	@override String get randomMeal => 'Случайна рецепта';
 }
 
 // Path: mealPlan
@@ -644,6 +697,8 @@ class _StringsMealPlanBg implements _StringsMealPlanEn {
 	@override late final _StringsMealPlanDaysBg days = _StringsMealPlanDaysBg._(_root);
 	@override late final _StringsMealPlanMealTypesBg mealTypes = _StringsMealPlanMealTypesBg._(_root);
 	@override String get viewPlan => 'Виж план';
+	@override String get removeTitle => 'Премахни рецепта';
+	@override String removeConfirm({required Object title}) => 'Да премахна ли „${title}“ от хранителния план?';
 }
 
 // Path: shoppingList
@@ -742,6 +797,29 @@ class _StringsSubscriptionBg implements _StringsSubscriptionEn {
 	@override String get premium => 'Премиум';
 	@override String get upgrade => 'Надгради до Премиум';
 	@override String get comingSoon => 'Плащането идва скоро!';
+	@override String get title => 'Избери план';
+	@override String get heading => 'Надгради PlateFlow';
+	@override String get subtitle => 'Избери плана, който ти пасва';
+	@override String get forever => 'Завинаги';
+	@override String get trialPeriod => '14 дни';
+	@override String get perMonth => 'на месец';
+	@override String get freeFeature1 => '5 рецепти за следващите 7 дни';
+	@override String get freeFeature2 => 'Само планиране напред — без история';
+	@override String get freeFeature3 => 'Основно търсене';
+	@override String get unlimitedRecipes => 'Неограничени рецепти';
+	@override String get unlimitedPlans => 'Неограничени хранителни планове';
+	@override String get shoppingExport => 'Експорт на списъка за пазаруване';
+	@override String get delivery => 'Интеграция с доставка';
+	@override String get prioritySupport => 'Приоритетна поддръжка';
+	@override String get currentPlan => 'Текущ план';
+	@override String get trialUsed => 'Пробният период е използван';
+	@override String get startTrial => 'Започни пробен период';
+	@override String get getPremium => 'Вземи Премиум';
+	@override String get premiumActivated => 'Премиум е активиран!';
+	@override String get trialStarted => 'Започна 14-дневен пробен период!';
+	@override String get active => 'Активен';
+	@override String get popular => 'Най-избиран';
+	@override String get upgradeShort => 'Надгради';
 }
 
 // Path: auth
@@ -759,6 +837,8 @@ class _StringsAuthBg implements _StringsAuthEn {
 	@override String get forgotPassword => 'Забравена парола?';
 	@override String get noAccount => 'Нямаш акаунт?';
 	@override String get haveAccount => 'Вече имаш акаунт?';
+	@override String get continueWithGoogle => 'Продължи с Google';
+	@override String get or => 'или';
 }
 
 // Path: common
@@ -826,6 +906,24 @@ class _StringsRecipeDifficultyBg implements _StringsRecipeDifficultyEn {
 	@override String get easy => 'Лесно';
 	@override String get medium => 'Средно';
 	@override String get hard => 'Трудно';
+}
+
+// Path: recipe.nutrition
+class _StringsRecipeNutritionBg implements _StringsRecipeNutritionEn {
+	_StringsRecipeNutritionBg._(this._root);
+
+	@override final _StringsBg _root; // ignore: unused_field
+
+	// Translations
+	@override String get title => 'Хранителни стойности на порция';
+	@override String get calories => 'Калории';
+	@override String get protein => 'Протеин';
+	@override String get carbs => 'Въглехидрати';
+	@override String get fat => 'Мазнини';
+	@override String get fiber => 'Фибри';
+	@override String get sugar => 'Захари';
+	@override String get saturatedFat => 'Наситени мазнини';
+	@override String get sodium => 'Натрий';
 }
 
 // Path: mealPlan.days
@@ -913,6 +1011,8 @@ extension on Translations {
 			case 'home.weeklyTitle': return 'This Week\'s Picks';
 			case 'home.trending': return 'Trending Now';
 			case 'home.quickMeals': return 'Quick Meals';
+			case 'home.favorites': return 'Your favourites';
+			case 'home.seeAll': return 'See all';
 			case 'recipe.ingredients': return 'Ingredients';
 			case 'recipe.steps': return 'Steps';
 			case 'recipe.servings': return ({required Object count}) => '${count} serving(s)';
@@ -928,6 +1028,15 @@ extension on Translations {
 			case 'recipe.addToMealPlan': return 'Add to Meal Plan';
 			case 'recipe.addToShoppingList': return 'Add to Shopping List';
 			case 'recipe.startCooking': return 'Start Cooking';
+			case 'recipe.nutrition.title': return 'Nutrition per serving';
+			case 'recipe.nutrition.calories': return 'Calories';
+			case 'recipe.nutrition.protein': return 'Protein';
+			case 'recipe.nutrition.carbs': return 'Carbs';
+			case 'recipe.nutrition.fat': return 'Fat';
+			case 'recipe.nutrition.fiber': return 'Fiber';
+			case 'recipe.nutrition.sugar': return 'Sugar';
+			case 'recipe.nutrition.saturatedFat': return 'Saturated fat';
+			case 'recipe.nutrition.sodium': return 'Sodium';
 			case 'explore.searchHint': return 'Search recipes, ingredients...';
 			case 'explore.categories': return 'Categories';
 			case 'explore.cuisines': return 'Cuisines';
@@ -940,6 +1049,7 @@ extension on Translations {
 			case 'explore.findRecipes': return 'Find Recipes';
 			case 'explore.premiumOnly': return 'Premium Feature';
 			case 'explore.premiumOnlyDesc': return 'Upgrade to Premium to search recipes by ingredients';
+			case 'explore.randomMeal': return 'Random meal';
 			case 'mealPlan.title': return 'Meal Plan';
 			case 'mealPlan.generateShoppingList': return 'Generate Shopping List';
 			case 'mealPlan.addMeal': return 'Add Meal';
@@ -955,6 +1065,8 @@ extension on Translations {
 			case 'mealPlan.mealTypes.dinner': return 'Dinner';
 			case 'mealPlan.mealTypes.snack': return 'Snack';
 			case 'mealPlan.viewPlan': return 'View Plan';
+			case 'mealPlan.removeTitle': return 'Remove recipe';
+			case 'mealPlan.removeConfirm': return ({required Object title}) => 'Remove "${title}" from your meal plan?';
 			case 'shoppingList.title': return 'Shopping List';
 			case 'shoppingList.empty': return 'No items yet. Generate from your meal plan!';
 			case 'shoppingList.clearChecked': return 'Clear Checked';
@@ -1020,6 +1132,29 @@ extension on Translations {
 			case 'subscription.premium': return 'Premium';
 			case 'subscription.upgrade': return 'Upgrade to Premium';
 			case 'subscription.comingSoon': return 'Payment coming soon!';
+			case 'subscription.title': return 'Choose a plan';
+			case 'subscription.heading': return 'Upgrade PlateFlow';
+			case 'subscription.subtitle': return 'Choose the plan that works for you';
+			case 'subscription.forever': return 'Forever';
+			case 'subscription.trialPeriod': return '14 days';
+			case 'subscription.perMonth': return 'per month';
+			case 'subscription.freeFeature1': return '5 recipes for the next 7 days';
+			case 'subscription.freeFeature2': return 'Plan ahead only — no history';
+			case 'subscription.freeFeature3': return 'Basic search';
+			case 'subscription.unlimitedRecipes': return 'Unlimited recipes';
+			case 'subscription.unlimitedPlans': return 'Unlimited meal plans';
+			case 'subscription.shoppingExport': return 'Shopping list export';
+			case 'subscription.delivery': return 'Delivery integration';
+			case 'subscription.prioritySupport': return 'Priority support';
+			case 'subscription.currentPlan': return 'Current plan';
+			case 'subscription.trialUsed': return 'Trial used';
+			case 'subscription.startTrial': return 'Start trial';
+			case 'subscription.getPremium': return 'Get Premium';
+			case 'subscription.premiumActivated': return 'Premium activated!';
+			case 'subscription.trialStarted': return '14-day trial started!';
+			case 'subscription.active': return 'Active';
+			case 'subscription.popular': return 'Popular';
+			case 'subscription.upgradeShort': return 'Upgrade';
 			case 'auth.login': return 'Sign In';
 			case 'auth.register': return 'Create Account';
 			case 'auth.email': return 'Email';
@@ -1028,6 +1163,8 @@ extension on Translations {
 			case 'auth.forgotPassword': return 'Forgot password?';
 			case 'auth.noAccount': return 'Don\'t have an account?';
 			case 'auth.haveAccount': return 'Already have an account?';
+			case 'auth.continueWithGoogle': return 'Continue with Google';
+			case 'auth.or': return 'or';
 			case 'common.loading': return 'Loading...';
 			case 'common.error': return 'Something went wrong';
 			case 'common.retry': return 'Retry';
@@ -1082,6 +1219,8 @@ extension on _StringsBg {
 			case 'home.weeklyTitle': return 'Предложения за седмицата';
 			case 'home.trending': return 'Популярни';
 			case 'home.quickMeals': return 'Бързи ястия';
+			case 'home.favorites': return 'Любими рецепти';
+			case 'home.seeAll': return 'Виж всички';
 			case 'recipe.ingredients': return 'Съставки';
 			case 'recipe.steps': return 'Стъпки';
 			case 'recipe.servings': return ({required Object count}) => '${count} порция/и';
@@ -1097,6 +1236,15 @@ extension on _StringsBg {
 			case 'recipe.addToMealPlan': return 'Добави към план';
 			case 'recipe.addToShoppingList': return 'Добави към списъка';
 			case 'recipe.startCooking': return 'Започни готвене';
+			case 'recipe.nutrition.title': return 'Хранителни стойности на порция';
+			case 'recipe.nutrition.calories': return 'Калории';
+			case 'recipe.nutrition.protein': return 'Протеин';
+			case 'recipe.nutrition.carbs': return 'Въглехидрати';
+			case 'recipe.nutrition.fat': return 'Мазнини';
+			case 'recipe.nutrition.fiber': return 'Фибри';
+			case 'recipe.nutrition.sugar': return 'Захари';
+			case 'recipe.nutrition.saturatedFat': return 'Наситени мазнини';
+			case 'recipe.nutrition.sodium': return 'Натрий';
 			case 'explore.searchHint': return 'Търси рецепти, съставки...';
 			case 'explore.categories': return 'Категории';
 			case 'explore.cuisines': return 'Кухни';
@@ -1109,6 +1257,7 @@ extension on _StringsBg {
 			case 'explore.findRecipes': return 'Намери рецепти';
 			case 'explore.premiumOnly': return 'Премиум функция';
 			case 'explore.premiumOnlyDesc': return 'Надгради до Премиум, за да търсиш по съставки';
+			case 'explore.randomMeal': return 'Случайна рецепта';
 			case 'mealPlan.title': return 'Хранителен план';
 			case 'mealPlan.generateShoppingList': return 'Генерирай списък за пазар';
 			case 'mealPlan.addMeal': return 'Добави ястие';
@@ -1124,6 +1273,8 @@ extension on _StringsBg {
 			case 'mealPlan.mealTypes.dinner': return 'Вечеря';
 			case 'mealPlan.mealTypes.snack': return 'Снакс';
 			case 'mealPlan.viewPlan': return 'Виж план';
+			case 'mealPlan.removeTitle': return 'Премахни рецепта';
+			case 'mealPlan.removeConfirm': return ({required Object title}) => 'Да премахна ли „${title}“ от хранителния план?';
 			case 'shoppingList.title': return 'Списък за пазаруване';
 			case 'shoppingList.empty': return 'Все още няма продукти. Генерирай от плана!';
 			case 'shoppingList.clearChecked': return 'Изчисти отбелязаните';
@@ -1189,6 +1340,29 @@ extension on _StringsBg {
 			case 'subscription.premium': return 'Премиум';
 			case 'subscription.upgrade': return 'Надгради до Премиум';
 			case 'subscription.comingSoon': return 'Плащането идва скоро!';
+			case 'subscription.title': return 'Избери план';
+			case 'subscription.heading': return 'Надгради PlateFlow';
+			case 'subscription.subtitle': return 'Избери плана, който ти пасва';
+			case 'subscription.forever': return 'Завинаги';
+			case 'subscription.trialPeriod': return '14 дни';
+			case 'subscription.perMonth': return 'на месец';
+			case 'subscription.freeFeature1': return '5 рецепти за следващите 7 дни';
+			case 'subscription.freeFeature2': return 'Само планиране напред — без история';
+			case 'subscription.freeFeature3': return 'Основно търсене';
+			case 'subscription.unlimitedRecipes': return 'Неограничени рецепти';
+			case 'subscription.unlimitedPlans': return 'Неограничени хранителни планове';
+			case 'subscription.shoppingExport': return 'Експорт на списъка за пазаруване';
+			case 'subscription.delivery': return 'Интеграция с доставка';
+			case 'subscription.prioritySupport': return 'Приоритетна поддръжка';
+			case 'subscription.currentPlan': return 'Текущ план';
+			case 'subscription.trialUsed': return 'Пробният период е използван';
+			case 'subscription.startTrial': return 'Започни пробен период';
+			case 'subscription.getPremium': return 'Вземи Премиум';
+			case 'subscription.premiumActivated': return 'Премиум е активиран!';
+			case 'subscription.trialStarted': return 'Започна 14-дневен пробен период!';
+			case 'subscription.active': return 'Активен';
+			case 'subscription.popular': return 'Най-избиран';
+			case 'subscription.upgradeShort': return 'Надгради';
 			case 'auth.login': return 'Вход';
 			case 'auth.register': return 'Регистрация';
 			case 'auth.email': return 'Имейл';
@@ -1197,6 +1371,8 @@ extension on _StringsBg {
 			case 'auth.forgotPassword': return 'Забравена парола?';
 			case 'auth.noAccount': return 'Нямаш акаунт?';
 			case 'auth.haveAccount': return 'Вече имаш акаунт?';
+			case 'auth.continueWithGoogle': return 'Продължи с Google';
+			case 'auth.or': return 'или';
 			case 'common.loading': return 'Зарежда...';
 			case 'common.error': return 'Нещо се обърка';
 			case 'common.retry': return 'Опитай пак';

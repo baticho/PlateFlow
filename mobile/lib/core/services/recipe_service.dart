@@ -29,6 +29,15 @@ class RecipeService {
     return response.data as Map<String, dynamic>;
   }
 
+  /// Id of a random published recipe, optionally limited to a category / cuisine.
+  Future<String> getRandomRecipeId({int? categoryId, int? cuisineId}) async {
+    final response = await _dio.get('/api/v1/recipes/random', queryParameters: {
+      if (categoryId != null) 'category_id': categoryId,
+      if (cuisineId != null) 'cuisine_id': cuisineId,
+    });
+    return (response.data as Map<String, dynamic>)['id'].toString();
+  }
+
   Future<List<Map<String, dynamic>>> getCategories() async {
     final response = await _dio.get('/api/v1/categories/');
     return (response.data as List).cast<Map<String, dynamic>>();

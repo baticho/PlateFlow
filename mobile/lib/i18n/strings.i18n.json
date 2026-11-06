@@ -12,7 +12,9 @@
   "home": {
     "weeklyTitle": "This Week's Picks",
     "trending": "Trending Now",
-    "quickMeals": "Quick Meals"
+    "quickMeals": "Quick Meals",
+    "favorites": "Your favourites",
+    "seeAll": "See all"
   },
   "recipe": {
     "ingredients": "Ingredients",
@@ -31,7 +33,18 @@
     "noSteps": "No steps available.",
     "addToMealPlan": "Add to Meal Plan",
     "addToShoppingList": "Add to Shopping List",
-    "startCooking": "Start Cooking"
+    "startCooking": "Start Cooking",
+    "nutrition": {
+      "title": "Nutrition per serving",
+      "calories": "Calories",
+      "protein": "Protein",
+      "carbs": "Carbs",
+      "fat": "Fat",
+      "fiber": "Fiber",
+      "sugar": "Sugar",
+      "saturatedFat": "Saturated fat",
+      "sodium": "Sodium"
+    }
   },
   "explore": {
     "searchHint": "Search recipes, ingredients...",
@@ -45,7 +58,8 @@
     "ingredientHint": "Type an ingredient...",
     "findRecipes": "Find Recipes",
     "premiumOnly": "Premium Feature",
-    "premiumOnlyDesc": "Upgrade to Premium to search recipes by ingredients"
+    "premiumOnlyDesc": "Upgrade to Premium to search recipes by ingredients",
+    "randomMeal": "Random meal"
   },
   "mealPlan": {
     "title": "Meal Plan",
@@ -66,7 +80,9 @@
       "dinner": "Dinner",
       "snack": "Snack"
     },
-    "viewPlan": "View Plan"
+    "viewPlan": "View Plan",
+    "removeTitle": "Remove recipe",
+    "removeConfirm": "Remove \"$title\" from your meal plan?"
   },
   "shoppingList": {
     "title": "Shopping List",
@@ -147,7 +163,30 @@
     "trial": "Trial",
     "premium": "Premium",
     "upgrade": "Upgrade to Premium",
-    "comingSoon": "Payment coming soon!"
+    "comingSoon": "Payment coming soon!",
+    "title": "Choose a plan",
+    "heading": "Upgrade PlateFlow",
+    "subtitle": "Choose the plan that works for you",
+    "forever": "Forever",
+    "trialPeriod": "14 days",
+    "perMonth": "per month",
+    "freeFeature1": "5 recipes for the next 7 days",
+    "freeFeature2": "Plan ahead only — no history",
+    "freeFeature3": "Basic search",
+    "unlimitedRecipes": "Unlimited recipes",
+    "unlimitedPlans": "Unlimited meal plans",
+    "shoppingExport": "Shopping list export",
+    "delivery": "Delivery integration",
+    "prioritySupport": "Priority support",
+    "currentPlan": "Current plan",
+    "trialUsed": "Trial used",
+    "startTrial": "Start trial",
+    "getPremium": "Get Premium",
+    "premiumActivated": "Premium activated!",
+    "trialStarted": "14-day trial started!",
+    "active": "Active",
+    "popular": "Popular",
+    "upgradeShort": "Upgrade"
   },
   "auth": {
     "login": "Sign In",
@@ -157,7 +196,9 @@
     "fullName": "Full Name",
     "forgotPassword": "Forgot password?",
     "noAccount": "Don't have an account?",
-    "haveAccount": "Already have an account?"
+    "haveAccount": "Already have an account?",
+    "continueWithGoogle": "Continue with Google",
+    "or": "or"
   },
   "common": {
     "loading": "Loading...",

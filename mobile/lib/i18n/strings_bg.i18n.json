@@ -12,7 +12,9 @@
   "home": {
     "weeklyTitle": "Предложения за седмицата",
     "trending": "Популярни",
-    "quickMeals": "Бързи ястия"
+    "quickMeals": "Бързи ястия",
+    "favorites": "Любими рецепти",
+    "seeAll": "Виж всички"
   },
   "recipe": {
     "ingredients": "Съставки",
@@ -31,7 +33,18 @@
     "noSteps": "Няма налични стъпки.",
     "addToMealPlan": "Добави към план",
     "addToShoppingList": "Добави към списъка",
-    "startCooking": "Започни готвене"
+    "startCooking": "Започни готвене",
+    "nutrition": {
+      "title": "Хранителни стойности на порция",
+      "calories": "Калории",
+      "protein": "Протеин",
+      "carbs": "Въглехидрати",
+      "fat": "Мазнини",
+      "fiber": "Фибри",
+      "sugar": "Захари",
+      "saturatedFat": "Наситени мазнини",
+      "sodium": "Натрий"
+    }
   },
   "explore": {
     "searchHint": "Търси рецепти, съставки...",
@@ -45,7 +58,8 @@
     "ingredientHint": "Въведи съставка...",
     "findRecipes": "Намери рецепти",
     "premiumOnly": "Премиум функция",
-    "premiumOnlyDesc": "Надгради до Премиум, за да търсиш по съставки"
+    "premiumOnlyDesc": "Надгради до Премиум, за да търсиш по съставки",
+    "randomMeal": "Случайна рецепта"
   },
   "mealPlan": {
     "title": "Хранителен план",
@@ -66,7 +80,9 @@
       "dinner": "Вечеря",
       "snack": "Снакс"
     },
-    "viewPlan": "Виж план"
+    "viewPlan": "Виж план",
+    "removeTitle": "Премахни рецепта",
+    "removeConfirm": "Да премахна ли „$title“ от хранителния план?"
   },
   "shoppingList": {
     "title": "Списък за пазаруване",
@@ -147,7 +163,30 @@
     "trial": "Пробен",
     "premium": "Премиум",
     "upgrade": "Надгради до Премиум",
-    "comingSoon": "Плащането идва скоро!"
+    "comingSoon": "Плащането идва скоро!",
+    "title": "Избери план",
+    "heading": "Надгради PlateFlow",
+    "subtitle": "Избери плана, който ти пасва",
+    "forever": "Завинаги",
+    "trialPeriod": "14 дни",
+    "perMonth": "на месец",
+    "freeFeature1": "5 рецепти за следващите 7 дни",
+    "freeFeature2": "Само планиране напред — без история",
+    "freeFeature3": "Основно търсене",
+    "unlimitedRecipes": "Неограничени рецепти",
+    "unlimitedPlans": "Неограничени хранителни планове",
+    "shoppingExport": "Експорт на списъка за пазаруване",
+    "delivery": "Интеграция с доставка",
+    "prioritySupport": "Приоритетна поддръжка",
+    "currentPlan": "Текущ план",
+    "trialUsed": "Пробният период е използван",
+    "startTrial": "Започни пробен период",
+    "getPremium": "Вземи Премиум",
+    "premiumActivated": "Премиум е активиран!",
+    "trialStarted": "Започна 14-дневен пробен период!",
+    "active": "Активен",
+    "popular": "Най-избиран",
+    "upgradeShort": "Надгради"
   },
   "auth": {
     "login": "Вход",
@@ -157,7 +196,9 @@
     "fullName": "Пълно име",
     "forgotPassword": "Забравена парола?",
     "noAccount": "Нямаш акаунт?",
-    "haveAccount": "Вече имаш акаунт?"
+    "haveAccount": "Вече имаш акаунт?",
+    "continueWithGoogle": "Продължи с Google",
+    "or": "или"
   },
   "common": {
     "loading": "Зарежда...",

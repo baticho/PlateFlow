@@ -51,21 +51,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   // Logo
-                  Icon(Icons.eco, size: 64, color: cs.primary),
-                  const SizedBox(height: 8),
-                  Text(
-                    'PlateFlow',
-                    style: theme.textTheme.headlineMedium?.copyWith(
-                      fontFamily: 'Poppins',
-                      fontWeight: FontWeight.w700,
-                      color: cs.primary,
-                    ),
+                  Text.rich(
+                    TextSpan(children: [
+                      TextSpan(text: 'PlateFlow', style: TextStyle(color: cs.onSurface)),
+                      TextSpan(text: '.', style: TextStyle(color: cs.primary)),
+                    ]),
+                    style: const TextStyle(fontFamily: 'Lora', fontSize: 40, fontWeight: FontWeight.w700, letterSpacing: -0.5),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     t.auth.login,
                     style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurface.withAlpha(160),
+                      color: theme.colorScheme.onSurfaceVariant,
                     ),
                   ),
                   const SizedBox(height: 40),
@@ -150,9 +147,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             Padding(
                               padding:
                                   const EdgeInsets.symmetric(horizontal: 12),
-                              child: Text('or',
+                              child: Text(t.auth.or,
                                   style: theme.textTheme.bodySmall?.copyWith(
-                                      color: cs.onSurface.withAlpha(130))),
+                                      color: cs.onSurfaceVariant)),
                             ),
                             const Expanded(child: Divider()),
                           ],
@@ -171,7 +168,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                         strokeWidth: 2),
                                   )
                                 : const GoogleLogo(),
-                            label: const Text('Continue with Google',
+                            label: Text(LocaleSettings.instance.currentTranslations.auth.continueWithGoogle,
                                 style: TextStyle(fontSize: 15)),
                           ),
                         ),

@@ -98,7 +98,7 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
       });
     } on DioException catch (e) {
       if (mounted) setState(() {
-        _error = e.response?.data?['detail'] ?? 'Failed to load';
+        _error = e.response?.data?['detail'] ?? LocaleSettings.instance.currentTranslations.common.error;
         _loading = false;
       });
     }
@@ -108,13 +108,13 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Remove Recipe'),
-        content: Text('Remove "${item.recipeTitle}" from your meal plan?'),
+        title: Text(t.mealPlan.removeTitle),
+        content: Text(t.mealPlan.removeConfirm(title: item.recipeTitle)),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(t.common.cancel)),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            style: FilledButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.error),
             child: Text(t.common.delete),
           ),
         ],
@@ -131,8 +131,8 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
     } on DioException catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(e.response?.data?['detail'] ?? 'Failed to remove recipe'),
-        backgroundColor: Colors.red,
+        content: Text(e.response?.data?['detail'] ?? LocaleSettings.instance.currentTranslations.common.error),
+        backgroundColor: Theme.of(context).colorScheme.error,
       ));
     }
   }
@@ -159,13 +159,13 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
     } on DioException catch (e) {
       if (!mounted) return;
       final is403 = e.response?.statusCode == 403;
-      final msg = e.response?.data?['detail'] ?? 'Failed to generate list';
+      final msg = e.response?.data?['detail'] ?? LocaleSettings.instance.currentTranslations.common.error;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(msg.toString()),
-        backgroundColor: is403 ? Theme.of(context).colorScheme.primary : Colors.red,
+        backgroundColor: is403 ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.error,
         action: is403
             ? SnackBarAction(
-                label: 'Upgrade',
+                label: LocaleSettings.instance.currentTranslations.subscription.upgradeShort,
                 textColor: Colors.white,
                 onPressed: () => context.push('/subscription'),
               )
@@ -250,7 +250,7 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
         title: FittedBox(
           fit: BoxFit.scaleDown,
           alignment: Alignment.centerLeft,
-          child: Text(t.mealPlan.title, maxLines: 1, style: const TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w700)),
+          child: Text(t.mealPlan.title, maxLines: 1),
         ),
         actions: [
           if (!isFree)
@@ -285,7 +285,7 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.error_outline, size: 48, color: Colors.red),
+          Icon(Icons.error_outline, size: 48, color: Theme.of(context).colorScheme.error),
           const SizedBox(height: 8),
           Text(_error!),
           const SizedBox(height: 16),
@@ -340,11 +340,11 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
         ),
         // Day selector
         Container(
-          height: 76,
+          height: 80,
           color: cs.surface,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             itemCount: 7,
             itemBuilder: (context, idx) {
               final date = days[idx];
@@ -355,14 +355,11 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
                 onTap: () => setState(() => _selectedOffset = idx),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
-                  margin: const EdgeInsets.symmetric(horizontal: 4),
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                  width: 46,
+                  margin: const EdgeInsets.symmetric(horizontal: 3),
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(24),
-                    color: isSelected ? cs.primary : cs.primary.withAlpha(15),
-                    border: isToday && !isSelected
-                        ? Border.all(color: cs.primary, width: 1.5)
-                        : null,
+                    borderRadius: BorderRadius.circular(12),
+                    color: isSelected ? cs.onSurface : null,
                   ),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -370,16 +367,29 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
                       Text(
                         dayLabel,
                         style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          color: isSelected ? Colors.white : cs.primary,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: isSelected ? cs.surface.withAlpha(200) : cs.onSurfaceVariant,
                         ),
                       ),
+                      const SizedBox(height: 2),
                       Text(
                         '${date.day}',
                         style: TextStyle(
-                          fontSize: 12,
-                          color: isSelected ? Colors.white70 : cs.primary.withAlpha(180),
+                          fontFamily: 'Lora',
+                          fontSize: 19,
+                          fontWeight: FontWeight.w600,
+                          color: isSelected ? cs.surface : cs.onSurface,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      // today marker
+                      Container(
+                        width: 5,
+                        height: 5,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: isToday ? (isSelected ? cs.surface : cs.primary) : Colors.transparent,
                         ),
                       ),
                     ],
@@ -399,7 +409,7 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
               if (v > 300 && _selectedOffset > 0) setState(() => _selectedOffset--);
             },
             child: ListView(
-              padding: const EdgeInsets.all(14),
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
               children: List.generate(3, (i) {
                 final mealType = _mealTypes[i];
                 final items = _itemsForDate(selectedDate, mealType);
@@ -471,46 +481,45 @@ class _MealSlotCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final cardWidth = (MediaQuery.of(context).size.width - 96) / 2;
-    return Card(
-      margin: const EdgeInsets.only(bottom: 10),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(children: [
-              Icon(mealIcon, size: 16, color: cs.primary),
-              const SizedBox(width: 6),
-              Text(mealLabel, style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: cs.primary)),
-            ]),
-            if (items.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: items.map((item) => _RecipeCard(
-                  item: item,
-                  width: cardWidth,
-                  isReadOnly: isReadOnly,
-                  onTap: () => onTapRecipe(item),
-                  onCook: () => onCookRecipe(item),
-                  onRemove: () => onRemoveRecipe(item),
-                )).toList(),
-              ),
-            ],
-            const SizedBox(height: 8),
-            if (!isReadOnly)
-              OutlinedButton.icon(
-                onPressed: onAddRecipe,
-                icon: const Icon(Icons.add, size: 18),
-                label: Text(addLabel),
-                style: OutlinedButton.styleFrom(
-                  side: BorderSide(color: cs.primary.withAlpha(80)),
-                ),
-              ),
+    final cardWidth = (MediaQuery.of(context).size.width - 52) / 2;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 22),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(children: [
+            Icon(mealIcon, size: 18, color: cs.onSurfaceVariant),
+            const SizedBox(width: 8),
+            Text(mealLabel, style: TextStyle(fontFamily: 'Lora', fontWeight: FontWeight.w600, fontSize: 19, color: cs.onSurface)),
+          ]),
+          const SizedBox(height: 10),
+          if (items.isNotEmpty) ...[
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: items.map((item) => _RecipeCard(
+                item: item,
+                width: cardWidth,
+                isReadOnly: isReadOnly,
+                onTap: () => onTapRecipe(item),
+                onCook: () => onCookRecipe(item),
+                onRemove: () => onRemoveRecipe(item),
+              )).toList(),
+            ),
+            const SizedBox(height: 10),
           ],
-        ),
+          if (!isReadOnly)
+            OutlinedButton.icon(
+              onPressed: onAddRecipe,
+              icon: const Icon(Icons.add, size: 18),
+              label: Text(addLabel),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: cs.onSurfaceVariant,
+                side: BorderSide(color: cs.outline),
+                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -541,15 +550,15 @@ class _RecipeCard extends StatelessWidget {
       child: Container(
         width: width,
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(10),
-          color: item.isCompleted ? Colors.grey.withAlpha(30) : cs.primary.withAlpha(10),
-          border: Border.all(color: cs.primary.withAlpha(25)),
+          borderRadius: BorderRadius.circular(12),
+          color: cs.surfaceContainerLowest,
+          border: Border.all(color: cs.outlineVariant),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(10)),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
               child: ColorFiltered(
                 colorFilter: item.isCompleted
                     ? const ColorFilter.matrix(<double>[
@@ -567,13 +576,13 @@ class _RecipeCard extends StatelessWidget {
                         fit: BoxFit.cover,
                         errorWidget: (_, __, ___) => Container(
                           width: width, height: 90,
-                          color: cs.primary.withAlpha(20),
-                          child: Icon(Icons.restaurant, color: cs.primary, size: 32),
+                          color: cs.surfaceContainerHigh,
+                          child: Icon(Icons.restaurant, color: cs.onSurfaceVariant, size: 32),
                         ))
                     : Container(
                         width: width, height: 90,
-                        color: cs.primary.withAlpha(20),
-                        child: Icon(Icons.restaurant, color: cs.primary, size: 32),
+                        color: cs.surfaceContainerHigh,
+                        child: Icon(Icons.restaurant, color: cs.onSurfaceVariant, size: 32),
                       ),
               ),
             ),
@@ -582,17 +591,19 @@ class _RecipeCard extends StatelessWidget {
               child: Row(
                 children: [
                   if (item.isCompleted)
-                    const Padding(
-                      padding: EdgeInsets.only(right: 4),
-                      child: Icon(Icons.check_circle, color: Colors.grey, size: 14),
+                    Padding(
+                      padding: const EdgeInsets.only(right: 4),
+                      child: Icon(Icons.check_circle, color: cs.secondary, size: 14),
                     ),
                   Expanded(
                     child: Text(
                       item.recipeTitle,
                       style: TextStyle(
+                        fontFamily: 'Lora',
                         fontWeight: FontWeight.w600,
-                        fontSize: 12,
-                        color: item.isCompleted ? Colors.grey : null,
+                        fontSize: 13,
+                        height: 1.25,
+                        color: item.isCompleted ? cs.onSurfaceVariant : cs.onSurface,
                       ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
@@ -615,7 +626,7 @@ class _RecipeCard extends StatelessWidget {
                 if (!isReadOnly)
                   IconButton(
                     icon: const Icon(Icons.delete_outline, size: 20),
-                    color: Colors.red,
+                    color: cs.onSurfaceVariant,
                     padding: const EdgeInsets.all(6),
                     constraints: const BoxConstraints(),
                     onPressed: onRemove,

@@ -72,7 +72,7 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen> {
     } on DioException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(_detail(e)), backgroundColor: Colors.red),
+          SnackBar(content: Text(_detail(e)), backgroundColor: Theme.of(context).colorScheme.error),
         );
       }
     } finally {
@@ -89,7 +89,7 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen> {
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(t.family.cancel)),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            style: FilledButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.error),
             onPressed: () => Navigator.pop(ctx, true),
             child: Text(action),
           ),
@@ -104,7 +104,7 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen> {
     final t = context.t;
     return Scaffold(
       appBar: AppBar(
-        title: Text(t.family.title, style: const TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w700)),
+        title: Text(t.family.title),
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
@@ -128,22 +128,20 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen> {
     final cs = Theme.of(context).colorScheme;
     final canCreate = _state!['can_create'] == true;
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
       children: [
-        Icon(Icons.family_restroom, size: 64, color: cs.primary),
-        const SizedBox(height: 12),
-        Text(t.family.intro, textAlign: TextAlign.center, style: TextStyle(color: cs.onSurface.withAlpha(180))),
+        Text(t.family.intro, style: TextStyle(fontSize: 15, height: 1.45, color: cs.onSurfaceVariant)),
         const SizedBox(height: 24),
         Card(
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-              Text(t.family.create, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+              Text(t.family.create, style: const TextStyle(fontFamily: 'Lora', fontWeight: FontWeight.w600, fontSize: 18)),
               const SizedBox(height: 12),
               if (canCreate) ...[
                 TextField(
                   controller: _nameCtrl,
-                  decoration: InputDecoration(labelText: t.family.namePlaceholder, border: const OutlineInputBorder()),
+                  decoration: InputDecoration(labelText: t.family.namePlaceholder),
                 ),
                 const SizedBox(height: 12),
                 FilledButton.icon(
@@ -152,7 +150,7 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen> {
                   onPressed: () => _run(() => _dio.post('/api/v1/family/', data: {'name': _nameCtrl.text})),
                 ),
               ] else ...[
-                Text(t.family.createPremiumOnly, style: TextStyle(color: cs.onSurface.withAlpha(180))),
+                Text(t.family.createPremiumOnly, style: TextStyle(color: cs.onSurfaceVariant)),
                 const SizedBox(height: 12),
                 FilledButton.tonalIcon(
                   icon: const Icon(Icons.star),
@@ -168,14 +166,14 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen> {
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-              Text(t.family.join, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+              Text(t.family.join, style: const TextStyle(fontFamily: 'Lora', fontWeight: FontWeight.w600, fontSize: 18)),
               const SizedBox(height: 4),
-              Text(t.family.joinHint, style: TextStyle(fontSize: 13, color: cs.onSurface.withAlpha(160))),
+              Text(t.family.joinHint, style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant)),
               const SizedBox(height: 12),
               TextField(
                 controller: _codeCtrl,
                 textCapitalization: TextCapitalization.characters,
-                decoration: InputDecoration(labelText: t.family.code, border: const OutlineInputBorder()),
+                decoration: InputDecoration(labelText: t.family.code),
               ),
               const SizedBox(height: 12),
               OutlinedButton.icon(
@@ -202,29 +200,26 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen> {
     final max = _state!['max_members'] ?? 4;
 
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
       children: [
-        Row(children: [
-          Icon(Icons.family_restroom, size: 40, color: cs.primary),
-          const SizedBox(width: 12),
-          Expanded(child: Text(f['name'] as String? ?? '', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700))),
-        ]),
+        Text(f['name'] as String? ?? '',
+            style: TextStyle(fontFamily: 'Lora', fontSize: 26, fontWeight: FontWeight.w600, color: cs.onSurface, height: 1.2)),
         const SizedBox(height: 8),
-        Text(t.family.intro, style: TextStyle(color: cs.onSurface.withAlpha(170))),
+        Text(t.family.intro, style: TextStyle(color: cs.onSurfaceVariant)),
         if (isOwner && code != null) ...[
           const SizedBox(height: 16),
           Card(
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                Text(t.family.inviteTitle, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+                Text(t.family.inviteTitle, style: const TextStyle(fontFamily: 'Lora', fontWeight: FontWeight.w600, fontSize: 18)),
                 const SizedBox(height: 4),
-                Text(t.family.inviteText, style: TextStyle(fontSize: 13, color: cs.onSurface.withAlpha(160))),
+                Text(t.family.inviteText, style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant)),
                 const SizedBox(height: 12),
                 Center(
                   child: SelectableText(
                     code,
-                    style: TextStyle(fontSize: 30, letterSpacing: 6, fontWeight: FontWeight.w800, color: cs.primary),
+                    style: TextStyle(fontFamily: 'Lora', fontSize: 32, letterSpacing: 8, fontWeight: FontWeight.w600, color: cs.onSurface),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -251,9 +246,9 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen> {
         ],
         const SizedBox(height: 16),
         Row(children: [
-          Text(t.family.members, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+          Text(t.family.members, style: const TextStyle(fontFamily: 'Lora', fontWeight: FontWeight.w600, fontSize: 18)),
           const Spacer(),
-          Text(t.family.slotsLeft(count: slotsLeft, max: max), style: TextStyle(fontSize: 13, color: cs.onSurface.withAlpha(160))),
+          Text(t.family.slotsLeft(count: slotsLeft, max: max), style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant)),
         ]),
         const SizedBox(height: 8),
         Card(
@@ -261,16 +256,22 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen> {
             for (final m in members)
               ListTile(
                 leading: CircleAvatar(
-                  backgroundColor: m['is_owner'] == true ? Colors.amber : cs.primary.withAlpha(40),
-                  child: Icon(m['is_owner'] == true ? Icons.star : Icons.person,
-                      color: m['is_owner'] == true ? Colors.white : cs.primary),
+                  backgroundColor: m['is_owner'] == true ? cs.tertiaryContainer : cs.surfaceContainerHigh,
+                  child: Text(
+                    ((m['full_name'] as String?) ?? '?').trim().isEmpty ? '?' : ((m['full_name'] as String).trim()[0]).toUpperCase(),
+                    style: TextStyle(
+                      fontFamily: 'Lora',
+                      fontWeight: FontWeight.w600,
+                      color: m['is_owner'] == true ? cs.onTertiaryContainer : cs.primary,
+                    ),
+                  ),
                 ),
                 title: Text('${m['full_name']}${m['is_me'] == true ? ' (${t.family.you})' : ''}'),
                 subtitle: Text(m['is_owner'] == true ? t.family.owner : (m['email'] as String? ?? '')),
                 trailing: isOwner && m['is_owner'] != true
                     ? IconButton(
                         tooltip: t.family.remove,
-                        icon: const Icon(Icons.person_remove, color: Colors.red),
+                        icon: Icon(Icons.person_remove, color: Theme.of(context).colorScheme.error),
                         onPressed: () async {
                           if (await _confirm(t.family.removeConfirm(name: m['full_name']), t.family.remove)) {
                             _run(() => _dio.delete('/api/v1/family/members/${m['id']}'));
@@ -282,16 +283,16 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen> {
             for (var i = 0; i < slotsLeft; i++)
               ListTile(
                 leading: CircleAvatar(
-                  backgroundColor: cs.onSurface.withAlpha(15),
-                  child: Icon(Icons.person_add_alt, color: cs.onSurface.withAlpha(90)),
+                  backgroundColor: cs.surfaceContainerLow,
+                  child: Icon(Icons.person_add_alt, color: cs.onSurfaceVariant),
                 ),
-                title: Text('—', style: TextStyle(color: cs.onSurface.withAlpha(90))),
+                title: Text('—', style: TextStyle(color: cs.onSurfaceVariant)),
               ),
           ]),
         ),
         const SizedBox(height: 24),
         OutlinedButton.icon(
-          style: OutlinedButton.styleFrom(foregroundColor: Colors.red),
+          style: OutlinedButton.styleFrom(foregroundColor: Theme.of(context).colorScheme.error),
           icon: Icon(isOwner ? Icons.group_off : Icons.logout),
           label: Text(isOwner ? t.family.dissolve : t.family.leave),
           onPressed: () async {
