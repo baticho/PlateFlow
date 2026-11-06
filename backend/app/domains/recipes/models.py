@@ -44,6 +44,15 @@ class Recipe(Base):
         Enum(RecipeStatus), default=RecipeStatus.DRAFT, nullable=False
     )
     image_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # nutrition per serving
+    calories: Mapped[float | None] = mapped_column(Numeric(8, 2), nullable=True)
+    protein_g: Mapped[float | None] = mapped_column(Numeric(8, 2), nullable=True)
+    carbs_g: Mapped[float | None] = mapped_column(Numeric(8, 2), nullable=True)
+    fat_g: Mapped[float | None] = mapped_column(Numeric(8, 2), nullable=True)
+    fiber_g: Mapped[float | None] = mapped_column(Numeric(8, 2), nullable=True)
+    sugar_g: Mapped[float | None] = mapped_column(Numeric(8, 2), nullable=True)
+    saturated_fat_g: Mapped[float | None] = mapped_column(Numeric(8, 2), nullable=True)
+    sodium_mg: Mapped[float | None] = mapped_column(Numeric(8, 2), nullable=True)
     created_by: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id"), nullable=True
     )

@@ -43,6 +43,11 @@ class RecipeIngredientSchema(BaseModel):
     is_optional: bool
     ingredient_translations: list[RecipeIngredientTranslationSchema] = []
     ingredient_image_url: str | None = None
+    ingredient_category: str | None = None
+    calories_per_100g: float | None = None
+    protein_per_100g: float | None = None
+    carbs_per_100g: float | None = None
+    fat_per_100g: float | None = None
 
     model_config = {"from_attributes": True}
 
@@ -50,7 +55,11 @@ class RecipeIngredientSchema(BaseModel):
     @classmethod
     def extract_ingredient_translations(cls, v):
         if hasattr(v, 'ingredient'):
+            ing = v.ingredient
             return {
+                'ingredient_category': ing.category.value if ing else None,
+                **{k: (float(getattr(ing, k)) if ing and getattr(ing, k) is not None else None)
+                   for k in ('calories_per_100g', 'protein_per_100g', 'carbs_per_100g', 'fat_per_100g')},
                 'id': v.id,
                 'ingredient_id': v.ingredient_id,
                 'quantity': float(v.quantity),
@@ -88,6 +97,14 @@ class RecipeDetail(BaseModel):
     difficulty: str
     status: str
     image_url: str | None
+    calories: float | None = None
+    protein_g: float | None = None
+    carbs_g: float | None = None
+    fat_g: float | None = None
+    fiber_g: float | None = None
+    sugar_g: float | None = None
+    saturated_fat_g: float | None = None
+    sodium_mg: float | None = None
     translations: list[RecipeTranslationSchema]
     steps: list[RecipeStepSchema]
     ingredients: list[RecipeIngredientSchema]
