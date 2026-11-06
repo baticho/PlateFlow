@@ -45,9 +45,7 @@ async def login(data: LoginRequest, db: AsyncSession = Depends(get_db)):
 
 @router.post("/google", response_model=TokenResponse)
 async def google_auth(request: Request, data: GoogleAuthRequest, db: AsyncSession = Depends(get_db)):
-    body = await request.body()
-    logger.warning("Google auth body: %s", body.decode())
-    logger.warning("Google auth parsed: id_token=%s access_token=%s", bool(data.id_token), bool(data.access_token))
+    logger.info("Google auth parsed: id_token=%s access_token=%s", bool(data.id_token), bool(data.access_token))
     user = await google_sign_in(
         db,
         id_token_str=data.id_token,

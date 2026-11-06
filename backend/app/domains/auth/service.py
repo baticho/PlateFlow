@@ -1,3 +1,5 @@
+import logging
+
 import requests as http_requests
 from fastapi import HTTPException, status
 from google.auth.transport import requests as google_requests
@@ -14,6 +16,8 @@ from app.core.security import (
     verify_password,
 )
 from app.domains.users.models import LanguageCode, UnitSystem, User
+
+logger = logging.getLogger(__name__)
 
 
 async def register_user(
@@ -86,8 +90,12 @@ async def google_sign_in(
                 id_token_str,
                 google_requests.Request(),
                 settings.GOOGLE_CLIENT_ID,
+                # tolerate small clock drift between this server and Google;
+                # without it a fresh token is rejected as "used too early"
+                clock_skew_in_seconds=30,
             )
-        except ValueError:
+        except ValueError as e:
+            logger.warning("Google id_token rejected: %s", e)
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid Google token",
