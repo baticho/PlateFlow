@@ -52,6 +52,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               fromMealType: state.uri.queryParameters['fromMealType'],
             ),
           ),
+          // a single category opened from Home ("See all"); pushed, so back returns to Home
+          GoRoute(
+            path: '/category/:id',
+            builder: (_, state) => ExploreScreen(initialCategoryId: int.tryParse(state.pathParameters['id'] ?? '')),
+          ),
           GoRoute(path: '/meal-plan', builder: (_, __) => const MealPlanScreen()),
           GoRoute(path: '/shopping-list', builder: (_, __) => const ShoppingListScreen()),
           GoRoute(path: '/profile', builder: (_, __) => const ProfileScreen()),

@@ -22,7 +22,9 @@ class HomeScreen extends ConsumerStatefulWidget {
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   late final RecipeService _service;
   List<RecipeSummary> _suggestions = [];
-  List<RecipeSummary> _quickMeals = [];
+
+  /// (category id, category name, random recipes) — reshuffled by the server on every load
+  List<(int, String, List<RecipeSummary>)> _sections = [];
   List<RecipeSummary> _favorites = [];
   bool _loading = true;
 
@@ -34,7 +36,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   Future<void> _loadAll() async {
-    await Future.wait([_loadSuggestions(), _loadQuickMeals(), _loadFavorites()]);
+    await Future.wait([_loadSuggestions(), _loadSections(), _loadFavorites()]);
     if (mounted) setState(() => _loading = false);
   }
 
@@ -42,9 +44,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     try {
       final lang = ref.read(localeProvider);
       final items = await _service.getFavorites();
-      if (mounted) setState(() {
-        _favorites = items.map((j) => RecipeSummary.fromJson(j, lang: lang)).toList();
-      });
+      if (mounted)
+        setState(() {
+          _favorites =
+              items.map((j) => RecipeSummary.fromJson(j, lang: lang)).toList();
+        });
     } catch (_) {}
   }
 
@@ -52,19 +56,35 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     try {
       final lang = ref.read(localeProvider);
       final items = await _service.getWeeklySuggestions();
-      if (mounted) setState(() {
-        _suggestions = items.map((j) => RecipeSummary.fromJson(j, lang: lang)).toList();
-      });
+      if (mounted)
+        setState(() {
+          _suggestions =
+              items.map((j) => RecipeSummary.fromJson(j, lang: lang)).toList();
+        });
     } catch (_) {}
   }
 
-  Future<void> _loadQuickMeals() async {
+  Future<void> _loadSections() async {
     try {
       final lang = ref.read(localeProvider);
-      final items = await _service.getQuickMeals(count: 6);
-      if (mounted) setState(() {
-        _quickMeals = items.map((j) => RecipeSummary.fromJson(j, lang: lang)).toList();
-      });
+      final raw = await _service.getHomeSections();
+      final sections = <(int, String, List<RecipeSummary>)>[];
+      for (final sec in raw) {
+        final cat = sec['category'] as Map<String, dynamic>;
+        final trs = (cat['translations'] as List).cast<Map<String, dynamic>>();
+        final tr = trs.where((x) => x['language_code'] == lang).firstOrNull ??
+            trs.where((x) => x['language_code'] == 'en').firstOrNull;
+        final recipes = (sec['recipes'] as List)
+            .map((j) =>
+                RecipeSummary.fromJson(j as Map<String, dynamic>, lang: lang))
+            .toList();
+        sections.add((
+          cat['id'] as int,
+          (tr?['name'] as String?) ?? (cat['slug'] as String),
+          recipes
+        ));
+      }
+      if (mounted) setState(() => _sections = sections);
     } catch (_) {}
   }
 
@@ -74,7 +94,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final cs = theme.colorScheme;
     final t = Translations.of(context);
     final weeklyPicks = _suggestions.take(5).toList();
-    final quickMeals = _quickMeals;
 
     ref.listen(localeProvider, (_, __) => _loadAll());
     ref.listen(favoritesRefreshProvider, (_, __) => _loadFavorites());
@@ -82,7 +101,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     // horizontal rows need a fixed height: fit the longest title in the row, shown in full
     const tileWidth = 196.0;
     double rowHeight(List<RecipeSummary> items) =>
-        items.map((r) => recipeTileHeight(context, r.title, tileWidth)).fold(0.0, math.max) + 2;
+        items
+            .map((r) => recipeTileHeight(context, r.title, tileWidth))
+            .fold(0.0, math.max) +
+        2;
     Widget hList(List<RecipeSummary> items) => SizedBox(
           height: rowHeight(items),
           child: ListView.separated(
@@ -90,7 +112,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 20),
             itemCount: items.length,
             separatorBuilder: (_, __) => const SizedBox(width: 14),
-            itemBuilder: (context, idx) => SizedBox(width: tileWidth, child: RecipeTile(recipe: items[idx])),
+            itemBuilder: (context, idx) => SizedBox(
+                width: tileWidth, child: RecipeTile(recipe: items[idx])),
           ),
         );
 
@@ -98,40 +121,63 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       appBar: AppBar(
         titleSpacing: 20,
         title: Text.rich(TextSpan(children: [
-          TextSpan(text: 'PlateFlow', style: TextStyle(fontFamily: 'Lora', fontSize: 26, fontWeight: FontWeight.w700, color: cs.onSurface)),
-          TextSpan(text: '.', style: TextStyle(fontFamily: 'Lora', fontSize: 26, fontWeight: FontWeight.w700, color: cs.primary)),
+          TextSpan(
+              text: 'PlateFlow',
+              style: TextStyle(
+                  fontFamily: 'Lora',
+                  fontSize: 26,
+                  fontWeight: FontWeight.w700,
+                  color: cs.onSurface)),
+          TextSpan(
+              text: '.',
+              style: TextStyle(
+                  fontFamily: 'Lora',
+                  fontSize: 26,
+                  fontWeight: FontWeight.w700,
+                  color: cs.primary)),
         ])),
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
-          : ListView(
-              padding: const EdgeInsets.only(top: 8, bottom: 24),
-              children: [
-                if (weeklyPicks.isNotEmpty) ...[
-                  Padding(padding: const EdgeInsets.symmetric(horizontal: 20), child: SectionHeader(t.home.weeklyTitle)),
-                  const SizedBox(height: 14),
-                  hList(weeklyPicks),
-                  const SizedBox(height: 28),
+          : RefreshIndicator(
+              onRefresh: _loadAll,
+              child: ListView(
+                padding: const EdgeInsets.only(top: 8, bottom: 24),
+                children: [
+                  if (weeklyPicks.isNotEmpty) ...[
+                    Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: SectionHeader(t.home.weeklyTitle)),
+                    const SizedBox(height: 14),
+                    hList(weeklyPicks),
+                    const SizedBox(height: 28),
+                  ],
+                  if (_favorites.isNotEmpty) ...[
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: SectionHeader(t.home.favorites,
+                          actionLabel: t.home.seeAll,
+                          onAction: () => context.push('/favorites')),
+                    ),
+                    const SizedBox(height: 14),
+                    hList(_favorites),
+                    const SizedBox(height: 28),
+                  ],
+                  // one row per category, a random handful each time Home is opened
+                  for (final (id, name, recipes) in _sections) ...[
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: SectionHeader(name,
+                          actionLabel: t.home.seeAll,
+                          onAction: () => context.push('/category/$id')),
+                    ),
+                    const SizedBox(height: 14),
+                    hList(recipes),
+                    const SizedBox(height: 28),
+                  ],
                 ],
-                if (_favorites.isNotEmpty) ...[
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: SectionHeader(t.home.favorites, actionLabel: t.home.seeAll, onAction: () => context.push('/favorites')),
-                  ),
-                  const SizedBox(height: 14),
-                  hList(_favorites),
-                  const SizedBox(height: 28),
-                ],
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: SectionHeader(t.home.quickMeals, actionLabel: t.home.seeAll, onAction: () => context.go('/explore')),
-                ),
-                const SizedBox(height: 14),
-                if (quickMeals.isNotEmpty)
-                  RecipeGrid(recipes: quickMeals, shrinkWrap: true),
-              ],
+              ),
             ),
     );
   }
 }
-

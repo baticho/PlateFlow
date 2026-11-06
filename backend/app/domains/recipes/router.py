@@ -66,6 +66,45 @@ async def get_suggested_recipes(db: AsyncSession = Depends(get_db)):
     return {"items": [s.recipe for s in suggestions]}
 
 
+@router.get("/home-sections")
+async def get_home_sections(
+    per_category: int = Query(10, ge=1, le=30),
+    db: AsyncSession = Depends(get_db),
+):
+    """Every category with a random handful of its published recipes — a fresh mix on each call."""
+    from sqlalchemy import func, select
+    from sqlalchemy.orm import selectinload
+
+    from app.domains.categories.models import Category, recipe_categories
+    from app.domains.recipes.models import Recipe, RecipeStatus
+
+    categories = (await db.execute(
+        select(Category).options(selectinload(Category.translations)).order_by(Category.id)
+    )).scalars().all()
+
+    sections = []
+    for cat in categories:
+        recipes = (await db.execute(
+            select(Recipe)
+            .join(recipe_categories, recipe_categories.c.recipe_id == Recipe.id)
+            .where(recipe_categories.c.category_id == cat.id, Recipe.status == RecipeStatus.PUBLISHED)
+            .options(selectinload(Recipe.translations))
+            .order_by(func.random())
+            .limit(per_category)
+        )).scalars().all()
+        if not recipes:
+            continue
+        sections.append({
+            "category": {
+                "id": cat.id,
+                "slug": cat.slug,
+                "translations": [{"language_code": t.language_code, "name": t.name} for t in cat.translations],
+            },
+            "recipes": recipes,
+        })
+    return {"sections": sections}
+
+
 @router.get("/random")
 async def get_random_recipe(
     category_id: int | None = Query(None),

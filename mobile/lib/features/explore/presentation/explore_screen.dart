@@ -17,7 +17,9 @@ import '../../../i18n/strings.g.dart';
 class ExploreScreen extends ConsumerStatefulWidget {
   final String? fromDate;
   final String? fromMealType;
-  const ExploreScreen({super.key, this.fromDate, this.fromMealType});
+  /// Opened from Home's "See all": show this category straight away; back leaves the screen.
+  final int? initialCategoryId;
+  const ExploreScreen({super.key, this.fromDate, this.fromMealType, this.initialCategoryId});
 
   @override
   ConsumerState<ExploreScreen> createState() => _ExploreScreenState();
@@ -55,6 +57,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
     _recipeService = RecipeService(dio);
     _ingredientService = IngredientService(dio);
     _loadFilters();
+    if (widget.initialCategoryId != null) _filterByCategory(widget.initialCategoryId!);
   }
 
   Future<void> _loadFilters() async {
@@ -345,18 +348,31 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
     ref.listen(localeProvider, (_, __) => _loadFilters());
 
     final inSubView = _searchMode || _ingredientMode;
+    // came straight into a category from Home: back (and the arrow) simply return there
+    final openedFromLink = widget.initialCategoryId != null && _activeCategoryId == widget.initialCategoryId;
+    String? subTitle;
+    if (_searchMode && _activeCategoryId != null) {
+      final cat = _categories.where((c) => c['id'] == _activeCategoryId).firstOrNull;
+      if (cat != null) subTitle = _resolveCategoryName(cat, lang);
+    } else if (_searchMode && _activeCuisineId != null) {
+      final cui = _cuisines.where((c) => c['id'] == _activeCuisineId).firstOrNull;
+      if (cui != null) subTitle = _resolveCuisineName(cui, lang);
+    }
     // system back inside a category / search / ingredient view returns to the browse view, not to Home
     return PopScope(
-      canPop: !inSubView,
+      canPop: !inSubView || openedFromLink,
       onPopInvokedWithResult: (didPop, _) {
-        if (!didPop && inSubView) _clearSearch();
+        if (!didPop && inSubView && !openedFromLink) _clearSearch();
       },
       child: Scaffold(
       appBar: AppBar(
         leading: inSubView
-            ? IconButton(icon: const Icon(Icons.arrow_back), onPressed: _clearSearch)
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: openedFromLink ? () => context.pop() : _clearSearch,
+              )
             : null,
-        title: Text(t.nav.explore),
+        title: Text(subTitle ?? t.nav.explore, maxLines: 1, overflow: TextOverflow.ellipsis),
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 8),

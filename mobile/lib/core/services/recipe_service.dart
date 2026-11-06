@@ -29,6 +29,12 @@ class RecipeService {
     return response.data as Map<String, dynamic>;
   }
 
+  /// Every category with a random handful of recipes (different on every call) for the Home screen.
+  Future<List<Map<String, dynamic>>> getHomeSections({int perCategory = 10}) async {
+    final response = await _dio.get('/api/v1/recipes/home-sections', queryParameters: {'per_category': perCategory});
+    return ((response.data as Map<String, dynamic>)['sections'] as List).cast<Map<String, dynamic>>();
+  }
+
   /// Id of a random published recipe, optionally limited to a category / cuisine.
   Future<String> getRandomRecipeId({int? categoryId, int? cuisineId}) async {
     final response = await _dio.get('/api/v1/recipes/random', queryParameters: {
