@@ -99,6 +99,19 @@ class ShoppingList {
     );
   }
 
+  /// Store walk order: fresh produce first, sauces and spices always last.
+  static const categoryOrder = [
+    'produce', 'canned', 'oils', 'grains', 'baking', 'frozen', 'meat', 'seafood',
+    'dairy', 'other', 'beverages', 'sauces', 'spices',
+  ];
+
+  static int _categoryRank(String c) {
+    final i = categoryOrder.indexOf(c);
+    return i == -1 ? categoryOrder.indexOf('other') : i;
+  }
+
+  /// Rows grouped by category in [categoryOrder]; inside a category sorted by name, so the
+  /// list looks the same after every refresh (the server returns rows in no particular order).
   static Map<String, List<ShoppingEntry>> _entriesByCategory(Iterable<ShoppingItem> items) {
     final byKey = <String, List<ShoppingItem>>{};
     for (final i in items) {
@@ -108,7 +121,15 @@ class ShoppingList {
     for (final rows in byKey.values) {
       grouped.putIfAbsent(rows.first.ingredientCategory, () => []).add(ShoppingEntry(rows));
     }
-    return grouped;
+    final categories = grouped.keys.toList()..sort((a, b) => _categoryRank(a).compareTo(_categoryRank(b)));
+    return {
+      for (final c in categories)
+        c: grouped[c]!
+          ..sort((a, b) {
+            final byName = a.first.ingredientName.toLowerCase().compareTo(b.first.ingredientName.toLowerCase());
+            return byName != 0 ? byName : a.first.unit.compareTo(b.first.unit);
+          }),
+    };
   }
 
   /// Default view: one row per ingredient for the whole week, grouped by category.

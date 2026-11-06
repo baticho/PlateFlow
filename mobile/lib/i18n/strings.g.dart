@@ -6,7 +6,7 @@
 /// Locales: 2
 /// Strings: 440 (220 per locale)
 ///
-/// Built on 2026-11-06 at 08:50 UTC
+/// Built on 2026-11-06 at 12:30 UTC
 
 // coverage:ignore-file
 // ignore_for_file: type=lint
@@ -560,7 +560,7 @@ class _StringsShoppingListCategoriesEn {
 	String get dairy => 'Dairy';
 	String get meat => 'Meat';
 	String get seafood => 'Seafood';
-	String get grains => 'Grains';
+	String get grains => 'Bread & grains';
 	String get spices => 'Spices';
 	String get oils => 'Oils & Fats';
 	String get sauces => 'Sauces';
@@ -1026,7 +1026,7 @@ class _StringsShoppingListCategoriesBg implements _StringsShoppingListCategories
 	@override String get dairy => 'Млечни продукти';
 	@override String get meat => 'Месо';
 	@override String get seafood => 'Морски дарове';
-	@override String get grains => 'Зърнени';
+	@override String get grains => 'Хляб и зърнени';
 	@override String get spices => 'Подправки';
 	@override String get oils => 'Масла и мазнини';
 	@override String get sauces => 'Сосове';
@@ -1139,7 +1139,7 @@ extension on Translations {
 			case 'shoppingList.categories.dairy': return 'Dairy';
 			case 'shoppingList.categories.meat': return 'Meat';
 			case 'shoppingList.categories.seafood': return 'Seafood';
-			case 'shoppingList.categories.grains': return 'Grains';
+			case 'shoppingList.categories.grains': return 'Bread & grains';
 			case 'shoppingList.categories.spices': return 'Spices';
 			case 'shoppingList.categories.oils': return 'Oils & Fats';
 			case 'shoppingList.categories.sauces': return 'Sauces';
@@ -1367,7 +1367,7 @@ extension on _StringsBg {
 			case 'shoppingList.categories.dairy': return 'Млечни продукти';
 			case 'shoppingList.categories.meat': return 'Месо';
 			case 'shoppingList.categories.seafood': return 'Морски дарове';
-			case 'shoppingList.categories.grains': return 'Зърнени';
+			case 'shoppingList.categories.grains': return 'Хляб и зърнени';
 			case 'shoppingList.categories.spices': return 'Подправки';
 			case 'shoppingList.categories.oils': return 'Масла и мазнини';
 			case 'shoppingList.categories.sauces': return 'Сосове';
