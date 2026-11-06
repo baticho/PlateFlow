@@ -54,6 +54,7 @@ dependencies:
 
   # Icons
   flutter_svg: ^2.0.10+1
+  share_plus: ^12.0.2
 
 dev_dependencies:
   flutter_test:

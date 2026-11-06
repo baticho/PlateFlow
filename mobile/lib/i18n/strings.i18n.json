@@ -44,7 +44,9 @@
       "sugar": "Sugar",
       "saturatedFat": "Saturated fat",
       "sodium": "Sodium"
-    }
+    },
+    "share": "Share",
+    "sharedFrom": "Shared from PlateFlow"
   },
   "explore": {
     "searchHint": "Search recipes, ingredients...",

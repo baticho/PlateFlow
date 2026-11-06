@@ -44,7 +44,9 @@
       "sugar": "Захари",
       "saturatedFat": "Наситени мазнини",
       "sodium": "Натрий"
-    }
+    },
+    "share": "Сподели",
+    "sharedFrom": "Споделено от PlateFlow"
   },
   "explore": {
     "searchHint": "Търси рецепти, съставки...",

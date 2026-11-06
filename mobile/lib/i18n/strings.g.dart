@@ -4,9 +4,9 @@
 /// To regenerate, run: `dart run slang`
 ///
 /// Locales: 2
-/// Strings: 400 (200 per locale)
+/// Strings: 404 (202 per locale)
 ///
-/// Built on 2026-11-06 at 05:58 UTC
+/// Built on 2026-11-06 at 06:38 UTC
 
 // coverage:ignore-file
 // ignore_for_file: type=lint
@@ -224,6 +224,8 @@ class _StringsRecipeEn {
 	String get addToShoppingList => 'Add to Shopping List';
 	String get startCooking => 'Start Cooking';
 	late final _StringsRecipeNutritionEn nutrition = _StringsRecipeNutritionEn._(_root);
+	String get share => 'Share';
+	String get sharedFrom => 'Shared from PlateFlow';
 }
 
 // Path: explore
@@ -660,6 +662,8 @@ class _StringsRecipeBg implements _StringsRecipeEn {
 	@override String get addToShoppingList => 'Добави към списъка';
 	@override String get startCooking => 'Започни готвене';
 	@override late final _StringsRecipeNutritionBg nutrition = _StringsRecipeNutritionBg._(_root);
+	@override String get share => 'Сподели';
+	@override String get sharedFrom => 'Споделено от PlateFlow';
 }
 
 // Path: explore
@@ -1037,6 +1041,8 @@ extension on Translations {
 			case 'recipe.nutrition.sugar': return 'Sugar';
 			case 'recipe.nutrition.saturatedFat': return 'Saturated fat';
 			case 'recipe.nutrition.sodium': return 'Sodium';
+			case 'recipe.share': return 'Share';
+			case 'recipe.sharedFrom': return 'Shared from PlateFlow';
 			case 'explore.searchHint': return 'Search recipes, ingredients...';
 			case 'explore.categories': return 'Categories';
 			case 'explore.cuisines': return 'Cuisines';
@@ -1245,6 +1251,8 @@ extension on _StringsBg {
 			case 'recipe.nutrition.sugar': return 'Захари';
 			case 'recipe.nutrition.saturatedFat': return 'Наситени мазнини';
 			case 'recipe.nutrition.sodium': return 'Натрий';
+			case 'recipe.share': return 'Сподели';
+			case 'recipe.sharedFrom': return 'Споделено от PlateFlow';
 			case 'explore.searchHint': return 'Търси рецепти, съставки...';
 			case 'explore.categories': return 'Категории';
 			case 'explore.cuisines': return 'Кухни';
