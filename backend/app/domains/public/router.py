@@ -6,7 +6,7 @@ from pathlib import Path
 from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
@@ -22,8 +22,25 @@ APK_FILE = APK_DIR / "plateflow.apk"
 VERSION_FILE = APK_DIR / "version.json"
 
 
+NO_STORE = {"Cache-Control": "no-store"}
+
+
+def _version() -> dict | None:
+    if not VERSION_FILE.exists() or not APK_FILE.exists():
+        return None
+    return json.loads(VERSION_FILE.read_text())
+
+
 def _apk_url() -> str:
-    return f"{settings.PUBLIC_BASE_URL}/download/plateflow.apk"
+    """Versioned download URL. Cloudflare caches *.apk responses by URL, so every build needs its own
+    path — otherwise clients get a stale APK (and the update fails the checksum)."""
+    v = _version()
+    return f"{settings.PUBLIC_BASE_URL}/download/plateflow-{v['version_code'] if v else 0}.apk"
+
+
+def _latest_url() -> str:
+    """Stable, uncached link for humans (share page): redirects to the current versioned APK."""
+    return f"{settings.PUBLIC_BASE_URL}/download/latest"
 
 
 @router.get("/.well-known/assetlinks.json", include_in_schema=False)
@@ -39,20 +56,34 @@ async def assetlinks():
     }])
 
 
+@router.get("/download/latest", include_in_schema=False)
 @router.get("/download/plateflow.apk", include_in_schema=False)
-async def download_apk():
-    if not APK_FILE.exists():
+async def download_latest():
+    """Unversioned links redirect (uncached) to the current build's versioned URL."""
+    if not _version():
         raise HTTPException(status_code=404, detail="APK not published yet")
-    return FileResponse(APK_FILE, media_type="application/vnd.android.package-archive", filename="PlateFlow.apk")
+    return RedirectResponse(_apk_url(), status_code=302, headers=NO_STORE)
+
+
+@router.get("/download/plateflow-{version_code}.apk", include_in_schema=False)
+async def download_apk(version_code: int):
+    v = _version()
+    if not v:
+        raise HTTPException(status_code=404, detail="APK not published yet")
+    if version_code != v["version_code"]:
+        # only the latest build is kept; never serve it under another version's URL
+        return RedirectResponse(_apk_url(), status_code=302, headers=NO_STORE)
+    return FileResponse(APK_FILE, media_type="application/vnd.android.package-archive",
+                        filename=f"PlateFlow-{v['version_name']}.apk")
 
 
 @router.get("/api/v1/app/version", tags=["App"])
 async def app_version():
     """Latest published Android build; the app compares version_code with its own to offer an update."""
-    if not VERSION_FILE.exists() or not APK_FILE.exists():
-        return {"version_code": 0, "version_name": None, "apk_url": None}
-    data = json.loads(VERSION_FILE.read_text())
-    return {**data, "apk_url": _apk_url(), "size_bytes": APK_FILE.stat().st_size}
+    v = _version()
+    if not v:
+        return JSONResponse({"version_code": 0, "version_name": None, "apk_url": None}, headers=NO_STORE)
+    return JSONResponse({**v, "apk_url": _apk_url(), "size_bytes": APK_FILE.stat().st_size}, headers=NO_STORE)
 
 
 # --- recipe share page ----------------------------------------------------------------------------
@@ -175,12 +206,12 @@ async def recipe_share_page(recipe_id: str, request: Request, db: AsyncSession =
 
     # Android: open the installed app; otherwise fall back to downloading it
     intent = (f"intent://{base.split('://', 1)[1]}/r/{recipe.id}#Intent;scheme=https;"
-              f"package={settings.ANDROID_PACKAGE};S.browser_fallback_url={quote(_apk_url(), safe='')};end")
+              f"package={settings.ANDROID_PACKAGE};S.browser_fallback_url={quote(_latest_url(), safe='')};end")
 
     html = PAGE.format(
         lang=lang, title=escape(title), desc=escape(meta), image=escape(image), url=escape(url), base=escape(base),
         hero=f'<img class="hero" src="{escape(image)}" alt="">' if image else "",
-        meta=escape(meta), intent=escape(intent), apk=escape(_apk_url()), ingredients=ingredients,
+        meta=escape(meta), intent=escape(intent), apk=escape(_latest_url()), ingredients=ingredients,
         t_open=escape(tx["open"]), t_get=escape(tx["get"]), t_hint=escape(tx["install_hint"]), t_teaser=escape(tx["teaser"]),
     )
     return HTMLResponse(html)
