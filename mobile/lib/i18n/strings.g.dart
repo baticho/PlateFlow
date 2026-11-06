@@ -4,9 +4,9 @@
 /// To regenerate, run: `dart run slang`
 ///
 /// Locales: 2
-/// Strings: 426 (213 per locale)
+/// Strings: 430 (215 per locale)
 ///
-/// Built on 2026-11-06 at 07:06 UTC
+/// Built on 2026-11-06 at 07:23 UTC
 
 // coverage:ignore-file
 // ignore_for_file: type=lint
@@ -266,6 +266,8 @@ class _StringsMealPlanEn {
 	String get viewPlan => 'View Plan';
 	String get removeTitle => 'Remove recipe';
 	String removeConfirm({required Object title}) => 'Remove "${title}" from your meal plan?';
+	String get cook => 'Cook';
+	String get cooked => 'Cooked';
 }
 
 // Path: shoppingList
@@ -725,6 +727,8 @@ class _StringsMealPlanBg implements _StringsMealPlanEn {
 	@override String get viewPlan => 'Виж план';
 	@override String get removeTitle => 'Премахни рецепта';
 	@override String removeConfirm({required Object title}) => 'Да премахна ли „${title}“ от хранителния план?';
+	@override String get cook => 'Готви';
+	@override String get cooked => 'Сготвено';
 }
 
 // Path: shoppingList
@@ -1115,6 +1119,8 @@ extension on Translations {
 			case 'mealPlan.viewPlan': return 'View Plan';
 			case 'mealPlan.removeTitle': return 'Remove recipe';
 			case 'mealPlan.removeConfirm': return ({required Object title}) => 'Remove "${title}" from your meal plan?';
+			case 'mealPlan.cook': return 'Cook';
+			case 'mealPlan.cooked': return 'Cooked';
 			case 'shoppingList.title': return 'Shopping List';
 			case 'shoppingList.empty': return 'No items yet. Generate from your meal plan!';
 			case 'shoppingList.clearChecked': return 'Clear Checked';
@@ -1336,6 +1342,8 @@ extension on _StringsBg {
 			case 'mealPlan.viewPlan': return 'Виж план';
 			case 'mealPlan.removeTitle': return 'Премахни рецепта';
 			case 'mealPlan.removeConfirm': return ({required Object title}) => 'Да премахна ли „${title}“ от хранителния план?';
+			case 'mealPlan.cook': return 'Готви';
+			case 'mealPlan.cooked': return 'Сготвено';
 			case 'shoppingList.title': return 'Списък за пазаруване';
 			case 'shoppingList.empty': return 'Все още няма продукти. Генерирай от плана!';
 			case 'shoppingList.clearChecked': return 'Изчисти отбелязаните';

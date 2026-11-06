@@ -6,6 +6,7 @@ class MealPlanItem {
   final int dayOfWeek; // 0=Mon, 6=Sun
   final String mealType; // breakfast/lunch/dinner/snack
   final bool isCompleted;
+  final int servings;
 
   MealPlanItem({
     required this.id,
@@ -15,6 +16,7 @@ class MealPlanItem {
     required this.dayOfWeek,
     required this.mealType,
     this.isCompleted = false,
+    this.servings = 2,
   });
 
   factory MealPlanItem.fromJson(Map<String, dynamic> j) {
@@ -26,6 +28,7 @@ class MealPlanItem {
       dayOfWeek: j['day_of_week'],
       mealType: j['meal_type'] ?? 'lunch',
       isCompleted: j['is_completed'] ?? false,
+      servings: (j['servings'] as num?)?.toInt() ?? 2,
     );
   }
 }

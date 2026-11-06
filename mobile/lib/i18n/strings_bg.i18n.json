@@ -84,7 +84,9 @@
     },
     "viewPlan": "Виж план",
     "removeTitle": "Премахни рецепта",
-    "removeConfirm": "Да премахна ли „$title“ от хранителния план?"
+    "removeConfirm": "Да премахна ли „$title“ от хранителния план?",
+    "cook": "Готви",
+    "cooked": "Сготвено"
   },
   "shoppingList": {
     "title": "Списък за пазаруване",

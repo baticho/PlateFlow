@@ -84,7 +84,9 @@
     },
     "viewPlan": "View Plan",
     "removeTitle": "Remove recipe",
-    "removeConfirm": "Remove \"$title\" from your meal plan?"
+    "removeConfirm": "Remove \"$title\" from your meal plan?",
+    "cook": "Cook",
+    "cooked": "Cooked"
   },
   "shoppingList": {
     "title": "Shopping List",

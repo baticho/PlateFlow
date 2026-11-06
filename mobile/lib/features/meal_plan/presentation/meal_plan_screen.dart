@@ -481,7 +481,6 @@ class _MealSlotCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final cardWidth = (MediaQuery.of(context).size.width - 52) / 2;
     return Padding(
       padding: const EdgeInsets.only(bottom: 22),
       child: Column(
@@ -494,18 +493,17 @@ class _MealSlotCard extends StatelessWidget {
           ]),
           const SizedBox(height: 10),
           if (items.isNotEmpty) ...[
-            Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              children: items.map((item) => _RecipeCard(
-                item: item,
-                width: cardWidth,
-                isReadOnly: isReadOnly,
-                onTap: () => onTapRecipe(item),
-                onCook: () => onCookRecipe(item),
-                onRemove: () => onRemoveRecipe(item),
-              )).toList(),
-            ),
+            for (final item in items)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: _RecipeCard(
+                  item: item,
+                  isReadOnly: isReadOnly,
+                  onTap: () => onTapRecipe(item),
+                  onCook: () => onCookRecipe(item),
+                  onRemove: () => onRemoveRecipe(item),
+                ),
+              ),
             const SizedBox(height: 10),
           ],
           if (!isReadOnly)
@@ -525,116 +523,108 @@ class _MealSlotCard extends StatelessWidget {
   }
 }
 
+/// One planned recipe: photo, full title, portions, a big "Cook" button and a separate delete button.
 class _RecipeCard extends StatelessWidget {
   final MealPlanItem item;
-  final double width;
   final bool isReadOnly;
   final VoidCallback onTap;
   final VoidCallback onCook;
   final VoidCallback onRemove;
   const _RecipeCard({
     required this.item,
-    required this.width,
     required this.isReadOnly,
     required this.onTap,
     required this.onCook,
     required this.onRemove,
   });
 
+  static const _grayscale = ColorFilter.matrix(<double>[
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0, 0, 0, 1, 0,
+  ]);
+
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final resolvedUrl = resolveImageUrl(item.recipeImageUrl);
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: width,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
-          color: cs.surfaceContainerLowest,
-          border: Border.all(color: cs.outlineVariant),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-              child: ColorFiltered(
-                colorFilter: item.isCompleted
-                    ? const ColorFilter.matrix(<double>[
-                        0.2126, 0.7152, 0.0722, 0, 0,
-                        0.2126, 0.7152, 0.0722, 0, 0,
-                        0.2126, 0.7152, 0.0722, 0, 0,
-                        0,      0,      0,      1, 0,
-                      ])
-                    : const ColorFilter.mode(Colors.transparent, BlendMode.multiply),
-                child: resolvedUrl != null
-                    ? CachedNetworkImage(
-                        imageUrl: resolvedUrl,
-                        width: width,
-                        height: 90,
-                        fit: BoxFit.cover,
-                        errorWidget: (_, __, ___) => Container(
-                          width: width, height: 90,
-                          color: cs.surfaceContainerHigh,
-                          child: Icon(Icons.restaurant, color: cs.onSurfaceVariant, size: 32),
-                        ))
-                    : Container(
-                        width: width, height: 90,
-                        color: cs.surfaceContainerHigh,
-                        child: Icon(Icons.restaurant, color: cs.onSurfaceVariant, size: 32),
-                      ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(8, 6, 8, 0),
-              child: Row(
-                children: [
-                  if (item.isCompleted)
-                    Padding(
-                      padding: const EdgeInsets.only(right: 4),
-                      child: Icon(Icons.check_circle, color: cs.secondary, size: 14),
-                    ),
-                  Expanded(
-                    child: Text(
-                      item.recipeTitle,
-                      style: TextStyle(
-                        fontFamily: 'Lora',
-                        fontWeight: FontWeight.w600,
-                        fontSize: 13,
-                        height: 1.25,
-                        color: item.isCompleted ? cs.onSurfaceVariant : cs.onSurface,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+    final t = context.t;
+    final url = resolveImageUrl(item.recipeImageUrl);
+    final placeholder = Container(
+      color: cs.surfaceContainerHigh,
+      child: Icon(Icons.restaurant, color: cs.onSurfaceVariant, size: 28),
+    );
+    Widget photo = SizedBox(
+      width: 92,
+      height: 92,
+      child: url == null
+          ? placeholder
+          : CachedNetworkImage(imageUrl: url, fit: BoxFit.cover, errorWidget: (_, __, ___) => placeholder),
+    );
+    if (item.isCompleted) photo = ColorFiltered(colorFilter: _grayscale, child: photo);
+
+    return Material(
+      color: cs.surfaceContainerLowest,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: BorderSide(color: cs.outlineVariant),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(10),
+          child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            ClipRRect(borderRadius: BorderRadius.circular(10), child: photo),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                // full title, never cut
+                Text(
+                  item.recipeTitle,
+                  style: TextStyle(
+                    fontFamily: 'Lora',
+                    fontWeight: FontWeight.w600,
+                    fontSize: 16,
+                    height: 1.25,
+                    color: item.isCompleted ? cs.onSurfaceVariant : cs.onSurface,
                   ),
+                ),
+                const SizedBox(height: 4),
+                Row(children: [
+                  if (item.isCompleted) ...[
+                    Icon(Icons.check_circle, color: cs.secondary, size: 15),
+                    const SizedBox(width: 4),
+                    Text(t.mealPlan.cooked, style: TextStyle(fontSize: 13, color: cs.secondary, fontWeight: FontWeight.w600)),
+                    Text('  ·  ', style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant)),
+                  ],
+                  Text(t.recipe.servings(count: item.servings), style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant)),
+                ]),
+                if (!isReadOnly) ...[
+                  const SizedBox(height: 10),
+                  Row(children: [
+                    FilledButton.tonalIcon(
+                      onPressed: onCook,
+                      icon: const Icon(Icons.play_arrow_rounded, size: 20),
+                      label: Text(t.mealPlan.cook),
+                      style: FilledButton.styleFrom(
+                        minimumSize: const Size(0, 42),
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                      ),
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      tooltip: t.mealPlan.removeTitle,
+                      onPressed: onRemove,
+                      icon: const Icon(Icons.delete_outline),
+                      color: cs.onSurfaceVariant,
+                      style: IconButton.styleFrom(minimumSize: const Size(44, 44)),
+                    ),
+                  ]),
                 ],
-              ),
+              ]),
             ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                if (!isReadOnly)
-                  IconButton(
-                    icon: const Icon(Icons.play_circle_outline, size: 20),
-                    color: cs.primary,
-                    padding: const EdgeInsets.all(6),
-                    constraints: const BoxConstraints(),
-                    onPressed: onCook,
-                  ),
-                if (!isReadOnly)
-                  IconButton(
-                    icon: const Icon(Icons.delete_outline, size: 20),
-                    color: cs.onSurfaceVariant,
-                    padding: const EdgeInsets.all(6),
-                    constraints: const BoxConstraints(),
-                    onPressed: onRemove,
-                  ),
-                const SizedBox(width: 4),
-              ],
-            ),
-          ],
+          ]),
         ),
       ),
     );
