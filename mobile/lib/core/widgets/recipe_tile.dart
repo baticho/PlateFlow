@@ -6,6 +6,9 @@ import '../../i18n/strings.g.dart';
 import '../config/app_config.dart';
 import '../models/recipe.dart';
 
+/// Height of everything under the photo (gap + up to 3 title lines + meta line) at text scale 1.
+const double kRecipeTileTextBlock = 100;
+
 /// Editorial recipe tile: photo with soft corners, serif title underneath, quiet meta line.
 /// Width comes from the parent (fixed in horizontal lists, cell width in grids).
 class RecipeTile extends StatelessWidget {
@@ -19,7 +22,7 @@ class RecipeTile extends StatelessWidget {
     super.key,
     required this.recipe,
     this.imageAspectRatio = 4 / 3,
-    this.titleLines = 2,
+    this.titleLines = 3,
     this.onTap,
     this.badge,
   });
@@ -149,7 +152,7 @@ class RecipeGrid extends StatelessWidget {
           crossAxisCount: columns,
           mainAxisSpacing: 20,
           crossAxisSpacing: spacing,
-          mainAxisExtent: cell * 3 / 4 + 72 * textScale,
+          mainAxisExtent: cell * 3 / 4 + kRecipeTileTextBlock * textScale,
         ),
         itemCount: recipes.length,
         itemBuilder: (context, i) => RecipeTile(

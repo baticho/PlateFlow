@@ -77,8 +77,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     ref.listen(localeProvider, (_, __) => _loadAll());
     ref.listen(favoritesRefreshProvider, (_, __) => _loadFavorites());
 
+    // tall enough for a 4:3 photo plus three title lines at the phone's text scale
+    final tileHeight = 196 * 3 / 4 + kRecipeTileTextBlock * MediaQuery.textScalerOf(context).scale(1);
     Widget hList(List<RecipeSummary> items) => SizedBox(
-          height: 228,
+          height: tileHeight,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 20),
