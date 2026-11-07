@@ -92,6 +92,16 @@ class _ShoppingListScreenState extends ConsumerState<ShoppingListScreen> {
     }
   }
 
+  /// Manual refresh (icon / pull down): drop what is already bought, then reload.
+  Future<void> _refresh() async {
+    if (_list != null && _list!.items.any((i) => i.isChecked)) {
+      try {
+        await _service.clearCheckedItems(_list!.id);
+      } catch (_) {}
+    }
+    await _loadList();
+  }
+
   Future<void> _clearChecked() async {
     if (_list == null) return;
     setState(() {
@@ -264,7 +274,7 @@ class _ShoppingListScreenState extends ConsumerState<ShoppingListScreen> {
         ),
         actions: [
           TextButton(onPressed: _clearChecked, child: Text(t.shoppingList.clearChecked)),
-          IconButton(onPressed: _loadList, icon: const Icon(Icons.refresh)),
+          IconButton(onPressed: _refresh, icon: const Icon(Icons.refresh)),
         ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(52),
@@ -286,7 +296,7 @@ class _ShoppingListScreenState extends ConsumerState<ShoppingListScreen> {
         ),
       ),
       body: RefreshIndicator(
-        onRefresh: _loadList,
+        onRefresh: _refresh,
         child: ListView(padding: const EdgeInsets.only(bottom: 24), children: body),
       ),
     );
