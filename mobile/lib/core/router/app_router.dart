@@ -77,6 +77,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               recipeId: state.pathParameters['id']!,
               planId: int.tryParse(state.uri.queryParameters['planId'] ?? ''),
               itemId: int.tryParse(state.uri.queryParameters['itemId'] ?? ''),
+              servings: int.tryParse(state.uri.queryParameters['servings'] ?? ''),
             ),
           ),
         ],

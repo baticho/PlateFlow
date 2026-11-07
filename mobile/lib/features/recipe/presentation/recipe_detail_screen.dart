@@ -449,7 +449,7 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
               ),
               const SizedBox(height: 8),
               OutlinedButton.icon(
-                onPressed: () => context.push('/cooking/${recipe.id}'),
+                onPressed: () => context.push('/cooking/${recipe.id}?servings=$_selectedServings'),
                 icon: const Icon(Icons.play_arrow_outlined),
                 label: Text(t.recipe.startCooking),
               ),

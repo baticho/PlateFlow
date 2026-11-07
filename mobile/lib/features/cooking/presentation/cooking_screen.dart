@@ -18,7 +18,9 @@ class CookingScreen extends ConsumerStatefulWidget {
   final String recipeId;
   final int? planId;
   final int? itemId;
-  const CookingScreen({super.key, required this.recipeId, this.planId, this.itemId});
+  /// portions to cook (step amounts are scaled to it); null = the recipe's own servings
+  final int? servings;
+  const CookingScreen({super.key, required this.recipeId, this.planId, this.itemId, this.servings});
 
   @override
   ConsumerState<CookingScreen> createState() => _CookingScreenState();
@@ -118,6 +120,7 @@ class _CookingScreenState extends ConsumerState<CookingScreen> {
 
     return _CookingView(
       recipe: recipe,
+      ratio: (widget.servings ?? recipe.servings) / (recipe.servings == 0 ? 1 : recipe.servings),
       currentStep: _currentStep,
       onNext: _nextStep,
       onPrev: _prevStep,
@@ -131,8 +134,11 @@ class _CookingView extends StatelessWidget {
   final VoidCallback onNext;
   final VoidCallback onPrev;
 
+  final double ratio;
+
   const _CookingView({
     required this.recipe,
+    required this.ratio,
     required this.currentStep,
     required this.onNext,
     required this.onPrev,
@@ -199,7 +205,7 @@ class _CookingView extends StatelessWidget {
                     // what this step needs, with amounts
                     if (step.ingredients.isNotEmpty) ...[
                       const SizedBox(height: 22),
-                      StepIngredients(step: step, ingredients: recipe.ingredients, large: true),
+                      StepIngredients(step: step, ingredients: recipe.ingredients, ratio: ratio, large: true),
                     ],
                   ]),
                 ),

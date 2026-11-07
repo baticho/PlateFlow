@@ -427,7 +427,7 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
                   onCookRecipe: (item) {
                     final plan = _planForDate(selectedDate);
                     if (plan == null) return;
-                    context.push('/cooking/${item.recipeId}?planId=${plan.id}&itemId=${item.id}');
+                    context.push('/cooking/${item.recipeId}?planId=${plan.id}&itemId=${item.id}&servings=${item.servings}');
                   },
                   onRemoveRecipe: (item) {
                     final plan = _planForDate(selectedDate);
