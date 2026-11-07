@@ -13,6 +13,7 @@ class CategoryResponse(BaseModel):
     slug: str
     icon_url: str | None
     translations: list[TranslationSchema]
+    recipe_count: int = 0  # published recipes in the category (the app hides empty ones)
 
     model_config = {"from_attributes": True}
 

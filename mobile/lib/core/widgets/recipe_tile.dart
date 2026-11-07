@@ -136,6 +136,8 @@ class RecipeGrid extends StatelessWidget {
   final bool shrinkWrap;
   final void Function(RecipeSummary recipe)? onTap;
   final Widget Function(RecipeSummary recipe)? badgeBuilder;
+  /// shown after the last row (e.g. a "loading more" spinner)
+  final Widget? footer;
 
   const RecipeGrid({
     super.key,
@@ -144,6 +146,7 @@ class RecipeGrid extends StatelessWidget {
     this.shrinkWrap = false,
     this.onTap,
     this.badgeBuilder,
+    this.footer,
   });
 
   @override
@@ -186,15 +189,16 @@ class RecipeGrid extends StatelessWidget {
               if (r > 0) const SizedBox(height: rowGap),
               row(r),
             ],
+            if (footer != null) footer!,
           ]),
         );
       }
       return ListView.separated(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: padding,
-        itemCount: rowCount,
+        itemCount: rowCount + (footer != null ? 1 : 0),
         separatorBuilder: (_, __) => const SizedBox(height: rowGap),
-        itemBuilder: (context, r) => row(r),
+        itemBuilder: (context, r) => r == rowCount ? footer! : row(r),
       );
     });
   }

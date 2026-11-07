@@ -78,6 +78,64 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
     }
   }
 
+  static const _pageSize = 30;
+  /// fetches one page of the current result list (search / category / cuisine / ingredients)
+  Future<Map<String, dynamic>> Function(int page)? _fetchPage;
+  int _page = 0;
+  int _pages = 0;
+  bool _loadingMore = false;
+
+  List<RecipeSummary> _parse(Map<String, dynamic> data) {
+    final lang = ref.read(localeProvider);
+    return (data['items'] as List? ?? [])
+        .map((i) => RecipeSummary.fromJson(i as Map<String, dynamic>, lang: lang))
+        .toList();
+  }
+
+  /// Starts a new result list from page 1; more pages load while scrolling (see [_loadMore]).
+  Future<void> _runQuery(Future<Map<String, dynamic>> Function(int page) fetch) async {
+    _fetchPage = fetch;
+    _page = 0;
+    _pages = 0;
+    setState(() { _searching = true; _error = null; _results = []; });
+    try {
+      final data = await fetch(1);
+      if (!mounted || _fetchPage != fetch) return; // a newer query replaced this one
+      setState(() {
+        _results = _parse(data);
+        _page = 1;
+        _pages = (data['pages'] as num?)?.toInt() ?? 1;
+        _searching = false;
+      });
+    } on DioException catch (e) {
+      if (mounted && _fetchPage == fetch) {
+        setState(() {
+          _error = e.response?.data?['detail'] ?? LocaleSettings.instance.currentTranslations.common.error;
+          _searching = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _loadMore() async {
+    final fetch = _fetchPage;
+    if (fetch == null || _loadingMore || _searching || _page >= _pages) return;
+    setState(() => _loadingMore = true);
+    try {
+      final data = await fetch(_page + 1);
+      if (!mounted || _fetchPage != fetch) return;
+      setState(() {
+        _results = [..._results, ..._parse(data)];
+        _page += 1;
+        _pages = (data['pages'] as num?)?.toInt() ?? _pages;
+      });
+    } catch (_) {
+      // keep what we have; scrolling again retries
+    } finally {
+      if (mounted) setState(() => _loadingMore = false);
+    }
+  }
+
   Future<void> _search(String q) async {
     _activeCategoryId = null;
     _activeCuisineId = null;
@@ -87,21 +145,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
       _searching = true;
       _error = null;
     });
-    try {
-      final lang = ref.read(localeProvider);
-      final data = await _recipeService.listRecipes(q: q);
-      final items = (data['items'] as List? ?? [])
-          .map((i) => RecipeSummary.fromJson(i as Map<String, dynamic>, lang: lang))
-          .toList();
-      if (mounted) { setState(() { _results = items; _searching = false; }); }
-    } on DioException catch (e) {
-      if (mounted) {
-        setState(() {
-          _error = e.response?.data?['detail'] ?? LocaleSettings.instance.currentTranslations.common.error;
-          _searching = false;
-        });
-      }
-    }
+    await _runQuery((page) => _recipeService.listRecipes(q: q, page: page, pageSize: _pageSize));
   }
 
   /// Opens a random recipe — within the selected category / cuisine when one is open.
@@ -132,63 +176,21 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
     _activeCategoryId = categoryId;
     _activeCuisineId = null;
     setState(() { _searching = true; _searchMode = true; _ingredientMode = false; _error = null; });
-    try {
-      final lang = ref.read(localeProvider);
-      final data = await _recipeService.listRecipes(categoryId: categoryId);
-      final items = (data['items'] as List? ?? [])
-          .map((i) => RecipeSummary.fromJson(i as Map<String, dynamic>, lang: lang))
-          .toList();
-      if (mounted) { setState(() { _results = items; _searching = false; }); }
-    } on DioException catch (e) {
-      if (mounted) {
-        setState(() {
-          _error = e.response?.data?['detail'] ?? LocaleSettings.instance.currentTranslations.common.error;
-          _searching = false;
-        });
-      }
-    }
+    await _runQuery((page) => _recipeService.listRecipes(categoryId: categoryId, page: page, pageSize: _pageSize));
   }
 
   Future<void> _filterByCuisine(int cuisineId) async {
     _activeCuisineId = cuisineId;
     _activeCategoryId = null;
     setState(() { _searching = true; _searchMode = true; _ingredientMode = false; _error = null; });
-    try {
-      final lang = ref.read(localeProvider);
-      final data = await _recipeService.listRecipes(cuisineId: cuisineId);
-      final items = (data['items'] as List? ?? [])
-          .map((i) => RecipeSummary.fromJson(i as Map<String, dynamic>, lang: lang))
-          .toList();
-      if (mounted) { setState(() { _results = items; _searching = false; }); }
-    } on DioException catch (e) {
-      if (mounted) {
-        setState(() {
-          _error = e.response?.data?['detail'] ?? LocaleSettings.instance.currentTranslations.common.error;
-          _searching = false;
-        });
-      }
-    }
+    await _runQuery((page) => _recipeService.listRecipes(cuisineId: cuisineId, page: page, pageSize: _pageSize));
   }
 
   Future<void> _filterByIngredients() async {
     if (_selectedIngredients.isEmpty) return;
     setState(() { _searching = true; _error = null; });
-    try {
-      final ids = _selectedIngredients.map((i) => i['id'] as int).toList();
-      final lang = ref.read(localeProvider);
-      final data = await _recipeService.listRecipes(ingredientIds: ids);
-      final items = (data['items'] as List? ?? [])
-          .map((i) => RecipeSummary.fromJson(i as Map<String, dynamic>, lang: lang))
-          .toList();
-      if (mounted) { setState(() { _results = items; _searching = false; }); }
-    } on DioException catch (e) {
-      if (mounted) {
-        setState(() {
-          _error = e.response?.data?['detail'] ?? LocaleSettings.instance.currentTranslations.common.error;
-          _searching = false;
-        });
-      }
-    }
+    final ids = _selectedIngredients.map((i) => i['id'] as int).toList();
+    await _runQuery((page) => _recipeService.listRecipes(ingredientIds: ids, page: page, pageSize: _pageSize));
   }
 
   void _onIngredientQueryChanged(String q) {
@@ -437,7 +439,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
           spacing: 8,
           runSpacing: 8,
           children: [
-            for (final cat in _categories)
+            for (final cat in _categories.where((c) => ((c['recipe_count'] as num?) ?? 1) > 0))
               Material(
                 color: cs.surfaceContainerLowest,
                 shape: RoundedRectangleBorder(
@@ -629,10 +631,22 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
     final mealCtx = widget.fromDate != null && widget.fromMealType != null
         ? '?fromDate=${widget.fromDate}&fromMealType=${widget.fromMealType}'
         : '';
-    return RecipeGrid(
-      recipes: _results,
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-      onTap: (r) => context.push('/recipe/${r.id}$mealCtx'),
+    return NotificationListener<ScrollNotification>(
+      onNotification: (n) {
+        if (n.metrics.extentAfter < 800) _loadMore();
+        return false;
+      },
+      child: RecipeGrid(
+        recipes: _results,
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+        onTap: (r) => context.push('/recipe/${r.id}$mealCtx'),
+        footer: _page < _pages
+            ? const Padding(
+                padding: EdgeInsets.symmetric(vertical: 24),
+                child: Center(child: SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))),
+              )
+            : null,
+      ),
     );
   }
 

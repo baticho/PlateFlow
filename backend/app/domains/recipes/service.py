@@ -74,7 +74,8 @@ async def get_recipes(
     count_query = select(func.count()).select_from(query.subquery())
     total = (await db.execute(count_query)).scalar_one()
 
-    query = query.offset((page - 1) * page_size).limit(page_size)
+    # stable order, otherwise pages can repeat / skip recipes
+    query = query.order_by(Recipe.created_at.desc(), Recipe.id).offset((page - 1) * page_size).limit(page_size)
     recipes = (await db.execute(query)).scalars().all()
 
     return {
