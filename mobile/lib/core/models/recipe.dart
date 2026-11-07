@@ -116,15 +116,31 @@ class RecipeIngredient {
   }
 }
 
+/// How much of a recipe ingredient one step uses (for the recipe's base servings).
+class StepIngredient {
+  final int recipeIngredientId;
+  final double quantity;
+  final String unit;
+  const StepIngredient({required this.recipeIngredientId, required this.quantity, required this.unit});
+
+  factory StepIngredient.fromJson(Map<String, dynamic> j) => StepIngredient(
+        recipeIngredientId: j['recipe_ingredient_id'] as int,
+        quantity: (j['quantity'] as num).toDouble(),
+        unit: j['unit'] as String? ?? '',
+      );
+}
+
 class RecipeStep {
   final int order;
   final String instruction;
   final String? imageUrl;
+  final List<StepIngredient> ingredients;
 
   RecipeStep({
     required this.order,
     required this.instruction,
     this.imageUrl,
+    this.ingredients = const [],
   });
 
   factory RecipeStep.fromJson(Map<String, dynamic> j, {String lang = 'en'}) {
@@ -142,6 +158,9 @@ class RecipeStep {
       order: j['order'] ?? 0,
       instruction: match?['instruction'] ?? '',
       imageUrl: match?['image_url'],
+      ingredients: (j['ingredients'] as List? ?? [])
+          .map((i) => StepIngredient.fromJson(i as Map<String, dynamic>))
+          .toList(),
     );
   }
 }

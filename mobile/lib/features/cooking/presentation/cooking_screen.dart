@@ -11,6 +11,7 @@ import '../../../core/providers/locale_provider.dart';
 import '../../../core/providers/meal_plan_refresh_provider.dart';
 import '../../../core/services/meal_plan_service.dart';
 import '../../../core/services/recipe_service.dart';
+import '../../../core/widgets/step_ingredients.dart';
 import '../../../i18n/strings.g.dart';
 
 class CookingScreen extends ConsumerStatefulWidget {
@@ -189,11 +190,18 @@ class _CookingView extends StatelessWidget {
             Expanded(
               child: Center(
                 child: SingleChildScrollView(
-                  child: Text(
-                    step.instruction,
-                    style: TextStyle(fontFamily: 'Lora', fontSize: 22, height: 1.55, color: cs.onSurface),
-                    textAlign: TextAlign.center,
-                  ),
+                  child: Column(mainAxisSize: MainAxisSize.min, children: [
+                    Text(
+                      step.instruction,
+                      style: TextStyle(fontFamily: 'Lora', fontSize: 22, height: 1.55, color: cs.onSurface),
+                      textAlign: TextAlign.center,
+                    ),
+                    // what this step needs, with amounts
+                    if (step.ingredients.isNotEmpty) ...[
+                      const SizedBox(height: 22),
+                      StepIngredients(step: step, ingredients: recipe.ingredients, large: true),
+                    ],
+                  ]),
                 ),
               ),
             ),

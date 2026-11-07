@@ -18,6 +18,7 @@ import '../../../core/services/recipe_service.dart';
 import '../../../core/utils/unit_label.dart';
 import '../../../core/widgets/image_viewer.dart';
 import '../../../core/widgets/ingredient_details_sheet.dart';
+import '../../../core/widgets/step_ingredients.dart';
 import '../../../i18n/strings.g.dart';
 
 const double _headerHeight = 300;
@@ -309,10 +310,11 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
               // 1 = fully expanded, 0 = collapsed into the toolbar
               final top = MediaQuery.paddingOf(context).top;
               final f = ((c.maxHeight - kToolbarHeight - top) / (_headerHeight - kToolbarHeight)).clamp(0.0, 1.0);
-              final side = 56 - 40 * f;
+              final start = 56 - 40 * f;
+              final end = 104 - 88 * f; // leave room for the share + favourite icons when collapsed
               return FlexibleSpaceBar(
                 expandedTitleScale: 1.3,
-                titlePadding: EdgeInsetsDirectional.only(start: side, end: side, bottom: 14),
+                titlePadding: EdgeInsetsDirectional.only(start: start, end: end, bottom: 14),
                 title: Text(
                   recipe.title,
                   maxLines: f > 0.4 ? 3 : 1,
@@ -417,7 +419,11 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                               selectedServings: _selectedServings,
                               baseServings: recipe.servings,
                             ),
-                            _StepsList(steps: recipe.steps),
+                            _StepsList(
+                              steps: recipe.steps,
+                              ingredients: recipe.ingredients,
+                              ratio: _selectedServings / (recipe.servings == 0 ? 1 : recipe.servings),
+                            ),
                           ]),
                         ),
                       ],
@@ -800,7 +806,9 @@ class _IngredientThumb extends StatelessWidget {
 
 class _StepsList extends StatelessWidget {
   final List<RecipeStep> steps;
-  const _StepsList({required this.steps});
+  final List<RecipeIngredient> ingredients;
+  final double ratio;
+  const _StepsList({required this.steps, required this.ingredients, required this.ratio});
 
   @override
   Widget build(BuildContext context) {
@@ -823,7 +831,15 @@ class _StepsList extends StatelessWidget {
               child: Text('${step.order}',
                   style: TextStyle(fontFamily: 'Lora', fontSize: 22, fontWeight: FontWeight.w600, color: cs.primary, height: 1.1)),
             ),
-            Expanded(child: Text(step.instruction, style: const TextStyle(fontSize: 15, height: 1.45))),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(step.instruction, style: const TextStyle(fontSize: 15, height: 1.45)),
+                if (step.ingredients.isNotEmpty) ...[
+                  const SizedBox(height: 10),
+                  StepIngredients(step: step, ingredients: ingredients, ratio: ratio),
+                ],
+              ]),
+            ),
           ]),
         );
       },

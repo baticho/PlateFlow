@@ -93,6 +93,7 @@ async def get_recipe_by_id(db: AsyncSession, recipe_id: uuid.UUID) -> Recipe | N
         .options(
             selectinload(Recipe.translations),
             selectinload(Recipe.steps).selectinload(RecipeStep.translations),
+            selectinload(Recipe.steps).selectinload(RecipeStep.ingredients),
             selectinload(Recipe.ingredients).selectinload(RecipeIngredient.ingredient).selectinload(Ingredient.translations),
         )
     )

@@ -381,6 +381,7 @@ async def _recipe_full(db: AsyncSession, recipe_id: uuid.UUID) -> Recipe:
         select(Recipe).where(Recipe.id == recipe_id).options(
             selectinload(Recipe.translations),
             selectinload(Recipe.steps).selectinload(RecipeStep.translations),
+            selectinload(Recipe.steps).selectinload(RecipeStep.ingredients),
             selectinload(Recipe.ingredients).selectinload(RecipeIngredient.ingredient)
             .selectinload(Ingredient.translations),
             selectinload(Recipe.categories), selectinload(Recipe.tags),

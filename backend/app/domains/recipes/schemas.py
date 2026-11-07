@@ -20,10 +20,20 @@ class RecipeStepTranslationSchema(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class RecipeStepIngredientSchema(BaseModel):
+    recipe_ingredient_id: int
+    quantity: float
+    unit: str
+
+    model_config = {"from_attributes": True}
+
+
 class RecipeStepSchema(BaseModel):
     id: int
     order: int
     translations: list[RecipeStepTranslationSchema]
+    # amounts used in this step (base servings); names come from the recipe's ingredient list
+    ingredients: list[RecipeStepIngredientSchema] = []
 
     model_config = {"from_attributes": True}
 

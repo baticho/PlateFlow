@@ -97,6 +97,20 @@ class RecipeStep(Base):
 
     recipe = relationship("Recipe", back_populates="steps")
     translations = relationship("RecipeStepTranslation", back_populates="step", cascade="all, delete-orphan")
+    ingredients = relationship("RecipeStepIngredient", cascade="all, delete-orphan")
+
+
+class RecipeStepIngredient(Base):
+    """How much of a recipe ingredient one step uses (for the recipe's base servings)."""
+    __tablename__ = "recipe_step_ingredients"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    step_id: Mapped[int] = mapped_column(Integer, ForeignKey("recipe_steps.id", ondelete="CASCADE"), nullable=False)
+    recipe_ingredient_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("recipe_ingredients.id", ondelete="CASCADE"), nullable=False
+    )
+    quantity: Mapped[float] = mapped_column(Numeric(10, 3), nullable=False)
+    unit: Mapped[str] = mapped_column(String(20), nullable=False)
 
 
 class RecipeStepTranslation(Base):

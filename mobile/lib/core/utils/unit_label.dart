@@ -13,13 +13,18 @@ const Map<String, Map<String, String>> _unitLabels = {
 String unitLabel(String unit, String lang) =>
     _unitLabels[lang]?[unit.toLowerCase()] ?? _unitLabels['en']?[unit.toLowerCase()] ?? unit;
 
+/// Kitchen fractions: ⅛ ¼ ⅓ ½ ⅔ ¾ (nearest one), e.g. 0.125 -> "⅛", 1.5 -> "1 ½".
 String _fraction(double q) {
-  final whole = q.floor();
-  final rest = double.parse((q - whole).toStringAsFixed(2));
-  if (rest == 0) return '$whole';
-  final sym = rest == 0.25 ? '¼' : rest == 0.5 ? '½' : rest == 0.75 ? '¾' : null;
-  if (sym != null) return whole == 0 ? sym : '$whole $sym';
-  return q.toStringAsFixed(1);
+  const fractions = [(0.0, ''), (0.125, '⅛'), (0.25, '¼'), (1 / 3, '⅓'), (0.5, '½'), (2 / 3, '⅔'), (0.75, '¾'), (1.0, '')];
+  var whole = q.floor();
+  final rest = q - whole;
+  var best = fractions.first;
+  for (final f in fractions) {
+    if ((rest - f.$1).abs() < (rest - best.$1).abs()) best = f;
+  }
+  if (best.$1 == 1.0) whole += 1;
+  if (best.$2.isEmpty) return whole == 0 ? '⅛' : '$whole';
+  return whole == 0 ? best.$2 : '$whole ${best.$2}';
 }
 
 /// Grams/ml are shown as whole numbers (rounded to 5 above 30); spoons/pieces as ½ ¼ ¾ fractions.
@@ -40,7 +45,7 @@ String formatQuantity(double qty, String unit, String lang) {
     if (lang == 'bg') return v == 1 ? 'щипка' : '$v щипки';
     return v == 1 ? 'pinch' : '$v pinches';
   } else {
-    n = _fraction((qty * 4).round() / 4 == 0 ? 0.25 : (qty * 4).round() / 4);
+    n = _fraction(qty);
   }
   return '$n ${unitLabel(u, lang)}';
 }
