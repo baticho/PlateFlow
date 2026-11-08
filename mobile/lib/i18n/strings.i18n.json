@@ -86,7 +86,12 @@
     "removeTitle": "Remove recipe",
     "removeConfirm": "Remove \"$title\" from your meal plan?",
     "cook": "Cook",
-    "cooked": "Cooked"
+    "cooked": "Cooked",
+    "randomMeal": "Random",
+    "randomDay": "Surprise me for the day",
+    "noRandom": "No recipes in this category",
+    "randomServings": "How many servings?",
+    "randomAdd": "Add"
   },
   "shoppingList": {
     "title": "Shopping List",

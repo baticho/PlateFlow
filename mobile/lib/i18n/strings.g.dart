@@ -4,9 +4,9 @@
 /// To regenerate, run: `dart run slang`
 ///
 /// Locales: 2
-/// Strings: 440 (220 per locale)
+/// Strings: 450 (225 per locale)
 ///
-/// Built on 2026-11-06 at 12:30 UTC
+/// Built on 2026-11-08 at 06:54 UTC
 
 // coverage:ignore-file
 // ignore_for_file: type=lint
@@ -268,6 +268,11 @@ class _StringsMealPlanEn {
 	String removeConfirm({required Object title}) => 'Remove "${title}" from your meal plan?';
 	String get cook => 'Cook';
 	String get cooked => 'Cooked';
+	String get randomMeal => 'Random';
+	String get randomDay => 'Surprise me for the day';
+	String get noRandom => 'No recipes in this category';
+	String get randomServings => 'How many servings?';
+	String get randomAdd => 'Add';
 }
 
 // Path: shoppingList
@@ -734,6 +739,11 @@ class _StringsMealPlanBg implements _StringsMealPlanEn {
 	@override String removeConfirm({required Object title}) => 'Да премахна ли „${title}“ от хранителния план?';
 	@override String get cook => 'Готви';
 	@override String get cooked => 'Сготвено';
+	@override String get randomMeal => 'Случайна';
+	@override String get randomDay => 'Изненадай ме за деня';
+	@override String get noRandom => 'Няма рецепти в тази категория';
+	@override String get randomServings => 'За колко порции?';
+	@override String get randomAdd => 'Добави';
 }
 
 // Path: shoppingList
@@ -1131,6 +1141,11 @@ extension on Translations {
 			case 'mealPlan.removeConfirm': return ({required Object title}) => 'Remove "${title}" from your meal plan?';
 			case 'mealPlan.cook': return 'Cook';
 			case 'mealPlan.cooked': return 'Cooked';
+			case 'mealPlan.randomMeal': return 'Random';
+			case 'mealPlan.randomDay': return 'Surprise me for the day';
+			case 'mealPlan.noRandom': return 'No recipes in this category';
+			case 'mealPlan.randomServings': return 'How many servings?';
+			case 'mealPlan.randomAdd': return 'Add';
 			case 'shoppingList.title': return 'Shopping List';
 			case 'shoppingList.empty': return 'No items yet. Generate from your meal plan!';
 			case 'shoppingList.clearChecked': return 'Clear Checked';
@@ -1359,6 +1374,11 @@ extension on _StringsBg {
 			case 'mealPlan.removeConfirm': return ({required Object title}) => 'Да премахна ли „${title}“ от хранителния план?';
 			case 'mealPlan.cook': return 'Готви';
 			case 'mealPlan.cooked': return 'Сготвено';
+			case 'mealPlan.randomMeal': return 'Случайна';
+			case 'mealPlan.randomDay': return 'Изненадай ме за деня';
+			case 'mealPlan.noRandom': return 'Няма рецепти в тази категория';
+			case 'mealPlan.randomServings': return 'За колко порции?';
+			case 'mealPlan.randomAdd': return 'Добави';
 			case 'shoppingList.title': return 'Списък за пазаруване';
 			case 'shoppingList.empty': return 'Все още няма продукти. Генерирай от плана!';
 			case 'shoppingList.clearChecked': return 'Изчисти отбелязаните';

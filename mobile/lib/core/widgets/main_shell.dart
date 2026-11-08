@@ -12,6 +12,11 @@ class MainShell extends ConsumerStatefulWidget {
   final Widget child;
   const MainShell({super.key, required this.child});
 
+  /// A tab's root screen is the only page of the shell navigator, so its own PopScope never
+  /// sees system back. Such screens register here; a handler returns true when it consumed
+  /// back (e.g. Explore leaving a category for the category list).
+  static final List<bool Function()> backHandlers = [];
+
   @override
   ConsumerState<MainShell> createState() => _MainShellState();
 }
@@ -74,6 +79,9 @@ class _MainShellState extends ConsumerState<MainShell> {
         if (router.canPop()) {
           router.pop();
           return;
+        }
+        for (final handler in MainShell.backHandlers.reversed.toList()) {
+          if (handler()) return;
         }
         final location = GoRouterState.of(context).uri.path;
         if (!_tabRoutes.contains(location)) {

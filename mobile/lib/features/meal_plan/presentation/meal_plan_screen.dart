@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/api/api_client.dart';
 import '../../../core/config/app_config.dart';
@@ -13,6 +14,7 @@ import '../../../core/providers/shopping_list_count_provider.dart';
 import '../../../core/providers/shopping_list_refresh_provider.dart';
 import '../../../core/providers/user_provider.dart';
 import '../../../core/services/meal_plan_service.dart';
+import '../../../core/services/recipe_service.dart';
 import '../../../i18n/strings.g.dart';
 
 class MealPlanScreen extends ConsumerStatefulWidget {
@@ -24,6 +26,10 @@ class MealPlanScreen extends ConsumerStatefulWidget {
 
 class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
   late final MealPlanService _service;
+  late final RecipeService _recipeService;
+
+  /// meal slots currently getting a random recipe ("2026-11-08|lunch")
+  final Set<String> _randomBusy = {};
 
   /// First day of the visible 7-day window.
   late DateTime _anchorDate;
@@ -44,6 +50,7 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
   void initState() {
     super.initState();
     _service = MealPlanService(ref.read(dioProvider));
+    _recipeService = RecipeService(ref.read(dioProvider));
     final today = DateTime.now();
     _anchorDate = DateTime(today.year, today.month, today.day);
     _loadWindow();
@@ -134,6 +141,144 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
         content: Text(e.response?.data?['detail'] ?? LocaleSettings.instance.currentTranslations.common.error),
         backgroundColor: Theme.of(context).colorScheme.error,
       ));
+    }
+  }
+
+  /// Adds a random recipe of the meal's category (breakfast / lunch / dinner) to [date].
+  /// Returns false when nothing was added.
+  static const _servingsPrefKey = 'random_meal_servings';
+
+  /// Asks how many portions to plan; remembers the last answer. null = cancelled.
+  Future<int?> _askServings() async {
+    var servings = 2;
+    try {
+      servings = (await SharedPreferences.getInstance()).getInt(_servingsPrefKey) ?? 2;
+    } catch (_) {}
+    if (!const [2, 4, 6].contains(servings)) servings = 2;
+    if (!mounted) return null;
+    final picked = await showDialog<int>(
+      context: context,
+      builder: (ctx) {
+        final t = Translations.of(ctx);
+        final cs = Theme.of(ctx).colorScheme;
+        var value = servings;
+        return StatefulBuilder(
+          builder: (ctx, setLocal) => AlertDialog(
+            title: Text(t.mealPlan.randomServings),
+            // same segmented 2 | 4 | 6 control as the recipe's portion selector
+            content: Center(
+              heightFactor: 1,
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: cs.outline),
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  for (final (i, n) in const [2, 4, 6].indexed) ...[
+                    if (i > 0) Container(width: 1, height: 44, color: cs.outline),
+                    InkWell(
+                      onTap: () => setLocal(() => value = n),
+                      child: Container(
+                        width: 64,
+                        height: 44,
+                        alignment: Alignment.center,
+                        color: n == value ? cs.onSurface : null,
+                        child: Text('$n',
+                            style: TextStyle(
+                              fontSize: 17,
+                              fontWeight: FontWeight.w600,
+                              color: n == value ? cs.surface : cs.onSurface,
+                            )),
+                      ),
+                    ),
+                  ],
+                ]),
+              ),
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx), child: Text(t.common.cancel)),
+              FilledButton(onPressed: () => Navigator.pop(ctx, value), child: Text(t.mealPlan.randomAdd)),
+            ],
+          ),
+        );
+      },
+    );
+    if (picked != null) {
+      try {
+        await (await SharedPreferences.getInstance()).setInt(_servingsPrefKey, picked);
+      } catch (_) {}
+    }
+    return picked;
+  }
+
+  /// Asks for portions, then adds one random recipe to the slot.
+  Future<void> _addRandomAsk(DateTime date, String mealType) async {
+    final servings = await _askServings();
+    if (servings == null) return;
+    await _addRandom(date, mealType, servings);
+  }
+
+  Future<bool> _addRandom(DateTime date, String mealType, int servings, {bool reload = true}) async {
+    final key = '${_isoDate(date)}|$mealType';
+    if (_randomBusy.contains(key)) return false;
+    setState(() => _randomBusy.add(key));
+    try {
+      // avoid repeating recipes already planned this week
+      final week = _planForDate(date)?.items.map((i) => i.recipeId).toList() ?? const <String>[];
+      final pick = await _recipeService.getRandomRecipe(categorySlug: mealType, exclude: week);
+      final planData = await _service.ensurePlanForMonday(MealPlanService.mondayIsoFor(date));
+      final planId = planData['id'] as int;
+      final item = await _service.addItem(
+        planId,
+        pick['id'].toString(),
+        MealPlanService.dayOfWeekFor(date),
+        mealType,
+        servings: servings,
+      );
+      try {
+        await _service.syncShoppingListForItem(planId, item['id'] as int);
+      } on DioException catch (_) {
+        // the recipe is in the plan; the list can be generated later
+      }
+      if (reload) await _afterRandomAdded();
+      return true;
+    } on DioException catch (e) {
+      if (!mounted) return false;
+      final tl = LocaleSettings.instance.currentTranslations;
+      final msg = e.response?.statusCode == 404 ? tl.mealPlan.noRandom : (e.response?.data?['detail'] ?? tl.common.error);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(msg.toString()),
+        backgroundColor: Theme.of(context).colorScheme.error,
+      ));
+      return false;
+    } finally {
+      if (mounted) setState(() => _randomBusy.remove(key));
+    }
+  }
+
+  Future<void> _afterRandomAdded() async {
+    await _loadWindow();
+    await ref.read(shoppingListCountProvider.notifier).refresh();
+    ref.read(shoppingListRefreshProvider.notifier).state++;
+  }
+
+  /// Fills every empty meal of [date] with a random recipe of its category.
+  Future<void> _randomDay(DateTime date) async {
+    final servings = await _askServings(); // asked once for the whole day
+    if (servings == null) return;
+    var added = false;
+    for (final mealType in _mealTypes) {
+      if (_itemsForDate(date, mealType).isNotEmpty) continue;
+      // sequential: each add sees the previous one (same plan, no repeats)
+      if (await _addRandom(date, mealType, servings, reload: false)) {
+        added = true;
+        await _loadWindow();
+      }
+    }
+    if (added) {
+      await ref.read(shoppingListCountProvider.notifier).refresh();
+      ref.read(shoppingListRefreshProvider.notifier).state++;
     }
   }
 
@@ -410,7 +555,21 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
             },
             child: ListView(
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-              children: List.generate(3, (i) {
+              children: [
+                // one tap: a random breakfast, lunch and dinner for the empty slots of this day
+                if (!isPastSelected && _mealTypes.any((m) => _itemsForDate(selectedDate, m).isEmpty))
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 18),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: FilledButton.tonalIcon(
+                        onPressed: _randomBusy.isEmpty ? () => _randomDay(selectedDate) : null,
+                        icon: const Icon(Icons.casino_outlined, size: 20),
+                        label: Text(t.mealPlan.randomDay),
+                      ),
+                    ),
+                  ),
+                ...List.generate(3, (i) {
                 final mealType = _mealTypes[i];
                 final items = _itemsForDate(selectedDate, mealType);
                 return _MealSlotCard(
@@ -423,6 +582,9 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
                     final iso = _isoDate(selectedDate);
                     context.push('/explore?fromDate=$iso&fromMealType=$mealType');
                   },
+                  randomLabel: t.mealPlan.randomMeal,
+                  randomBusy: _randomBusy.contains('${_isoDate(selectedDate)}|$mealType'),
+                  onAddRandom: () => _addRandomAsk(selectedDate, mealType),
                   onTapRecipe: (item) => context.push('/recipe/${item.recipeId}'),
                   onCookRecipe: (item) {
                     final plan = _planForDate(selectedDate);
@@ -436,6 +598,7 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
                   },
                 );
               }),
+              ],
             ),
           ),
         ),
@@ -462,6 +625,9 @@ class _MealSlotCard extends StatelessWidget {
   final String addLabel;
   final bool isReadOnly;
   final VoidCallback onAddRecipe;
+  final String randomLabel;
+  final bool randomBusy;
+  final VoidCallback onAddRandom;
   final void Function(MealPlanItem) onTapRecipe;
   final void Function(MealPlanItem) onCookRecipe;
   final void Function(MealPlanItem) onRemoveRecipe;
@@ -473,6 +639,9 @@ class _MealSlotCard extends StatelessWidget {
     required this.addLabel,
     required this.isReadOnly,
     required this.onAddRecipe,
+    required this.randomLabel,
+    required this.randomBusy,
+    required this.onAddRandom,
     required this.onTapRecipe,
     required this.onCookRecipe,
     required this.onRemoveRecipe,
@@ -507,16 +676,30 @@ class _MealSlotCard extends StatelessWidget {
             const SizedBox(height: 10),
           ],
           if (!isReadOnly)
-            OutlinedButton.icon(
-              onPressed: onAddRecipe,
-              icon: const Icon(Icons.add, size: 18),
-              label: Text(addLabel),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: cs.onSurfaceVariant,
-                side: BorderSide(color: cs.outline),
-                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
+            Wrap(spacing: 8, runSpacing: 8, children: [
+              OutlinedButton.icon(
+                onPressed: onAddRecipe,
+                icon: const Icon(Icons.add, size: 18),
+                label: Text(addLabel),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: cs.onSurfaceVariant,
+                  side: BorderSide(color: cs.outline),
+                  padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
+                ),
               ),
-            ),
+              OutlinedButton.icon(
+                onPressed: randomBusy ? null : onAddRandom,
+                icon: randomBusy
+                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Icon(Icons.casino_outlined, size: 18),
+                label: Text(randomLabel),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: cs.onSurfaceVariant,
+                  side: BorderSide(color: cs.outline),
+                  padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
+                ),
+              ),
+            ]),
         ],
       ),
     );

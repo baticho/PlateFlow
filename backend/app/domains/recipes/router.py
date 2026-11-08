@@ -108,24 +108,34 @@ async def get_home_sections(
 @router.get("/random")
 async def get_random_recipe(
     category_id: int | None = Query(None),
+    category_slug: str | None = Query(None),
     cuisine_id: int | None = Query(None),
+    exclude: list[uuid.UUID] = Query(default=[]),
     db: AsyncSession = Depends(get_db),
 ):
-    """Id of one random published recipe (optionally within a category / cuisine)."""
+    """One random published recipe (optionally within a category / cuisine, skipping `exclude` ids)."""
     from sqlalchemy import func, select
 
     from app.domains.recipes.models import Recipe, RecipeStatus
 
-    query = select(Recipe.id).where(Recipe.status == RecipeStatus.PUBLISHED)
-    if category_id:
-        from app.domains.categories.models import recipe_categories
-        query = query.join(recipe_categories).where(recipe_categories.c.category_id == category_id)
+    query = select(Recipe.id, Recipe.servings).where(Recipe.status == RecipeStatus.PUBLISHED)
+    if category_id or category_slug:
+        from app.domains.categories.models import Category, recipe_categories
+        query = query.join(recipe_categories)
+        if category_id:
+            query = query.where(recipe_categories.c.category_id == category_id)
+        else:
+            query = query.join(Category, Category.id == recipe_categories.c.category_id).where(Category.slug == category_slug)
     if cuisine_id:
         query = query.where(Recipe.cuisine_id == cuisine_id)
-    recipe_id = (await db.execute(query.order_by(func.random()).limit(1))).scalar_one_or_none()
-    if not recipe_id:
+    row = None
+    if exclude:
+        row = (await db.execute(query.where(Recipe.id.notin_(exclude)).order_by(func.random()).limit(1))).first()
+    if row is None:  # nothing left after excluding -> allow repeats
+        row = (await db.execute(query.order_by(func.random()).limit(1))).first()
+    if row is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No recipes found")
-    return {"id": str(recipe_id)}
+    return {"id": str(row.id), "servings": row.servings}
 
 
 @router.get("/{recipe_id}", response_model=RecipeDetail)

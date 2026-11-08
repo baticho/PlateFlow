@@ -86,7 +86,12 @@
     "removeTitle": "Премахни рецепта",
     "removeConfirm": "Да премахна ли „$title“ от хранителния план?",
     "cook": "Готви",
-    "cooked": "Сготвено"
+    "cooked": "Сготвено",
+    "randomMeal": "Случайна",
+    "randomDay": "Изненадай ме за деня",
+    "noRandom": "Няма рецепти в тази категория",
+    "randomServings": "За колко порции?",
+    "randomAdd": "Добави"
   },
   "shoppingList": {
     "title": "Списък за пазаруване",

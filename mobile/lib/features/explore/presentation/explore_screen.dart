@@ -11,6 +11,7 @@ import '../../../core/providers/locale_provider.dart';
 import '../../../core/providers/user_provider.dart';
 import '../../../core/services/ingredient_service.dart';
 import '../../../core/services/recipe_service.dart';
+import '../../../core/widgets/main_shell.dart';
 import '../../../core/widgets/recipe_tile.dart';
 import '../../../i18n/strings.g.dart';
 
@@ -58,6 +59,18 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
     _ingredientService = IngredientService(dio);
     _loadFilters();
     if (widget.initialCategoryId != null) _filterByCategory(widget.initialCategoryId!);
+    MainShell.backHandlers.add(_handleBack);
+  }
+
+  /// System back while Explore is the tab's root page: leave a category / search / ingredient
+  /// view for the browse view instead of jumping to the previous tab.
+  bool _handleBack() {
+    if (!mounted) return false;
+    final inSubView = _searchMode || _ingredientMode;
+    final openedFromLink = widget.initialCategoryId != null && _activeCategoryId == widget.initialCategoryId;
+    if (!inSubView || openedFromLink) return false;
+    _clearSearch();
+    return true;
   }
 
   Future<void> _loadFilters() async {
@@ -652,6 +665,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
 
   @override
   void dispose() {
+    MainShell.backHandlers.remove(_handleBack);
     _searchCtrl.dispose();
     _ingredientCtrl.dispose();
     _debounce?.cancel();

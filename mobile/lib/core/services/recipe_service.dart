@@ -44,6 +44,16 @@ class RecipeService {
     return (response.data as Map<String, dynamic>)['id'].toString();
   }
 
+  /// A random published recipe of a category (by slug), avoiding [exclude] when possible.
+  /// Returns {'id': String, 'servings': int}.
+  Future<Map<String, dynamic>> getRandomRecipe({String? categorySlug, List<String> exclude = const []}) async {
+    final response = await _dio.get('/api/v1/recipes/random', queryParameters: {
+      if (categorySlug != null) 'category_slug': categorySlug,
+      if (exclude.isNotEmpty) 'exclude': exclude,
+    });
+    return response.data as Map<String, dynamic>;
+  }
+
   Future<List<Map<String, dynamic>>> getCategories() async {
     final response = await _dio.get('/api/v1/categories/');
     return (response.data as List).cast<Map<String, dynamic>>();
