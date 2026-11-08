@@ -91,7 +91,14 @@
     "randomDay": "Surprise me for the day",
     "noRandom": "No recipes in this category",
     "randomServings": "How many servings?",
-    "randomAdd": "Add"
+    "randomAdd": "Add",
+    "move": "Move",
+    "moveTitle": "Move to which day?",
+    "moved": "Moved: $date",
+    "reroll": "Another recipe",
+    "rerollBack": "Bring back the previous one",
+    "rerolled": "Swapped for “$title”",
+    "undo": "Undo"
   },
   "shoppingList": {
     "title": "Shopping List",

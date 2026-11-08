@@ -56,7 +56,7 @@ class _ShoppingListScreenState extends ConsumerState<ShoppingListScreen> {
     try {
       final lists = await _service.getLists();
       if (mounted) setState(() {
-        _list = lists.isNotEmpty ? ShoppingList.fromJson(lists.first) : null;
+        _list = ShoppingList.cart(lists);
         _loading = false;
       });
       _syncBadgeCount();
@@ -83,7 +83,10 @@ class _ShoppingListScreenState extends ConsumerState<ShoppingListScreen> {
     });
     _syncBadgeCount();
     try {
-      await _service.setChecked(_list!.id, entry.items.map((i) => i.id).toList(), target);
+      // one visible row can hold rows of two week lists (e.g. Sunday + next Monday)
+      for (final listId in ShoppingList.listIdsOf(entry.items)) {
+        await _service.setChecked(listId, entry.items.where((i) => i.listId == listId).map((i) => i.id).toList(), target);
+      }
     } catch (_) {
       if (mounted) {
         setState(() => before.forEach((i, v) => i.isChecked = v));
@@ -94,21 +97,26 @@ class _ShoppingListScreenState extends ConsumerState<ShoppingListScreen> {
 
   /// Manual refresh (icon / pull down): drop what is already bought, then reload.
   Future<void> _refresh() async {
-    if (_list != null && _list!.items.any((i) => i.isChecked)) {
-      try {
-        await _service.clearCheckedItems(_list!.id);
-      } catch (_) {}
+    if (_list != null) {
+      for (final listId in ShoppingList.listIdsOf(_list!.items.where((i) => i.isChecked))) {
+        try {
+          await _service.clearCheckedItems(listId);
+        } catch (_) {}
+      }
     }
     await _loadList();
   }
 
   Future<void> _clearChecked() async {
     if (_list == null) return;
+    final listIds = ShoppingList.listIdsOf(_list!.items.where((i) => i.isChecked));
     setState(() {
       _list!.items.removeWhere((i) => i.isChecked);
     });
     _syncBadgeCount();
-    await _service.clearCheckedItems(_list!.id);
+    for (final listId in listIds) {
+      await _service.clearCheckedItems(listId);
+    }
   }
 
   void _showDetails(ShoppingEntry entry) {
@@ -154,23 +162,22 @@ class _ShoppingListScreenState extends ConsumerState<ShoppingListScreen> {
 
   @override
   void dispose() {
-    if (_list != null && _list!.items.any((i) => i.isChecked)) {
-      _service.clearCheckedItems(_list!.id).ignore();
+    if (_list != null) {
+      for (final listId in ShoppingList.listIdsOf(_list!.items.where((i) => i.isChecked))) {
+        _service.clearCheckedItems(listId).ignore();
+      }
     }
     super.dispose();
   }
 
   /// "Today · Mon 03.11" / "Wed 05.11" / "No day"
-  String _dayLabel(int? day, Translations t) {
-    if (day == null) return t.shoppingList.noDay;
+  String _dayLabel(DateTime? date, Translations t) {
+    if (date == null) return t.shoppingList.noDay;
     final names = [
       t.mealPlan.days.mon, t.mealPlan.days.tue, t.mealPlan.days.wed,
       t.mealPlan.days.thu, t.mealPlan.days.fri, t.mealPlan.days.sat, t.mealPlan.days.sun,
     ];
-    final start = _list?.weekStart;
-    if (start == null) return names[day];
-    final date = start.add(Duration(days: day));
-    final label = '${names[day]} ${date.day.toString().padLeft(2, '0')}.${date.month.toString().padLeft(2, '0')}';
+    final label = '${names[date.weekday - 1]} ${date.day.toString().padLeft(2, '0')}.${date.month.toString().padLeft(2, '0')}';
     return DateUtils.isSameDay(date, DateTime.now()) ? '${t.shoppingList.today} · $label' : label;
   }
 

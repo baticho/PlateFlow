@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -31,6 +33,34 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
   /// meal slots currently getting a random recipe ("2026-11-08|lunch")
   final Set<String> _randomBusy = {};
 
+  /// previous recipes of re-rolled items (item id -> recipe ids, newest last) for "bring back".
+  /// Kept on the device, so an accidental re-roll can be undone after leaving the screen too.
+  final Map<int, List<String>> _rerollHistory = {};
+  static const _rerollPrefKey = 'meal_plan_reroll_history';
+
+  Future<void> _loadRerollHistory() async {
+    try {
+      final raw = (await SharedPreferences.getInstance()).getString(_rerollPrefKey);
+      if (raw == null) return;
+      final map = (jsonDecode(raw) as Map<String, dynamic>).map(
+          (k, v) => MapEntry(int.parse(k), (v as List).map((e) => e.toString()).toList()));
+      if (mounted) setState(() => _rerollHistory.addAll(map));
+    } catch (_) {}
+  }
+
+  Future<void> _saveRerollHistory() async {
+    try {
+      // drop items that are no longer planned
+      final planned = _plansByMonday.values.expand((p) => p.items).map((i) => i.id).toSet();
+      final keep = {
+        for (final e in _rerollHistory.entries)
+          if (e.value.isNotEmpty && (planned.isEmpty || planned.contains(e.key))) '${e.key}': e.value,
+      };
+      await (await SharedPreferences.getInstance()).setString(_rerollPrefKey, jsonEncode(keep));
+    } catch (_) {}
+  }
+  final Set<int> _rerollBusy = {};
+
   /// First day of the visible 7-day window.
   late DateTime _anchorDate;
 
@@ -51,6 +81,7 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
     super.initState();
     _service = MealPlanService(ref.read(dioProvider));
     _recipeService = RecipeService(ref.read(dioProvider));
+    _loadRerollHistory();
     final today = DateTime.now();
     _anchorDate = DateTime(today.year, today.month, today.day);
     _loadWindow();
@@ -149,12 +180,14 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
   static const _servingsPrefKey = 'random_meal_servings';
 
   /// Asks how many portions to plan; remembers the last answer. null = cancelled.
-  Future<int?> _askServings() async {
+  /// [current] = editing a planned recipe: start from its portions and keep the remembered default.
+  Future<int?> _askServings({int? current}) async {
     var servings = 2;
     try {
       servings = (await SharedPreferences.getInstance()).getInt(_servingsPrefKey) ?? 2;
     } catch (_) {}
-    if (!const [2, 4, 6].contains(servings)) servings = 2;
+    if (current != null) servings = current;
+    final options = {2, 4, 6, servings}.toList()..sort(); // keep an odd old value (e.g. 3) selectable
     if (!mounted) return null;
     final picked = await showDialog<int>(
       context: context,
@@ -175,7 +208,7 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
                 ),
                 clipBehavior: Clip.antiAlias,
                 child: Row(mainAxisSize: MainAxisSize.min, children: [
-                  for (final (i, n) in const [2, 4, 6].indexed) ...[
+                  for (final (i, n) in options.indexed) ...[
                     if (i > 0) Container(width: 1, height: 44, color: cs.outline),
                     InkWell(
                       onTap: () => setLocal(() => value = n),
@@ -198,13 +231,16 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
             ),
             actions: [
               TextButton(onPressed: () => Navigator.pop(ctx), child: Text(t.common.cancel)),
-              FilledButton(onPressed: () => Navigator.pop(ctx, value), child: Text(t.mealPlan.randomAdd)),
+              FilledButton(
+                onPressed: () => Navigator.pop(ctx, value),
+                child: Text(current != null ? t.common.save : t.mealPlan.randomAdd),
+              ),
             ],
           ),
         );
       },
     );
-    if (picked != null) {
+    if (picked != null && current == null) {
       try {
         await (await SharedPreferences.getInstance()).setInt(_servingsPrefKey, picked);
       } catch (_) {}
@@ -254,6 +290,102 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
       return false;
     } finally {
       if (mounted) setState(() => _randomBusy.remove(key));
+    }
+  }
+
+  /// Portions of a planned recipe -> the shopping list follows.
+  Future<void> _changeServings(MealPlanItem item, MealPlan plan) async {
+    final servings = await _askServings(current: item.servings);
+    if (servings == null || servings == item.servings) return;
+    try {
+      await _service.updateServings(plan.id, item.id, servings);
+      await _afterRandomAdded();
+    } on DioException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text((e.response?.data?['detail'] ?? LocaleSettings.instance.currentTranslations.common.error).toString()),
+        backgroundColor: Theme.of(context).colorScheme.error,
+      ));
+    }
+  }
+
+  /// Move a planned recipe (e.g. not cooked on its day) to one of the next 7 days.
+  Future<void> _moveRecipe(MealPlanItem item, MealPlan plan, DateTime from) async {
+    final today = _todayDate;
+    final picked = await showModalBottomSheet<(DateTime, String)>(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) => _MoveSheet(
+        today: today,
+        initialDate: from.isBefore(today) ? today : from,
+        initialMealType: item.mealType.toLowerCase(),
+      ),
+    );
+    if (picked == null) return;
+    final (date, mealType) = picked;
+    try {
+      await _service.moveItem(plan.id, item.id, _isoDate(date), mealType);
+      // show the day it went to when it is in the visible window
+      final offset = date.difference(_anchorDate).inDays;
+      if (offset >= 0 && offset < 7 && mounted) setState(() => _selectedOffset = offset);
+      await _afterRandomAdded();
+      if (!mounted) return;
+      final tl = LocaleSettings.instance.currentTranslations;
+      final names = [
+        tl.mealPlan.days.mon, tl.mealPlan.days.tue, tl.mealPlan.days.wed,
+        tl.mealPlan.days.thu, tl.mealPlan.days.fri, tl.mealPlan.days.sat, tl.mealPlan.days.sun,
+      ];
+      final label = '${names[date.weekday - 1]} ${date.day.toString().padLeft(2, '0')}.${date.month.toString().padLeft(2, '0')}';
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(tl.mealPlan.moved(date: label)),
+        behavior: SnackBarBehavior.floating,
+      ));
+    } on DioException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text((e.response?.data?['detail'] ?? LocaleSettings.instance.currentTranslations.common.error).toString()),
+        backgroundColor: Theme.of(context).colorScheme.error,
+      ));
+    }
+  }
+
+  /// Re-roll: another random recipe of the same meal, same portions. [back] = return to the previous one.
+  Future<void> _reroll(MealPlanItem item, MealPlan plan, {bool back = false}) async {
+    if (_rerollBusy.contains(item.id)) return;
+    final history = _rerollHistory[item.id] ?? [];
+    if (back && history.isEmpty) return;
+    setState(() => _rerollBusy.add(item.id));
+    try {
+      final previous = item.recipeId;
+      final res = await _service.swapRecipe(plan.id, item.id, recipeId: back ? history.last : null);
+      setState(() {
+        if (back) {
+          history.removeLast();
+        } else {
+          history.add(previous);
+        }
+        _rerollHistory[item.id] = history;
+      });
+      _saveRerollHistory();
+      await _afterRandomAdded();
+      if (!mounted || back) return;
+      final tl = LocaleSettings.instance.currentTranslations;
+      final messenger = ScaffoldMessenger.of(context)..clearSnackBars();
+      messenger.showSnackBar(SnackBar(
+        content: Text(tl.mealPlan.rerolled(title: (res['recipe_title'] ?? '').toString())),
+        behavior: SnackBarBehavior.floating,
+        action: SnackBarAction(label: tl.mealPlan.undo, onPressed: () => _reroll(item, plan, back: true)),
+      ));
+    } on DioException catch (e) {
+      if (!mounted) return;
+      final tl = LocaleSettings.instance.currentTranslations;
+      final msg = e.response?.statusCode == 404 ? tl.mealPlan.noRandom : (e.response?.data?['detail'] ?? tl.common.error);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(msg.toString()),
+        backgroundColor: Theme.of(context).colorScheme.error,
+      ));
+    } finally {
+      if (mounted) setState(() => _rerollBusy.remove(item.id));
     }
   }
 
@@ -596,6 +728,23 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
                     if (plan == null) return;
                     _removeRecipe(item, plan, t);
                   },
+                  onServings: (item) {
+                    final plan = _planForDate(selectedDate);
+                    if (plan == null) return;
+                    _changeServings(item, plan);
+                  },
+                  onMove: (item) {
+                    final plan = _planForDate(selectedDate);
+                    if (plan == null) return;
+                    _moveRecipe(item, plan, selectedDate);
+                  },
+                  rerollBusy: (item) => _rerollBusy.contains(item.id),
+                  canRerollBack: (item) => (_rerollHistory[item.id] ?? const []).isNotEmpty,
+                  onReroll: (item, back) {
+                    final plan = _planForDate(selectedDate);
+                    if (plan == null) return;
+                    _reroll(item, plan, back: back);
+                  },
                 );
               }),
               ],
@@ -631,6 +780,11 @@ class _MealSlotCard extends StatelessWidget {
   final void Function(MealPlanItem) onTapRecipe;
   final void Function(MealPlanItem) onCookRecipe;
   final void Function(MealPlanItem) onRemoveRecipe;
+  final void Function(MealPlanItem) onServings;
+  final void Function(MealPlanItem) onMove;
+  final bool Function(MealPlanItem) rerollBusy;
+  final bool Function(MealPlanItem) canRerollBack;
+  final void Function(MealPlanItem, bool back) onReroll;
 
   const _MealSlotCard({
     required this.mealLabel,
@@ -645,6 +799,11 @@ class _MealSlotCard extends StatelessWidget {
     required this.onTapRecipe,
     required this.onCookRecipe,
     required this.onRemoveRecipe,
+    required this.onServings,
+    required this.onMove,
+    required this.rerollBusy,
+    required this.canRerollBack,
+    required this.onReroll,
   });
 
   @override
@@ -671,6 +830,12 @@ class _MealSlotCard extends StatelessWidget {
                   onTap: () => onTapRecipe(item),
                   onCook: () => onCookRecipe(item),
                   onRemove: () => onRemoveRecipe(item),
+                  onServings: () => onServings(item),
+                  onMove: () => onMove(item),
+                  rerollBusy: rerollBusy(item),
+                  canRerollBack: canRerollBack(item),
+                  onReroll: () => onReroll(item, false),
+                  onRerollBack: () => onReroll(item, true),
                 ),
               ),
             const SizedBox(height: 10),
@@ -713,12 +878,24 @@ class _RecipeCard extends StatelessWidget {
   final VoidCallback onTap;
   final VoidCallback onCook;
   final VoidCallback onRemove;
+  final VoidCallback onServings;
+  final VoidCallback onMove;
+  final bool rerollBusy;
+  final bool canRerollBack;
+  final VoidCallback onReroll;
+  final VoidCallback onRerollBack;
   const _RecipeCard({
     required this.item,
     required this.isReadOnly,
     required this.onTap,
     required this.onCook,
     required this.onRemove,
+    required this.onServings,
+    required this.onMove,
+    required this.rerollBusy,
+    required this.canRerollBack,
+    required this.onReroll,
+    required this.onRerollBack,
   });
 
   static const _grayscale = ColorFilter.matrix(<double>[
@@ -757,7 +934,8 @@ class _RecipeCard extends StatelessWidget {
         onTap: onTap,
         child: Padding(
           padding: const EdgeInsets.all(10),
-          child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
             ClipRRect(borderRadius: BorderRadius.circular(10), child: photo),
             const SizedBox(width: 12),
             Expanded(
@@ -781,34 +959,162 @@ class _RecipeCard extends StatelessWidget {
                     Text(t.mealPlan.cooked, style: TextStyle(fontSize: 13, color: cs.secondary, fontWeight: FontWeight.w600)),
                     Text('  ·  ', style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant)),
                   ],
-                  Text(t.recipe.servings(count: item.servings), style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant)),
-                ]),
-                if (!isReadOnly) ...[
-                  const SizedBox(height: 10),
-                  Row(children: [
-                    FilledButton.tonalIcon(
-                      onPressed: onCook,
-                      icon: const Icon(Icons.play_arrow_rounded, size: 20),
-                      label: Text(t.mealPlan.cook),
-                      style: FilledButton.styleFrom(
-                        minimumSize: const Size(0, 42),
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                  if (isReadOnly)
+                    Text(t.recipe.servings(count: item.servings), style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant))
+                  else
+                    // tap to change portions (the shopping list follows)
+                    InkWell(
+                      onTap: onServings,
+                      borderRadius: BorderRadius.circular(8),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: cs.outline),
+                        ),
+                        child: Row(mainAxisSize: MainAxisSize.min, children: [
+                          Text(t.recipe.servings(count: item.servings),
+                              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: cs.onSurface)),
+                          const SizedBox(width: 4),
+                          Icon(Icons.edit_outlined, size: 14, color: cs.onSurfaceVariant),
+                        ]),
                       ),
                     ),
-                    const Spacer(),
-                    IconButton(
-                      tooltip: t.mealPlan.removeTitle,
-                      onPressed: onRemove,
-                      icon: const Icon(Icons.delete_outline),
-                      color: cs.onSurfaceVariant,
-                      style: IconButton.styleFrom(minimumSize: const Size(44, 44)),
-                    ),
-                  ]),
+                ]),
+                if (isReadOnly && !item.isCompleted) ...[
+                  const SizedBox(height: 8),
+                  OutlinedButton.icon(
+                    onPressed: onMove,
+                    icon: const Icon(Icons.event_repeat, size: 18),
+                    label: Text(t.mealPlan.move),
+                    style: OutlinedButton.styleFrom(minimumSize: const Size(0, 40)),
+                  ),
                 ],
               ]),
             ),
           ]),
+          // actions get the full card width (cook + re-roll / back / move / delete)
+          if (!isReadOnly) ...[
+            const SizedBox(height: 10),
+            Row(children: [
+              FilledButton.tonalIcon(
+                onPressed: onCook,
+                icon: const Icon(Icons.play_arrow_rounded, size: 20),
+                label: Text(t.mealPlan.cook),
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size(0, 42),
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                ),
+              ),
+              const Spacer(),
+              if (!item.isCompleted) ...[
+                if (canRerollBack)
+                  IconButton(
+                    tooltip: t.mealPlan.rerollBack,
+                    onPressed: rerollBusy ? null : onRerollBack,
+                    icon: const Icon(Icons.undo),
+                    color: cs.onSurfaceVariant,
+                    style: IconButton.styleFrom(minimumSize: const Size(40, 40)),
+                  ),
+                IconButton(
+                  tooltip: t.mealPlan.reroll,
+                  onPressed: rerollBusy ? null : onReroll,
+                  icon: rerollBusy
+                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                      : const Icon(Icons.casino_outlined),
+                  color: cs.onSurfaceVariant,
+                  style: IconButton.styleFrom(minimumSize: const Size(40, 40)),
+                ),
+              ],
+              IconButton(
+                tooltip: t.mealPlan.move,
+                onPressed: onMove,
+                icon: const Icon(Icons.event_repeat),
+                color: cs.onSurfaceVariant,
+                style: IconButton.styleFrom(minimumSize: const Size(40, 40)),
+              ),
+              IconButton(
+                tooltip: t.mealPlan.removeTitle,
+                onPressed: onRemove,
+                icon: const Icon(Icons.delete_outline),
+                color: cs.onSurfaceVariant,
+                style: IconButton.styleFrom(minimumSize: const Size(40, 40)),
+              ),
+            ]),
+          ],
+          ]),
         ),
+      ),
+    );
+  }
+}
+
+/// Pick one of the next 7 days and the meal to move a planned recipe to.
+class _MoveSheet extends StatefulWidget {
+  final DateTime today;
+  final DateTime initialDate;
+  final String initialMealType;
+  const _MoveSheet({required this.today, required this.initialDate, required this.initialMealType});
+
+  @override
+  State<_MoveSheet> createState() => _MoveSheetState();
+}
+
+class _MoveSheetState extends State<_MoveSheet> {
+  late DateTime _date = widget.initialDate;
+  late String _meal = const ['breakfast', 'lunch', 'dinner'].contains(widget.initialMealType)
+      ? widget.initialMealType
+      : 'dinner';
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.t;
+    final cs = Theme.of(context).colorScheme;
+    final names = [
+      t.mealPlan.days.mon, t.mealPlan.days.tue, t.mealPlan.days.wed,
+      t.mealPlan.days.thu, t.mealPlan.days.fri, t.mealPlan.days.sat, t.mealPlan.days.sun,
+    ];
+    final days = List.generate(7, (i) => DateTime(widget.today.year, widget.today.month, widget.today.day + i));
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(t.mealPlan.moveTitle,
+              style: TextStyle(fontFamily: 'Lora', fontSize: 20, fontWeight: FontWeight.w600, color: cs.onSurface)),
+          const SizedBox(height: 14),
+          Wrap(spacing: 8, runSpacing: 8, children: [
+            for (final d in days)
+              ChoiceChip(
+                label: Text('${names[d.weekday - 1]} ${d.day.toString().padLeft(2, '0')}.${d.month.toString().padLeft(2, '0')}'),
+                selected: DateUtils.isSameDay(d, _date),
+                onSelected: (_) => setState(() => _date = d),
+              ),
+          ]),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: SegmentedButton<String>(
+              showSelectedIcon: false,
+              segments: [
+                ButtonSegment(value: 'breakfast', label: Text(t.mealPlan.mealTypes.breakfast)),
+                ButtonSegment(value: 'lunch', label: Text(t.mealPlan.mealTypes.lunch)),
+                ButtonSegment(value: 'dinner', label: Text(t.mealPlan.mealTypes.dinner)),
+              ],
+              selected: {_meal},
+              onSelectionChanged: (v) => setState(() => _meal = v.first),
+            ),
+          ),
+          const SizedBox(height: 18),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              onPressed: () => Navigator.pop(context, (_date, _meal)),
+              icon: const Icon(Icons.event_repeat),
+              label: Text(t.mealPlan.move),
+              style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
+            ),
+          ),
+        ]),
       ),
     );
   }

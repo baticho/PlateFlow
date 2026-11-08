@@ -16,11 +16,7 @@ class ShoppingListCountNotifier extends StateNotifier<AsyncValue<int>> {
     try {
       final response = await _dio.get('/api/v1/shopping-lists/');
       final lists = (response.data as List).cast<Map<String, dynamic>>();
-      if (lists.isEmpty) {
-        state = const AsyncValue.data(0);
-        return;
-      }
-      state = AsyncValue.data(ShoppingList.fromJson(lists.first).uncheckedEntryCount);
+      state = AsyncValue.data(ShoppingList.cart(lists)?.uncheckedEntryCount ?? 0);
     } catch (e, st) {
       state = AsyncValue.error(e, st);
     }

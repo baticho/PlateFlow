@@ -79,6 +79,24 @@ class MealPlanService {
     return response.data as Map<String, dynamic>;
   }
 
+  /// Changes a planned recipe's portions; the backend adjusts the shopping list by the difference.
+  Future<void> updateServings(int planId, int itemId, int servings) async {
+    await _dio.patch('/api/v1/meal-plans/$planId/items/$itemId/servings', data: {'servings': servings});
+  }
+
+  /// Moves a planned recipe to [dateIso] (YYYY-MM-DD) and [mealType]; its unbought products move with it.
+  Future<void> moveItem(int planId, int itemId, String dateIso, String mealType) async {
+    await _dio.patch('/api/v1/meal-plans/$planId/items/$itemId/move', data: {'date': dateIso, 'meal_type': mealType});
+  }
+
+  /// Replaces a planned recipe: random of the same meal category, or [recipeId] (undo).
+  /// Keeps day, meal and portions; the shopping list is updated on the server.
+  Future<Map<String, dynamic>> swapRecipe(int planId, int itemId, {String? recipeId}) async {
+    final response = await _dio.patch('/api/v1/meal-plans/$planId/items/$itemId/recipe',
+        data: {if (recipeId != null) 'recipe_id': recipeId});
+    return response.data as Map<String, dynamic>;
+  }
+
   Future<void> removeItem(int planId, int itemId) async {
     await _dio.delete('/api/v1/meal-plans/$planId/items/$itemId');
   }

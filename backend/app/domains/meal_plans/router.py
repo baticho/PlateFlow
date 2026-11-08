@@ -7,8 +7,16 @@ from sqlalchemy.orm import selectinload
 
 from app.core.deps import get_current_user, get_plan_owner
 from app.database import get_db
-from app.domains.meal_plans.models import MealPlan, MealPlanItem
-from app.domains.meal_plans.schemas import MealPlanCreate, MealPlanItemCreate, MealPlanItemResponse, MealPlanResponse
+from app.domains.meal_plans.models import MealPlan, MealPlanItem, MealType
+from app.domains.meal_plans.schemas import (
+    MealPlanCreate,
+    MealPlanItemCreate,
+    MealPlanItemMove,
+    MealPlanItemResponse,
+    MealPlanItemServingsUpdate,
+    MealPlanItemSwap,
+    MealPlanResponse,
+)
 from app.domains.recipes.models import Recipe
 from app.domains.subscriptions.models import SubscriptionPlan
 from app.domains.users.models import User
@@ -261,6 +269,267 @@ async def mark_item_complete(
     item.is_completed = True
     await db.flush()
     return item
+
+
+@router.patch("/{plan_id}/items/{item_id}/servings", response_model=MealPlanItemResponse)
+async def update_item_servings(
+    plan_id: int,
+    item_id: int,
+    body: MealPlanItemServingsUpdate,
+    current_user: User = Depends(get_plan_owner),
+    db: AsyncSession = Depends(get_db),
+):
+    """Change the portions of a planned recipe and move the shopping list by the difference
+    (more portions add the extra amounts; fewer take them back out of what is still unchecked)."""
+    plan = (await db.execute(
+        select(MealPlan).where(MealPlan.id == plan_id, MealPlan.user_id == current_user.id)
+    )).scalar_one_or_none()
+    if not plan:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Meal plan not found")
+    item = (await db.execute(
+        select(MealPlanItem)
+        .where(
+            MealPlanItem.id == item_id,
+            MealPlanItem.meal_plan_id == plan_id,
+            MealPlanItem.is_deleted == False,  # noqa: E712
+        )
+        .options(selectinload(MealPlanItem.recipe).selectinload(Recipe.translations))
+    )).scalar_one_or_none()
+    if not item:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Item not found")
+
+    delta = body.servings - item.servings
+    if delta > 0:
+        shopping_list = await _get_or_create_week_shopping_list(db, current_user.id, plan.week_start_date)
+        await _apply_recipe_to_shopping_list(db, shopping_list.id, item.recipe_id, delta, item.day_of_week)
+    elif delta < 0:
+        await _remove_recipe_from_shopping_list(db, current_user.id, plan.week_start_date, item.recipe_id, -delta,
+                                                item.day_of_week)
+    item.servings = body.servings
+    await db.flush()
+    return item
+
+
+@router.patch("/{plan_id}/items/{item_id}/move", response_model=MealPlanItemResponse)
+async def move_meal_plan_item(
+    plan_id: int,
+    item_id: int,
+    body: MealPlanItemMove,
+    current_user: User = Depends(get_plan_owner),
+    db: AsyncSession = Depends(get_db),
+):
+    """Move a planned recipe to another day (and optionally meal), e.g. it was not cooked on Friday.
+    The same row moves (no new quota slot); its still-unchecked shopping rows move with it, and
+    what was already bought stays bought — nothing is added to buy again."""
+    plan = (await db.execute(
+        select(MealPlan).where(MealPlan.id == plan_id, MealPlan.user_id == current_user.id)
+    )).scalar_one_or_none()
+    if not plan:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Meal plan not found")
+    item = (await db.execute(
+        select(MealPlanItem).where(
+            MealPlanItem.id == item_id,
+            MealPlanItem.meal_plan_id == plan_id,
+            MealPlanItem.is_deleted == False,  # noqa: E712
+        )
+    )).scalar_one_or_none()
+    if not item:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Item not found")
+
+    meal_type = item.meal_type
+    if body.meal_type:
+        try:
+            meal_type = MealType(body.meal_type.lower())
+        except ValueError:
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Invalid meal type")
+
+    today = date.today()
+    if body.date < today:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot move a recipe into the past.")
+    if _is_free_plan(await _get_plan_limits(db, current_user)) and body.date > today + timedelta(days=6):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Free plan only supports recipes for the next 7 days. Upgrade for full planning.",
+        )
+
+    new_monday = body.date - timedelta(days=body.date.weekday())
+    new_day = body.date.weekday()
+    target = plan
+    if new_monday != plan.week_start_date:
+        target = (await db.execute(
+            select(MealPlan).where(MealPlan.user_id == current_user.id, MealPlan.week_start_date == new_monday)
+        )).scalar_one_or_none()
+        if target is None:
+            target = MealPlan(user_id=current_user.id, week_start_date=new_monday)
+            db.add(target)
+            await db.flush()
+
+    await _move_recipe_in_shopping_list(
+        db, current_user.id, item.recipe_id, item.servings,
+        plan.week_start_date, item.day_of_week, new_monday, new_day,
+    )
+    item.meal_plan_id = target.id
+    item.day_of_week = new_day
+    item.meal_type = meal_type
+    item.is_completed = False
+    await db.flush()
+
+    return (await db.execute(
+        select(MealPlanItem)
+        .where(MealPlanItem.id == item.id)
+        .options(selectinload(MealPlanItem.recipe).selectinload(Recipe.translations))
+        .execution_options(populate_existing=True)
+    )).scalar_one()
+
+
+async def _move_recipe_in_shopping_list(db: AsyncSession, user_id, recipe_id, servings: int,
+                                        old_week: date, old_day: int, new_week: date, new_day: int) -> None:
+    """Move what this recipe still needs (unchecked rows) from the old day to the new one.
+    Only the amount actually found unchecked moves, so bought products are not asked for again."""
+    from app.domains.recipes.models import RecipeIngredient
+    from app.domains.shopping_lists.models import ShoppingList, ShoppingListItem
+
+    old_list = (await db.execute(
+        select(ShoppingList).where(ShoppingList.user_id == user_id, ShoppingList.name == f"Week of {old_week}")
+    )).scalar_one_or_none()
+    if not old_list:
+        return
+    recipe = (await db.execute(select(Recipe).where(Recipe.id == recipe_id))).scalar_one_or_none()
+    if not recipe:
+        return
+    ratio = servings / recipe.servings if recipe.servings > 0 else 1
+    ings = (await db.execute(select(RecipeIngredient).where(RecipeIngredient.recipe_id == recipe_id))).scalars().all()
+
+    old_rows = (await db.execute(
+        select(ShoppingListItem).where(
+            ShoppingListItem.shopping_list_id == old_list.id,
+            ShoppingListItem.is_checked == False,  # noqa: E712
+        )
+    )).scalars().all()
+    old_by_key = {}
+    for r in old_rows:
+        old_by_key.setdefault((r.ingredient_id, r.unit, r.day_of_week), r)
+
+    new_list = old_list if new_week == old_week else await _get_or_create_week_shopping_list(db, user_id, new_week)
+    new_rows = old_rows if new_list is old_list else (await db.execute(
+        select(ShoppingListItem).where(
+            ShoppingListItem.shopping_list_id == new_list.id,
+            ShoppingListItem.is_checked == False,  # noqa: E712
+        )
+    )).scalars().all()
+    new_by_key = {}
+    for r in new_rows:
+        new_by_key.setdefault((r.ingredient_id, r.unit, r.day_of_week), r)
+
+    for ing in ings:
+        key = next((k for k in ((ing.ingredient_id, ing.unit, old_day), (ing.ingredient_id, ing.unit, None))
+                    if k in old_by_key), None)
+        if key is None:
+            continue  # already bought (checked) or cleared: nothing left to move
+        row = old_by_key[key]
+        take = min(float(row.quantity), float(ing.quantity) * ratio)
+        left = float(row.quantity) - take
+        if left <= 0.01:
+            take = float(row.quantity)
+            await db.delete(row)
+            old_by_key.pop(key)
+            if new_by_key.get(key) is row:
+                new_by_key.pop(key)
+        else:
+            row.quantity = left
+        dest_key = (ing.ingredient_id, ing.unit, new_day)
+        dest = new_by_key.get(dest_key)
+        if dest is not None:
+            dest.quantity = float(dest.quantity) + take
+        else:
+            dest = ShoppingListItem(
+                shopping_list_id=new_list.id,
+                ingredient_id=ing.ingredient_id,
+                quantity=take,
+                unit=ing.unit,
+                is_checked=False,
+                added_from_recipe_id=recipe_id,
+                day_of_week=new_day,
+            )
+            db.add(dest)
+            new_by_key[dest_key] = dest
+            if new_list is old_list:
+                old_by_key.setdefault(dest_key, dest)
+
+
+@router.patch("/{plan_id}/items/{item_id}/recipe", response_model=MealPlanItemResponse)
+async def swap_item_recipe(
+    plan_id: int,
+    item_id: int,
+    body: MealPlanItemSwap,
+    current_user: User = Depends(get_plan_owner),
+    db: AsyncSession = Depends(get_db),
+):
+    """Replace the recipe of a planned meal ("re-roll"): a random one of the meal's category,
+    or `recipe_id` (e.g. undo back to the previous one). Same day, meal and portions; the old
+    recipe's unbought products leave the shopping list and the new one's are added."""
+    from app.domains.categories.models import Category, recipe_categories
+    from app.domains.recipes.models import RecipeStatus
+
+    plan = (await db.execute(
+        select(MealPlan).where(MealPlan.id == plan_id, MealPlan.user_id == current_user.id)
+    )).scalar_one_or_none()
+    if not plan:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Meal plan not found")
+    item = (await db.execute(
+        select(MealPlanItem).where(
+            MealPlanItem.id == item_id,
+            MealPlanItem.meal_plan_id == plan_id,
+            MealPlanItem.is_deleted == False,  # noqa: E712
+        )
+    )).scalar_one_or_none()
+    if not item:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Item not found")
+
+    if body.recipe_id is not None:
+        new_id = (await db.execute(
+            select(Recipe.id).where(Recipe.id == body.recipe_id, Recipe.status == RecipeStatus.PUBLISHED)
+        )).scalar_one_or_none()
+        if new_id is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Recipe not found")
+    else:
+        # avoid recipes already planned this week (and the current one)
+        week_ids = (await db.execute(
+            select(MealPlanItem.recipe_id).where(
+                MealPlanItem.meal_plan_id == plan.id, MealPlanItem.is_deleted == False  # noqa: E712
+            )
+        )).scalars().all()
+        meal = item.meal_type.value if hasattr(item.meal_type, "value") else str(item.meal_type)
+        q = (select(Recipe.id)
+             .join(recipe_categories, recipe_categories.c.recipe_id == Recipe.id)
+             .join(Category, Category.id == recipe_categories.c.category_id)
+             .where(Recipe.status == RecipeStatus.PUBLISHED, Category.slug == meal.lower()))
+        new_id = (await db.execute(
+            q.where(Recipe.id.notin_(set(week_ids) | {item.recipe_id})).order_by(func.random()).limit(1)
+        )).scalar_one_or_none()
+        if new_id is None:
+            new_id = (await db.execute(
+                q.where(Recipe.id != item.recipe_id).order_by(func.random()).limit(1)
+            )).scalar_one_or_none()
+        if new_id is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No recipes found")
+
+    if new_id != item.recipe_id:
+        await _remove_recipe_from_shopping_list(db, current_user.id, plan.week_start_date, item.recipe_id,
+                                                item.servings, item.day_of_week)
+        shopping_list = await _get_or_create_week_shopping_list(db, current_user.id, plan.week_start_date)
+        await db.flush()
+        await _apply_recipe_to_shopping_list(db, shopping_list.id, new_id, item.servings, item.day_of_week)
+        item.recipe_id = new_id
+        item.is_completed = False
+        await db.flush()
+
+    return (await db.execute(
+        select(MealPlanItem)
+        .where(MealPlanItem.id == item.id)
+        .options(selectinload(MealPlanItem.recipe).selectinload(Recipe.translations))
+        .execution_options(populate_existing=True)
+    )).scalar_one()
 
 
 @router.delete("/{plan_id}/items/{item_id}", status_code=status.HTTP_204_NO_CONTENT)

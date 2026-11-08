@@ -1,7 +1,7 @@
 import uuid
 from datetime import date, datetime
 
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, Field, model_validator
 
 from app.middleware.i18n import current_language
 
@@ -11,6 +11,19 @@ class MealPlanItemCreate(BaseModel):
     day_of_week: int
     meal_type: str
     servings: int = 1
+
+
+class MealPlanItemServingsUpdate(BaseModel):
+    servings: int = Field(ge=1, le=50)
+
+
+class MealPlanItemMove(BaseModel):
+    date: date
+    meal_type: str | None = None  # keep the current one when omitted
+
+
+class MealPlanItemSwap(BaseModel):
+    recipe_id: uuid.UUID | None = None  # None = a random recipe of the item's meal category
 
 
 class MealPlanCreate(BaseModel):

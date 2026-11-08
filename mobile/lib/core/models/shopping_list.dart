@@ -17,6 +17,10 @@ class ShoppingItem {
   final String? recipeTitle;
   /// plan day this row is for (0 = Monday); null for rows added before per-day tracking
   final int? dayOfWeek;
+  /// the week list this row is stored in (the cart can show several weeks at once)
+  int listId;
+  /// calendar date of [dayOfWeek] within its list's week (null when unknown)
+  DateTime? date;
   bool isChecked;
 
   ShoppingItem({
@@ -35,6 +39,8 @@ class ShoppingItem {
     this.recipeId,
     this.recipeTitle,
     this.dayOfWeek,
+    this.listId = 0,
+    this.date,
   });
 
   factory ShoppingItem.fromJson(Map<String, dynamic> j) {
@@ -89,15 +95,40 @@ class ShoppingList {
   });
 
   factory ShoppingList.fromJson(Map<String, dynamic> j) {
+    final id = j['id'] as int;
+    final weekStart = DateTime.tryParse(j['week_start'] as String? ?? '');
+    final items = (j['items'] as List? ?? []).map((i) {
+      final item = ShoppingItem.fromJson(i as Map<String, dynamic>)..listId = id;
+      if (weekStart != null && item.dayOfWeek != null) {
+        item.date = DateTime(weekStart.year, weekStart.month, weekStart.day + item.dayOfWeek!);
+      }
+      return item;
+    }).toList();
+    return ShoppingList(id: id, name: j['name'] ?? 'Shopping List', items: items, weekStart: weekStart);
+  }
+
+  /// The cart: every week list from the current week on, merged into one. The meal plan shows
+  /// a rolling 7 days, which usually spans two weeks (= two stored lists); showing only the
+  /// newest list hid whatever was planned for the other week.
+  /// Falls back to the newest list when there is nothing from this week on.
+  static ShoppingList? cart(List<Map<String, dynamic>> raw) {
+    if (raw.isEmpty) return null;
+    final lists = raw.map(ShoppingList.fromJson).toList();
+    final now = DateTime.now();
+    final monday = DateTime(now.year, now.month, now.day - (now.weekday - 1));
+    var active = lists.where((l) => l.weekStart != null && !l.weekStart!.isBefore(monday)).toList();
+    if (active.isEmpty) active = [lists.first];
+    active.sort((a, b) => (a.weekStart ?? monday).compareTo(b.weekStart ?? monday));
     return ShoppingList(
-      id: j['id'],
-      name: j['name'] ?? 'Shopping List',
-      items: (j['items'] as List? ?? [])
-          .map((i) => ShoppingItem.fromJson(i as Map<String, dynamic>))
-          .toList(),
-      weekStart: DateTime.tryParse(j['week_start'] as String? ?? ''),
+      id: active.first.id,
+      name: active.first.name,
+      items: [for (final l in active) ...l.items],
+      weekStart: active.first.weekStart,
     );
   }
+
+  /// ids of the stored lists the given rows belong to
+  static Set<int> listIdsOf(Iterable<ShoppingItem> items) => items.map((i) => i.listId).toSet();
 
   /// Store walk order: fresh produce first, sauces and spices always last.
   static const categoryOrder = [
@@ -135,11 +166,11 @@ class ShoppingList {
   /// Default view: one row per ingredient for the whole week, grouped by category.
   Map<String, List<ShoppingEntry>> get entriesByCategory => _entriesByCategory(items);
 
-  /// Per-day view: day (null = no day) -> category -> rows, days in week order.
-  Map<int?, Map<String, List<ShoppingEntry>>> get entriesByDay {
-    final days = items.map((i) => i.dayOfWeek).toSet().toList()
-      ..sort((a, b) => (a ?? 99).compareTo(b ?? 99));
-    return {for (final d in days) d: _entriesByCategory(items.where((i) => i.dayOfWeek == d))};
+  /// Per-day view: date (null = no day) -> category -> rows, in calendar order.
+  Map<DateTime?, Map<String, List<ShoppingEntry>>> get entriesByDay {
+    final days = items.map((i) => i.date).toSet().toList()
+      ..sort((a, b) => a == null ? 1 : (b == null ? -1 : a.compareTo(b)));
+    return {for (final d in days) d: _entriesByCategory(items.where((i) => i.date == d))};
   }
 
   /// Rows the user still has to buy (badge count) — counted like the default view.

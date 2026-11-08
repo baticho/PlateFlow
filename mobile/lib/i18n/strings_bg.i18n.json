@@ -91,7 +91,14 @@
     "randomDay": "Изненадай ме за деня",
     "noRandom": "Няма рецепти в тази категория",
     "randomServings": "За колко порции?",
-    "randomAdd": "Добави"
+    "randomAdd": "Добави",
+    "move": "Премести",
+    "moveTitle": "Премести за кой ден?",
+    "moved": "Преместено: $date",
+    "reroll": "Друга рецепта",
+    "rerollBack": "Върни предишната",
+    "rerolled": "Сменено с „$title“",
+    "undo": "Върни"
   },
   "shoppingList": {
     "title": "Списък за пазаруване",

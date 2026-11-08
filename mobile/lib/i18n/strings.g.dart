@@ -4,9 +4,9 @@
 /// To regenerate, run: `dart run slang`
 ///
 /// Locales: 2
-/// Strings: 450 (225 per locale)
+/// Strings: 464 (232 per locale)
 ///
-/// Built on 2026-11-08 at 06:54 UTC
+/// Built on 2026-11-08 at 08:01 UTC
 
 // coverage:ignore-file
 // ignore_for_file: type=lint
@@ -273,6 +273,13 @@ class _StringsMealPlanEn {
 	String get noRandom => 'No recipes in this category';
 	String get randomServings => 'How many servings?';
 	String get randomAdd => 'Add';
+	String get move => 'Move';
+	String get moveTitle => 'Move to which day?';
+	String moved({required Object date}) => 'Moved: ${date}';
+	String get reroll => 'Another recipe';
+	String get rerollBack => 'Bring back the previous one';
+	String rerolled({required Object title}) => 'Swapped for “${title}”';
+	String get undo => 'Undo';
 }
 
 // Path: shoppingList
@@ -744,6 +751,13 @@ class _StringsMealPlanBg implements _StringsMealPlanEn {
 	@override String get noRandom => 'Няма рецепти в тази категория';
 	@override String get randomServings => 'За колко порции?';
 	@override String get randomAdd => 'Добави';
+	@override String get move => 'Премести';
+	@override String get moveTitle => 'Премести за кой ден?';
+	@override String moved({required Object date}) => 'Преместено: ${date}';
+	@override String get reroll => 'Друга рецепта';
+	@override String get rerollBack => 'Върни предишната';
+	@override String rerolled({required Object title}) => 'Сменено с „${title}“';
+	@override String get undo => 'Върни';
 }
 
 // Path: shoppingList
@@ -1146,6 +1160,13 @@ extension on Translations {
 			case 'mealPlan.noRandom': return 'No recipes in this category';
 			case 'mealPlan.randomServings': return 'How many servings?';
 			case 'mealPlan.randomAdd': return 'Add';
+			case 'mealPlan.move': return 'Move';
+			case 'mealPlan.moveTitle': return 'Move to which day?';
+			case 'mealPlan.moved': return ({required Object date}) => 'Moved: ${date}';
+			case 'mealPlan.reroll': return 'Another recipe';
+			case 'mealPlan.rerollBack': return 'Bring back the previous one';
+			case 'mealPlan.rerolled': return ({required Object title}) => 'Swapped for “${title}”';
+			case 'mealPlan.undo': return 'Undo';
 			case 'shoppingList.title': return 'Shopping List';
 			case 'shoppingList.empty': return 'No items yet. Generate from your meal plan!';
 			case 'shoppingList.clearChecked': return 'Clear Checked';
@@ -1379,6 +1400,13 @@ extension on _StringsBg {
 			case 'mealPlan.noRandom': return 'Няма рецепти в тази категория';
 			case 'mealPlan.randomServings': return 'За колко порции?';
 			case 'mealPlan.randomAdd': return 'Добави';
+			case 'mealPlan.move': return 'Премести';
+			case 'mealPlan.moveTitle': return 'Премести за кой ден?';
+			case 'mealPlan.moved': return ({required Object date}) => 'Преместено: ${date}';
+			case 'mealPlan.reroll': return 'Друга рецепта';
+			case 'mealPlan.rerollBack': return 'Върни предишната';
+			case 'mealPlan.rerolled': return ({required Object title}) => 'Сменено с „${title}“';
+			case 'mealPlan.undo': return 'Върни';
 			case 'shoppingList.title': return 'Списък за пазаруване';
 			case 'shoppingList.empty': return 'Все още няма продукти. Генерирай от плана!';
 			case 'shoppingList.clearChecked': return 'Изчисти отбелязаните';
