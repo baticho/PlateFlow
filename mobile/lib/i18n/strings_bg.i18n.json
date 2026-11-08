@@ -98,7 +98,10 @@
     "reroll": "Друга рецепта",
     "rerollBack": "Върни предишната",
     "rerolled": "Сменено с „$title“",
-    "undo": "Върни"
+    "undo": "Върни",
+    "rerollBoughtTitle": "Вече има купени продукти",
+    "rerollBoughtBody": "За „$title“ част от продуктите вече са купени. Да я сменя ли с друга рецепта?",
+    "rerollSwap": "Смени"
   },
   "shoppingList": {
     "title": "Списък за пазаруване",

@@ -382,6 +382,34 @@ async def move_meal_plan_item(
     )).scalar_one()
 
 
+async def _recipe_products_bought(db: AsyncSession, user_id, week_start_date: date, recipe_id,
+                                  day_of_week: int) -> bool:
+    """True when some of the recipe's products are no longer waiting in the shopping list
+    (checked off, or cleared after shopping) — i.e. they were probably bought already."""
+    from app.domains.recipes.models import RecipeIngredient
+    from app.domains.shopping_lists.models import ShoppingList, ShoppingListItem
+
+    shopping_list = (await db.execute(
+        select(ShoppingList).where(ShoppingList.user_id == user_id, ShoppingList.name == f"Week of {week_start_date}")
+    )).scalar_one_or_none()
+    if not shopping_list:
+        return True
+    waiting = {
+        (r.ingredient_id, r.unit, r.day_of_week)
+        for r in (await db.execute(
+            select(ShoppingListItem).where(
+                ShoppingListItem.shopping_list_id == shopping_list.id,
+                ShoppingListItem.is_checked == False,  # noqa: E712
+            )
+        )).scalars().all()
+    }
+    ings = (await db.execute(select(RecipeIngredient).where(RecipeIngredient.recipe_id == recipe_id))).scalars().all()
+    return any(
+        (i.ingredient_id, i.unit, day_of_week) not in waiting and (i.ingredient_id, i.unit, None) not in waiting
+        for i in ings
+    )
+
+
 async def _move_recipe_in_shopping_list(db: AsyncSession, user_id, recipe_id, servings: int,
                                         old_week: date, old_day: int, new_week: date, new_day: int) -> None:
     """Move what this recipe still needs (unchecked rows) from the old day to the new one.
@@ -485,6 +513,12 @@ async def swap_item_recipe(
     )).scalar_one_or_none()
     if not item:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Item not found")
+
+    if body.recipe_id is None and not body.force and await _recipe_products_bought(
+        db, current_user.id, plan.week_start_date, item.recipe_id, item.day_of_week
+    ):
+        # the app asks "you already bought for this one, swap anyway?" and retries with force
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="products_bought")
 
     if body.recipe_id is not None:
         new_id = (await db.execute(

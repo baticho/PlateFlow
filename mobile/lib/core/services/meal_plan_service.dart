@@ -91,9 +91,10 @@ class MealPlanService {
 
   /// Replaces a planned recipe: random of the same meal category, or [recipeId] (undo).
   /// Keeps day, meal and portions; the shopping list is updated on the server.
-  Future<Map<String, dynamic>> swapRecipe(int planId, int itemId, {String? recipeId}) async {
+  /// A random swap of a recipe whose products were already bought fails with 409 unless [force].
+  Future<Map<String, dynamic>> swapRecipe(int planId, int itemId, {String? recipeId, bool force = false}) async {
     final response = await _dio.patch('/api/v1/meal-plans/$planId/items/$itemId/recipe',
-        data: {if (recipeId != null) 'recipe_id': recipeId});
+        data: {if (recipeId != null) 'recipe_id': recipeId, if (force) 'force': true});
     return response.data as Map<String, dynamic>;
   }
 

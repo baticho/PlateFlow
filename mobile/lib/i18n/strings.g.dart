@@ -4,9 +4,9 @@
 /// To regenerate, run: `dart run slang`
 ///
 /// Locales: 2
-/// Strings: 464 (232 per locale)
+/// Strings: 470 (235 per locale)
 ///
-/// Built on 2026-11-08 at 08:01 UTC
+/// Built on 2026-11-08 at 08:36 UTC
 
 // coverage:ignore-file
 // ignore_for_file: type=lint
@@ -280,6 +280,9 @@ class _StringsMealPlanEn {
 	String get rerollBack => 'Bring back the previous one';
 	String rerolled({required Object title}) => 'Swapped for “${title}”';
 	String get undo => 'Undo';
+	String get rerollBoughtTitle => 'Products already bought';
+	String rerollBoughtBody({required Object title}) => 'Some products for “${title}” were already bought. Swap it for another recipe?';
+	String get rerollSwap => 'Swap';
 }
 
 // Path: shoppingList
@@ -758,6 +761,9 @@ class _StringsMealPlanBg implements _StringsMealPlanEn {
 	@override String get rerollBack => 'Върни предишната';
 	@override String rerolled({required Object title}) => 'Сменено с „${title}“';
 	@override String get undo => 'Върни';
+	@override String get rerollBoughtTitle => 'Вече има купени продукти';
+	@override String rerollBoughtBody({required Object title}) => 'За „${title}“ част от продуктите вече са купени. Да я сменя ли с друга рецепта?';
+	@override String get rerollSwap => 'Смени';
 }
 
 // Path: shoppingList
@@ -1167,6 +1173,9 @@ extension on Translations {
 			case 'mealPlan.rerollBack': return 'Bring back the previous one';
 			case 'mealPlan.rerolled': return ({required Object title}) => 'Swapped for “${title}”';
 			case 'mealPlan.undo': return 'Undo';
+			case 'mealPlan.rerollBoughtTitle': return 'Products already bought';
+			case 'mealPlan.rerollBoughtBody': return ({required Object title}) => 'Some products for “${title}” were already bought. Swap it for another recipe?';
+			case 'mealPlan.rerollSwap': return 'Swap';
 			case 'shoppingList.title': return 'Shopping List';
 			case 'shoppingList.empty': return 'No items yet. Generate from your meal plan!';
 			case 'shoppingList.clearChecked': return 'Clear Checked';
@@ -1407,6 +1416,9 @@ extension on _StringsBg {
 			case 'mealPlan.rerollBack': return 'Върни предишната';
 			case 'mealPlan.rerolled': return ({required Object title}) => 'Сменено с „${title}“';
 			case 'mealPlan.undo': return 'Върни';
+			case 'mealPlan.rerollBoughtTitle': return 'Вече има купени продукти';
+			case 'mealPlan.rerollBoughtBody': return ({required Object title}) => 'За „${title}“ част от продуктите вече са купени. Да я сменя ли с друга рецепта?';
+			case 'mealPlan.rerollSwap': return 'Смени';
 			case 'shoppingList.title': return 'Списък за пазаруване';
 			case 'shoppingList.empty': return 'Все още няма продукти. Генерирай от плана!';
 			case 'shoppingList.clearChecked': return 'Изчисти отбелязаните';

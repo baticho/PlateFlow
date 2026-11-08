@@ -24,6 +24,8 @@ class MealPlanItemMove(BaseModel):
 
 class MealPlanItemSwap(BaseModel):
     recipe_id: uuid.UUID | None = None  # None = a random recipe of the item's meal category
+    # a random swap of a recipe whose products were already bought answers 409 unless forced
+    force: bool = False
 
 
 class MealPlanCreate(BaseModel):

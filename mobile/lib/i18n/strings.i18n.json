@@ -98,7 +98,10 @@
     "reroll": "Another recipe",
     "rerollBack": "Bring back the previous one",
     "rerolled": "Swapped for “$title”",
-    "undo": "Undo"
+    "undo": "Undo",
+    "rerollBoughtTitle": "Products already bought",
+    "rerollBoughtBody": "Some products for “$title” were already bought. Swap it for another recipe?",
+    "rerollSwap": "Swap"
   },
   "shoppingList": {
     "title": "Shopping List",

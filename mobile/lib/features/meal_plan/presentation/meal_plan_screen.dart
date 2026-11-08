@@ -350,14 +350,14 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
   }
 
   /// Re-roll: another random recipe of the same meal, same portions. [back] = return to the previous one.
-  Future<void> _reroll(MealPlanItem item, MealPlan plan, {bool back = false}) async {
+  Future<void> _reroll(MealPlanItem item, MealPlan plan, {bool back = false, bool force = false}) async {
     if (_rerollBusy.contains(item.id)) return;
     final history = _rerollHistory[item.id] ?? [];
     if (back && history.isEmpty) return;
     setState(() => _rerollBusy.add(item.id));
     try {
       final previous = item.recipeId;
-      final res = await _service.swapRecipe(plan.id, item.id, recipeId: back ? history.last : null);
+      final res = await _service.swapRecipe(plan.id, item.id, recipeId: back ? history.last : null, force: force);
       setState(() {
         if (back) {
           history.removeLast();
@@ -379,6 +379,23 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
     } on DioException catch (e) {
       if (!mounted) return;
       final tl = LocaleSettings.instance.currentTranslations;
+      if (e.response?.statusCode == 409 && !force) {
+        // products for this recipe were already bought: only then ask before swapping
+        setState(() => _rerollBusy.remove(item.id));
+        final ok = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: Text(tl.mealPlan.rerollBoughtTitle),
+            content: Text(tl.mealPlan.rerollBoughtBody(title: item.recipeTitle)),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(tl.common.cancel)),
+              FilledButton(onPressed: () => Navigator.pop(ctx, true), child: Text(tl.mealPlan.rerollSwap)),
+            ],
+          ),
+        );
+        if (ok == true) await _reroll(item, plan, force: true);
+        return;
+      }
       final msg = e.response?.statusCode == 404 ? tl.mealPlan.noRandom : (e.response?.data?['detail'] ?? tl.common.error);
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(msg.toString()),
