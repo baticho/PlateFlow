@@ -476,17 +476,45 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
 
   /// Anchor cannot move past today — when anchor == today the window
   /// already covers the next 7 days, which is the maximum lookahead.
-  bool get _canShiftForward => _anchorDate.isBefore(_todayDate);
+  /// free plan: only the next 7 days; paid plans can plan up to 4 weeks ahead
+  bool _isFree = true;
+  DateTime get _maxAnchor => _isFree ? _todayDate : _todayDate.add(const Duration(days: 28));
+
+  bool get _canShiftForward => _anchorDate.isBefore(_maxAnchor);
 
   void _shiftWindow(int days) {
-    final today = _todayDate;
+    final max = _maxAnchor;
     var next = _anchorDate.add(Duration(days: days));
-    if (next.isAfter(today)) next = today;
+    if (next.isAfter(max)) next = max;
     if (next == _anchorDate) return;
     setState(() {
       _anchorDate = next;
       _selectedOffset = 0;
     });
+    _loadWindow();
+  }
+
+  /// Swiping past the first / last visible day: jump to the neighbouring 7 days and
+  /// select the day right before / after (same limits as the arrows).
+  void _swipeBeyondWindow(int direction, {required bool isFree}) {
+    final days = _windowDays;
+    if (direction < 0) {
+      if (isFree) return; // free plan: no history, like the disabled left arrow
+      final target = days.first.subtract(const Duration(days: 1));
+      setState(() {
+        _anchorDate = target.subtract(const Duration(days: 6));
+        _selectedOffset = 6;
+      });
+    } else {
+      if (!_canShiftForward) return; // already showing the furthest days
+      final target = days.last.add(const Duration(days: 1));
+      var anchor = target;
+      if (anchor.isAfter(_maxAnchor)) anchor = _maxAnchor;
+      setState(() {
+        _anchorDate = anchor;
+        _selectedOffset = target.difference(anchor).inDays.clamp(0, 6);
+      });
+    }
     _loadWindow();
   }
 
@@ -504,7 +532,7 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
       context: context,
       initialDate: _anchorDate,
       firstDate: DateTime(today.year - 2),
-      lastDate: today,
+      lastDate: _maxAnchor,
     );
     if (picked == null) return;
     setState(() {
@@ -538,6 +566,7 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
     final user = ref.watch(userProvider).valueOrNull;
     final slug = user?['subscription_plan_slug'] as String?;
     final isFree = slug == null || slug == 'free';
+    _isFree = isFree;
 
     return Scaffold(
       appBar: AppBar(
@@ -699,8 +728,20 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
             onHorizontalDragEnd: (details) {
               final v = details.primaryVelocity;
               if (v == null) return;
-              if (v < -300 && _selectedOffset < 6) setState(() => _selectedOffset++);
-              if (v > 300 && _selectedOffset > 0) setState(() => _selectedOffset--);
+              if (v < -300) {
+                if (_selectedOffset < 6) {
+                  setState(() => _selectedOffset++);
+                } else {
+                  _swipeBeyondWindow(1, isFree: isFree);
+                }
+              }
+              if (v > 300) {
+                if (_selectedOffset > 0) {
+                  setState(() => _selectedOffset--);
+                } else {
+                  _swipeBeyondWindow(-1, isFree: isFree);
+                }
+              }
             },
             child: ListView(
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
