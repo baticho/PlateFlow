@@ -4,9 +4,9 @@
 /// To regenerate, run: `dart run slang`
 ///
 /// Locales: 2
-/// Strings: 470 (235 per locale)
+/// Strings: 484 (242 per locale)
 ///
-/// Built on 2026-11-08 at 08:36 UTC
+/// Built on 2026-11-09 at 16:56 UTC
 
 // coverage:ignore-file
 // ignore_for_file: type=lint
@@ -283,6 +283,13 @@ class _StringsMealPlanEn {
 	String get rerollBoughtTitle => 'Products already bought';
 	String rerollBoughtBody({required Object title}) => 'Some products for “${title}” were already bought. Swap it for another recipe?';
 	String get rerollSwap => 'Swap';
+	String get shiftDays => 'Shift days';
+	String get shiftTitle => 'Shift the plan';
+	String shiftBody({required Object date}) => 'All uncooked recipes from ${date} on will move forward. Their products in the cart move with them.';
+	String get shiftBy => 'By how many days?';
+	String get shiftDo => 'Shift';
+	String shifted({required Object count}) => 'Recipes shifted: ${count}';
+	String get shiftNothing => 'No recipes to shift';
 }
 
 // Path: shoppingList
@@ -764,6 +771,13 @@ class _StringsMealPlanBg implements _StringsMealPlanEn {
 	@override String get rerollBoughtTitle => 'Вече има купени продукти';
 	@override String rerollBoughtBody({required Object title}) => 'За „${title}“ част от продуктите вече са купени. Да я сменя ли с друга рецепта?';
 	@override String get rerollSwap => 'Смени';
+	@override String get shiftDays => 'Измести дните';
+	@override String get shiftTitle => 'Измести плана';
+	@override String shiftBody({required Object date}) => 'Всички несготвени рецепти от ${date} нататък ще се изместят напред. Продуктите в количката се местят с тях.';
+	@override String get shiftBy => 'С колко дни?';
+	@override String get shiftDo => 'Измести';
+	@override String shifted({required Object count}) => 'Изместени рецепти: ${count}';
+	@override String get shiftNothing => 'Няма рецепти за изместване';
 }
 
 // Path: shoppingList
@@ -1176,6 +1190,13 @@ extension on Translations {
 			case 'mealPlan.rerollBoughtTitle': return 'Products already bought';
 			case 'mealPlan.rerollBoughtBody': return ({required Object title}) => 'Some products for “${title}” were already bought. Swap it for another recipe?';
 			case 'mealPlan.rerollSwap': return 'Swap';
+			case 'mealPlan.shiftDays': return 'Shift days';
+			case 'mealPlan.shiftTitle': return 'Shift the plan';
+			case 'mealPlan.shiftBody': return ({required Object date}) => 'All uncooked recipes from ${date} on will move forward. Their products in the cart move with them.';
+			case 'mealPlan.shiftBy': return 'By how many days?';
+			case 'mealPlan.shiftDo': return 'Shift';
+			case 'mealPlan.shifted': return ({required Object count}) => 'Recipes shifted: ${count}';
+			case 'mealPlan.shiftNothing': return 'No recipes to shift';
 			case 'shoppingList.title': return 'Shopping List';
 			case 'shoppingList.empty': return 'No items yet. Generate from your meal plan!';
 			case 'shoppingList.clearChecked': return 'Clear Checked';
@@ -1419,6 +1440,13 @@ extension on _StringsBg {
 			case 'mealPlan.rerollBoughtTitle': return 'Вече има купени продукти';
 			case 'mealPlan.rerollBoughtBody': return ({required Object title}) => 'За „${title}“ част от продуктите вече са купени. Да я сменя ли с друга рецепта?';
 			case 'mealPlan.rerollSwap': return 'Смени';
+			case 'mealPlan.shiftDays': return 'Измести дните';
+			case 'mealPlan.shiftTitle': return 'Измести плана';
+			case 'mealPlan.shiftBody': return ({required Object date}) => 'Всички несготвени рецепти от ${date} нататък ще се изместят напред. Продуктите в количката се местят с тях.';
+			case 'mealPlan.shiftBy': return 'С колко дни?';
+			case 'mealPlan.shiftDo': return 'Измести';
+			case 'mealPlan.shifted': return ({required Object count}) => 'Изместени рецепти: ${count}';
+			case 'mealPlan.shiftNothing': return 'Няма рецепти за изместване';
 			case 'shoppingList.title': return 'Списък за пазаруване';
 			case 'shoppingList.empty': return 'Все още няма продукти. Генерирай от плана!';
 			case 'shoppingList.clearChecked': return 'Изчисти отбелязаните';

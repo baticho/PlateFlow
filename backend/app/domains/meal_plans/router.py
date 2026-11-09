@@ -16,6 +16,7 @@ from app.domains.meal_plans.schemas import (
     MealPlanItemServingsUpdate,
     MealPlanItemSwap,
     MealPlanResponse,
+    MealPlanShift,
 )
 from app.domains.recipes.models import Recipe
 from app.domains.subscriptions.models import SubscriptionPlan
@@ -380,6 +381,74 @@ async def move_meal_plan_item(
         .options(selectinload(MealPlanItem.recipe).selectinload(Recipe.translations))
         .execution_options(populate_existing=True)
     )).scalar_one()
+
+
+@router.post("/shift")
+async def shift_meal_plan(
+    body: MealPlanShift,
+    current_user: User = Depends(get_plan_owner),
+    db: AsyncSession = Depends(get_db),
+):
+    """Move every not-yet-cooked recipe from `from_date` on by `days` (e.g. we skipped a day: today's recipe
+    goes to tomorrow, tomorrow's to the day after, ...). Shopping rows that are still unchecked move with
+    their recipe; bought products stay bought. Cooked recipes stay where they are."""
+    if body.days == 0:
+        return {"moved": 0}
+    today = date.today()
+    if body.from_date < today or body.from_date + timedelta(days=body.days) < today:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot move recipes into the past.")
+
+    rows = (await db.execute(
+        select(MealPlanItem, MealPlan)
+        .join(MealPlan, MealPlan.id == MealPlanItem.meal_plan_id)
+        .where(
+            MealPlan.user_id == current_user.id,
+            MealPlanItem.is_deleted == False,  # noqa: E712
+            MealPlanItem.is_completed == False,  # noqa: E712
+            MealPlan.week_start_date >= body.from_date - timedelta(days=6),
+        )
+    )).all()
+    moving = []
+    for item, plan in rows:
+        d = plan.week_start_date + timedelta(days=item.day_of_week)
+        if d >= body.from_date:
+            moving.append((d, item, plan))
+    if not moving:
+        return {"moved": 0}
+
+    if _is_free_plan(await _get_plan_limits(db, current_user)):
+        last = max(d for d, _, _ in moving) + timedelta(days=body.days)
+        if last > today + timedelta(days=6):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Free plan only supports recipes for the next 7 days. Upgrade for full planning.",
+            )
+
+    # move the furthest days first (backwards for a negative shift) so a recipe never lands on
+    # shopping rows of a day that is about to move as well
+    moving.sort(key=lambda x: x[0], reverse=body.days > 0)
+    plans = {plan.week_start_date: plan for _, _, plan in moving}
+    for d, item, plan in moving:
+        new_date = d + timedelta(days=body.days)
+        new_monday = new_date - timedelta(days=new_date.weekday())
+        target = plans.get(new_monday)
+        if target is None:
+            target = (await db.execute(
+                select(MealPlan).where(MealPlan.user_id == current_user.id, MealPlan.week_start_date == new_monday)
+            )).scalar_one_or_none()
+            if target is None:
+                target = MealPlan(user_id=current_user.id, week_start_date=new_monday)
+                db.add(target)
+                await db.flush()
+            plans[new_monday] = target
+        await _move_recipe_in_shopping_list(
+            db, current_user.id, item.recipe_id, item.servings,
+            plan.week_start_date, item.day_of_week, new_monday, new_date.weekday(),
+        )
+        item.meal_plan_id = target.id
+        item.day_of_week = new_date.weekday()
+        await db.flush()
+    return {"moved": len(moving)}
 
 
 async def _recipe_products_bought(db: AsyncSession, user_id, week_start_date: date, recipe_id,

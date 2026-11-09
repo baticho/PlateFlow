@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../../../core/api/api_client.dart';
 import '../../../core/config/app_config.dart';
@@ -43,6 +44,14 @@ class _CookingScreenState extends ConsumerState<CookingScreen> {
     _service = RecipeService(dio);
     _mealPlanService = MealPlanService(dio);
     _loadRecipe();
+    // keep the screen on while cooking (hands are busy); released when leaving the screen
+    WakelockPlus.enable().catchError((_) {});
+  }
+
+  @override
+  void dispose() {
+    WakelockPlus.disable().catchError((_) {});
+    super.dispose();
   }
 
   Future<void> _loadRecipe() async {
@@ -165,7 +174,18 @@ class _CookingView extends StatelessWidget {
           ),
         ),
       ),
-      body: Padding(
+      // swipe left = next step, swipe right = previous (the last step is finished only with the button)
+      body: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onHorizontalDragEnd: (d) {
+          final v = d.primaryVelocity ?? 0;
+          if (v < -300 && !isLast) onNext();
+          if (v > 300 && currentStep > 0) onPrev();
+        },
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 200),
+          child: Padding(
+        key: ValueKey(currentStep),
         padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
@@ -212,6 +232,8 @@ class _CookingView extends StatelessWidget {
               ),
             ),
           ],
+        ),
+          ),
         ),
       ),
       bottomNavigationBar: SafeArea(

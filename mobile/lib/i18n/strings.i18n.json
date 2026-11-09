@@ -101,7 +101,14 @@
     "undo": "Undo",
     "rerollBoughtTitle": "Products already bought",
     "rerollBoughtBody": "Some products for “$title” were already bought. Swap it for another recipe?",
-    "rerollSwap": "Swap"
+    "rerollSwap": "Swap",
+    "shiftDays": "Shift days",
+    "shiftTitle": "Shift the plan",
+    "shiftBody": "All uncooked recipes from $date on will move forward. Their products in the cart move with them.",
+    "shiftBy": "By how many days?",
+    "shiftDo": "Shift",
+    "shifted": "Recipes shifted: $count",
+    "shiftNothing": "No recipes to shift"
   },
   "shoppingList": {
     "title": "Shopping List",

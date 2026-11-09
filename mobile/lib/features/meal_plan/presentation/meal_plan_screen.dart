@@ -349,6 +349,64 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
     }
   }
 
+  /// "We skipped a day": every uncooked recipe from [from] on moves forward by 1-3 days.
+  Future<void> _shiftPlan(DateTime from) async {
+    final tl = LocaleSettings.instance.currentTranslations;
+    final names = [
+      tl.mealPlan.days.mon, tl.mealPlan.days.tue, tl.mealPlan.days.wed,
+      tl.mealPlan.days.thu, tl.mealPlan.days.fri, tl.mealPlan.days.sat, tl.mealPlan.days.sun,
+    ];
+    final label = '${names[from.weekday - 1]} ${from.day.toString().padLeft(2, '0')}.${from.month.toString().padLeft(2, '0')}';
+    var days = 1;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setD) => AlertDialog(
+          title: Text(tl.mealPlan.shiftTitle),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(tl.mealPlan.shiftBody(date: label)),
+              const SizedBox(height: 16),
+              Text(tl.mealPlan.shiftBy, style: Theme.of(ctx).textTheme.labelLarge),
+              const SizedBox(height: 8),
+              SegmentedButton<int>(
+                segments: const [
+                  ButtonSegment(value: 1, label: Text('1')),
+                  ButtonSegment(value: 2, label: Text('2')),
+                  ButtonSegment(value: 3, label: Text('3')),
+                ],
+                selected: {days},
+                onSelectionChanged: (v) => setD(() => days = v.first),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(tl.common.cancel)),
+            FilledButton(onPressed: () => Navigator.pop(ctx, true), child: Text(tl.mealPlan.shiftDo)),
+          ],
+        ),
+      ),
+    );
+    if (ok != true) return;
+    try {
+      final moved = await _service.shiftPlan(_isoDate(from), days);
+      await _afterRandomAdded();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(moved == 0 ? tl.mealPlan.shiftNothing : tl.mealPlan.shifted(count: moved)),
+        behavior: SnackBarBehavior.floating,
+      ));
+    } on DioException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text((e.response?.data?['detail'] ?? tl.common.error).toString()),
+        backgroundColor: Theme.of(context).colorScheme.error,
+      ));
+    }
+  }
+
   /// Re-roll: another random recipe of the same meal, same portions. [back] = return to the previous one.
   Future<void> _reroll(MealPlanItem item, MealPlan plan, {bool back = false, bool force = false}) async {
     if (_rerollBusy.contains(item.id)) return;
@@ -746,17 +804,38 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
             child: ListView(
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
               children: [
-                // one tap: a random breakfast, lunch and dinner for the empty slots of this day
-                if (!isPastSelected && _mealTypes.any((m) => _itemsForDate(selectedDate, m).isEmpty))
+                // one tap: a random breakfast, lunch and dinner for the empty slots of this day;
+                // "shift days": this day's and all later uncooked recipes move forward
+                if (!isPastSelected &&
+                    (_mealTypes.any((m) => _itemsForDate(selectedDate, m).isEmpty) ||
+                        _mealTypes.any((m) => _itemsForDate(selectedDate, m).any((i) => !i.isCompleted))))
                   Padding(
-                    padding: const EdgeInsets.only(bottom: 18),
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: FilledButton.tonalIcon(
-                        onPressed: _randomBusy.isEmpty ? () => _randomDay(selectedDate) : null,
-                        icon: const Icon(Icons.casino_outlined, size: 20),
-                        label: Text(t.mealPlan.randomDay),
-                      ),
+                    padding: const EdgeInsets.only(bottom: 14),
+                    // one row on every phone width: labels shrink instead of wrapping to a second line
+                    child: Row(
+                      children: [
+                        if (_mealTypes.any((m) => _itemsForDate(selectedDate, m).isEmpty))
+                          Flexible(
+                            child: FilledButton.tonalIcon(
+                              onPressed: _randomBusy.isEmpty ? () => _randomDay(selectedDate) : null,
+                              style: FilledButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 12)),
+                              icon: const Icon(Icons.casino_outlined, size: 18),
+                              label: FittedBox(fit: BoxFit.scaleDown, child: Text(t.mealPlan.randomDay, maxLines: 1)),
+                            ),
+                          ),
+                        if (_mealTypes.any((m) => _itemsForDate(selectedDate, m).isEmpty) &&
+                            _mealTypes.any((m) => _itemsForDate(selectedDate, m).any((i) => !i.isCompleted)))
+                          const SizedBox(width: 8),
+                        if (_mealTypes.any((m) => _itemsForDate(selectedDate, m).any((i) => !i.isCompleted)))
+                          Flexible(
+                            child: OutlinedButton.icon(
+                              onPressed: () => _shiftPlan(selectedDate),
+                              style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 12)),
+                              icon: const Icon(Icons.keyboard_double_arrow_right, size: 18),
+                              label: FittedBox(fit: BoxFit.scaleDown, child: Text(t.mealPlan.shiftDays, maxLines: 1)),
+                            ),
+                          ),
+                      ],
                     ),
                   ),
                 ...List.generate(3, (i) {

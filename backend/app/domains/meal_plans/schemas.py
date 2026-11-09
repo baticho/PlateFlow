@@ -22,6 +22,11 @@ class MealPlanItemMove(BaseModel):
     meal_type: str | None = None  # keep the current one when omitted
 
 
+class MealPlanShift(BaseModel):
+    from_date: date  # every not-yet-cooked recipe on this day and later moves
+    days: int = Field(default=1, ge=-7, le=7)  # +1 = today's goes to tomorrow, tomorrow's to the day after...
+
+
 class MealPlanItemSwap(BaseModel):
     recipe_id: uuid.UUID | None = None  # None = a random recipe of the item's meal category
     # a random swap of a recipe whose products were already bought answers 409 unless forced

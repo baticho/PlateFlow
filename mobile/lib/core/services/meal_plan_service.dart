@@ -89,6 +89,12 @@ class MealPlanService {
     await _dio.patch('/api/v1/meal-plans/$planId/items/$itemId/move', data: {'date': dateIso, 'meal_type': mealType});
   }
 
+  /// Moves every not-yet-cooked recipe from [fromIso] on by [days]; returns how many moved.
+  Future<int> shiftPlan(String fromIso, int days) async {
+    final response = await _dio.post('/api/v1/meal-plans/shift', data: {'from_date': fromIso, 'days': days});
+    return (response.data['moved'] as num?)?.toInt() ?? 0;
+  }
+
   /// Replaces a planned recipe: random of the same meal category, or [recipeId] (undo).
   /// Keeps day, meal and portions; the shopping list is updated on the server.
   /// A random swap of a recipe whose products were already bought fails with 409 unless [force].
