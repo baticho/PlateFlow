@@ -15,6 +15,7 @@ from app.domains.meal_plans.schemas import (
     MealPlanItemResponse,
     MealPlanItemServingsUpdate,
     MealPlanItemSwap,
+    MealPlanCooked,
     MealPlanResponse,
     MealPlanShift,
 )
@@ -381,6 +382,39 @@ async def move_meal_plan_item(
         .options(selectinload(MealPlanItem.recipe).selectinload(Recipe.translations))
         .execution_options(populate_existing=True)
     )).scalar_one()
+
+
+@router.post("/cooked")
+async def mark_recipe_cooked(
+    body: MealPlanCooked,
+    current_user: User = Depends(get_plan_owner),
+    db: AsyncSession = Depends(get_db),
+):
+    """Cooking finished without a plan item (opened from the recipe page): mark the planned, not-yet-cooked
+    copy of this recipe closest to today (today first, then yesterday/tomorrow, up to 2 days away)."""
+    today = date.today()
+    rows = (await db.execute(
+        select(MealPlanItem, MealPlan)
+        .join(MealPlan, MealPlan.id == MealPlanItem.meal_plan_id)
+        .where(
+            MealPlan.user_id == current_user.id,
+            MealPlanItem.recipe_id == body.recipe_id,
+            MealPlanItem.is_deleted == False,  # noqa: E712
+            MealPlanItem.is_completed == False,  # noqa: E712
+            MealPlan.week_start_date >= today - timedelta(days=8),
+            MealPlan.week_start_date <= today + timedelta(days=2),
+        )
+    )).all()
+    best = None
+    for item, plan in rows:
+        gap = abs((plan.week_start_date + timedelta(days=item.day_of_week) - today).days)
+        if gap <= 2 and (best is None or gap < best[0]):
+            best = (gap, item)
+    if best is None:
+        return {"completed": False}
+    best[1].is_completed = True
+    await db.flush()
+    return {"completed": True, "item_id": best[1].id}
 
 
 @router.post("/shift")

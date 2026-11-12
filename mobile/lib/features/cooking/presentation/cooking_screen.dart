@@ -75,13 +75,16 @@ class _CookingScreenState extends ConsumerState<CookingScreen> {
     if (_currentStep < recipe.steps.length - 1) {
       setState(() => _currentStep++);
     } else {
-      if (widget.planId != null && widget.itemId != null) {
-        try {
+      try {
+        if (widget.planId != null && widget.itemId != null) {
           await _mealPlanService.markItemComplete(widget.planId!, widget.itemId!);
-          ref.read(mealPlanRefreshProvider.notifier).state++;
-        } catch (_) {
-          // silently ignore — the done view still shows
+        } else {
+          // started from the recipe page: mark the planned copy of this recipe (today / nearest day)
+          await _mealPlanService.markRecipeCooked(widget.recipeId);
         }
+        ref.read(mealPlanRefreshProvider.notifier).state++;
+      } catch (_) {
+        // silently ignore — the done view still shows
       }
       setState(() => _done = true);
     }

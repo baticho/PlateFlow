@@ -12,11 +12,16 @@ class AuthState extends ChangeNotifier {
   bool get initialized => _initialized;
 
   Future<void> hydrate() async {
-    try {
-      final token = await _storage.read(key: 'access_token');
-      _isLoggedIn = token != null;
-    } catch (_) {
-      _isLoggedIn = false;
+    // the keystore can be briefly unavailable right after the app starts: retry before treating it as logged out
+    for (var attempt = 0; attempt < 3; attempt++) {
+      try {
+        final token = await _storage.read(key: 'access_token');
+        _isLoggedIn = token != null;
+        break;
+      } catch (_) {
+        _isLoggedIn = false;
+        await Future.delayed(const Duration(milliseconds: 300));
+      }
     }
     _initialized = true;
     notifyListeners();

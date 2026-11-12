@@ -74,6 +74,12 @@ class MealPlanService {
     return response.data as Map<String, dynamic>;
   }
 
+  /// Cooked from the recipe page (no plan item known): the server marks the planned copy nearest to today.
+  Future<bool> markRecipeCooked(String recipeId) async {
+    final response = await _dio.post('/api/v1/meal-plans/cooked', data: {'recipe_id': recipeId});
+    return response.data['completed'] == true;
+  }
+
   Future<Map<String, dynamic>> markItemComplete(int planId, int itemId) async {
     final response = await _dio.patch('/api/v1/meal-plans/$planId/items/$itemId/complete');
     return response.data as Map<String, dynamic>;
